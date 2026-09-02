@@ -1,10 +1,13 @@
 <script setup>
+import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/stores/auth/sessionStore'
 
+const router = useRouter()
 const sessionStore = useSessionStore()
 
 async function signOut() {
   await sessionStore.logout()
+  await router.push({ name: 'sign-in' })
 }
 </script>
 

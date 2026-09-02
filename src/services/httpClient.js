@@ -16,6 +16,7 @@ export class HttpClientError extends Error {
 export const httpClient = axios.create({
   baseURL: apiBaseUrl,
   withCredentials: true,
+  withXSRFToken: true,
   headers: {
     Accept: 'application/json',
     'X-Requested-With': 'XMLHttpRequest',

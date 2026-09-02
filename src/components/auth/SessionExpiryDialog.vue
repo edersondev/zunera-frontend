@@ -1,7 +1,9 @@
 <script setup>
+import { useRouter } from 'vue-router'
 import { useSessionExpiry } from '@/composables/useSessionExpiry'
 import { useSessionStore } from '@/stores/auth/sessionStore'
 
+const router = useRouter()
 const sessionStore = useSessionStore()
 const expiry = useSessionExpiry(sessionStore)
 
@@ -11,6 +13,7 @@ async function continueSession() {
 
 async function signOut() {
   await sessionStore.logout()
+  await router.push({ name: 'sign-in' })
 }
 </script>
 
