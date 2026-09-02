@@ -1,11 +1,27 @@
-<script setup></script>
+<script setup>
+import { watch } from 'vue'
+import { useRouter } from 'vue-router'
+import SessionExpiryDialog from '@/components/auth/SessionExpiryDialog.vue'
+import { useSessionStore } from '@/stores/auth/sessionStore'
+import { useSessionExpiry } from '@/composables/useSessionExpiry'
+
+const router = useRouter()
+const sessionStore = useSessionStore()
+const expiry = useSessionExpiry(sessionStore)
+
+watch(expiry.isExpired, async (expired) => {
+  if (!expired || !sessionStore.isAuthenticated) {
+    return
+  }
+
+  sessionStore.clearSession()
+  await router.push({ name: 'sign-in', query: { expired: '1' } })
+})
+</script>
 
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
+  <RouterView />
+  <SessionExpiryDialog v-if="sessionStore.isAuthenticated" />
 </template>
 
 <style scoped></style>
