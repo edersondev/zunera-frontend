@@ -22,9 +22,14 @@ const emit = defineEmits(['archive', 'restore'])
 
 <template>
   <div v-loading="props.loading">
-    <p v-if="!props.accounts.length" class="empty-state">
-      {{ props.archived ? 'No archived accounts yet.' : 'No active accounts yet. Create your first account to get started.' }}
-    </p>
+    <ElEmpty
+      v-if="!props.accounts.length"
+      :description="
+        props.archived
+          ? 'No archived accounts yet.'
+          : 'No active accounts yet. Create your first account to get started.'
+      "
+    />
     <ul v-else class="account-list">
       <li v-for="account in props.accounts" :key="account.id" class="account-card">
         <div class="account-identity">
@@ -40,10 +45,21 @@ const emit = defineEmits(['archive', 'restore'])
           </p>
         </div>
         <p class="account-balance">{{ formatBRL(account.current_balance_centavos) }}</p>
-        <ElButton v-if="!props.archived" class="account-action" plain @click="emit('archive', account)">
+        <ElButton
+          v-if="!props.archived"
+          class="account-action"
+          plain
+          @click="emit('archive', account)"
+        >
           Archive
         </ElButton>
-        <ElButton v-else class="account-action" plain type="primary" @click="emit('restore', account)">
+        <ElButton
+          v-else
+          class="account-action"
+          plain
+          type="primary"
+          @click="emit('restore', account)"
+        >
           Restore
         </ElButton>
       </li>
@@ -92,12 +108,8 @@ const emit = defineEmits(['archive', 'restore'])
   font-variant-numeric: tabular-nums;
 }
 
-.empty-state {
-  padding: 24px;
-  border: 1px dashed var(--color-border-strong);
-  border-radius: var(--radius-lg);
-  color: var(--color-text-muted);
-  text-align: center;
+.account-action {
+  min-height: 44px;
 }
 
 @media (max-width: 640px) {

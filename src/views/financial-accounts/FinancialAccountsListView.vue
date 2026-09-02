@@ -55,26 +55,45 @@ async function confirmLifecycle() {
 
 <template>
   <div>
-    <PageHeader title="Financial accounts" description="Create and manage the accounts where your money is held." />
+    <PageHeader
+      title="Financial accounts"
+      description="Create and manage the accounts where your money is held."
+    />
 
-    <p v-if="successMessage" class="feedback feedback-success" role="status">{{ successMessage }}</p>
-    <p v-if="store.error" class="feedback feedback-error" role="alert">{{ store.error.message }}</p>
+    <ElAlert
+      v-if="successMessage"
+      class="feedback"
+      :title="successMessage"
+      type="success"
+      :closable="false"
+      show-icon
+    />
+    <ElAlert
+      v-if="store.error"
+      class="feedback"
+      :title="store.error.message"
+      type="error"
+      :closable="false"
+      show-icon
+    />
 
     <FinancialAccountSummary :summary="store.summary" />
 
-    <section class="content-section" aria-labelledby="create-title">
-      <h2 id="create-title">New account</h2>
-      <FinancialAccountForm ref="formRef" :submitting="store.creating" @submit="createAccount" />
-    </section>
+    <div class="accounts-workspace">
+      <section class="content-section content-section--create" aria-labelledby="create-title">
+        <h2 id="create-title">New account</h2>
+        <FinancialAccountForm ref="formRef" :submitting="store.creating" @submit="createAccount" />
+      </section>
 
-    <section class="content-section" aria-labelledby="active-title">
-      <h2 id="active-title">Active accounts</h2>
-      <FinancialAccountList
-        :accounts="store.accounts"
-        :loading="store.loading"
-        @archive="askArchive"
-      />
-    </section>
+      <section class="content-section content-section--accounts" aria-labelledby="active-title">
+        <h2 id="active-title">Active accounts</h2>
+        <FinancialAccountList
+          :accounts="store.accounts"
+          :loading="store.loading"
+          @archive="askArchive"
+        />
+      </section>
+    </div>
 
     <FinancialAccountLifecycleDialog
       v-model:visible="lifecycle.visible"
@@ -89,24 +108,16 @@ async function confirmLifecycle() {
 <style scoped>
 .feedback {
   margin-bottom: 16px;
-  padding: 12px 16px;
-  border-radius: var(--radius-md);
 }
 
-.feedback-success {
-  border: 1px solid var(--color-success);
-  color: var(--color-success);
-  background: var(--color-surface);
-}
-
-.feedback-error {
-  border: 1px solid var(--color-danger);
-  color: var(--color-danger);
-  background: var(--color-surface);
+.accounts-workspace {
+  display: grid;
+  gap: 24px;
+  margin-top: 24px;
 }
 
 .content-section {
-  margin-top: 24px;
+  min-width: 0;
 }
 
 .content-section h2 {
@@ -114,5 +125,19 @@ async function confirmLifecycle() {
   color: var(--color-text);
   font-size: 20px;
   line-height: 28px;
+}
+
+.content-section--create {
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+@media (min-width: 1024px) {
+  .accounts-workspace {
+    grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
+    align-items: start;
+  }
 }
 </style>

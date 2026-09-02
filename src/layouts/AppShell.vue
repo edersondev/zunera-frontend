@@ -1,27 +1,71 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, shallowRef } from 'vue'
 import { Folder, House, Wallet } from '@element-plus/icons-vue'
+import { useRoute, useRouter } from 'vue-router'
+import AppHeader from '@/components/layout/AppHeader.vue'
 import AppNavigation from '@/components/navigation/AppNavigation.vue'
+import { useSessionStore } from '@/stores/auth/sessionStore'
 
-const navigationItems = computed(() => [
-  { route: '/app', label: 'Home', icon: House },
-  { route: '/app/financial-accounts', label: 'Financial accounts', icon: Wallet },
-  { route: '/app/financial-accounts/archived', label: 'Archived accounts', icon: Folder },
-])
+const route = useRoute()
+const router = useRouter()
+const sessionStore = useSessionStore()
+const navigationOpen = shallowRef(false)
+
+const navigationItems = [
+  { routeName: 'protected-home', label: 'Home', icon: House },
+  { routeName: 'financial-accounts', label: 'Financial accounts', icon: Wallet },
+  { routeName: 'financial-accounts-archived', label: 'Archived accounts', icon: Folder },
+]
+
+const activeNavigationRoute = computed(() => {
+  if (route.name === 'financial-account-detail') {
+    return 'financial-accounts'
+  }
+
+  return route.name
+})
+
+async function navigate(routeName) {
+  navigationOpen.value = false
+  await router.push({ name: routeName })
+}
+
+async function signOut() {
+  await sessionStore.logout()
+  await router.push({ name: 'sign-in' })
+}
 </script>
 
 <template>
   <div class="app-shell">
     <a class="skip-link" href="#main-content">Skip to main content</a>
-    <header class="app-header">
-      <RouterLink class="brand" :to="{ name: 'protected-home' }">Zunera</RouterLink>
-    </header>
+    <AppHeader
+      :user="sessionStore.user"
+      @open-navigation="navigationOpen = true"
+      @sign-out="signOut"
+    />
     <div class="app-body">
-      <AppNavigation :items="navigationItems" />
+      <aside class="desktop-navigation">
+        <AppNavigation
+          :items="navigationItems"
+          :active-route="activeNavigationRoute"
+          @navigate="navigate"
+        />
+      </aside>
       <main id="main-content" class="app-main" tabindex="-1">
         <RouterView />
       </main>
     </div>
+    <ElDrawer v-model="navigationOpen" direction="ltr" size="min(86vw, 320px)" :with-header="false">
+      <div class="drawer-navigation">
+        <p class="drawer-title">Navigation</p>
+        <AppNavigation
+          :items="navigationItems"
+          :active-route="activeNavigationRoute"
+          @navigate="navigate"
+        />
+      </div>
+    </ElDrawer>
   </div>
 </template>
 
@@ -48,26 +92,16 @@ const navigationItems = computed(() => [
   top: 12px;
 }
 
-.app-header {
-  height: 64px;
-  display: flex;
-  align-items: center;
-  padding: 0 24px;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
-}
-
-.brand {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--color-action-primary);
-  text-decoration: none;
-}
-
 .app-body {
   display: grid;
   grid-template-columns: 256px minmax(0, 1fr);
   min-height: calc(100vh - 64px);
+}
+
+.desktop-navigation {
+  min-width: 0;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 
 .app-main {
@@ -76,15 +110,34 @@ const navigationItems = computed(() => [
   outline: none;
 }
 
-.app-main:focus {
-  outline: none;
+.drawer-navigation {
+  padding: 16px;
 }
 
-@media (max-width: 640px) {
+.drawer-title {
+  margin: 0 0 12px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1023px) {
   .app-body {
     grid-template-columns: 1fr;
   }
 
+  .desktop-navigation {
+    display: none;
+  }
+
+  .app-main {
+    padding: 24px;
+  }
+}
+
+@media (max-width: 639px) {
   .app-main {
     padding: 24px 16px;
   }

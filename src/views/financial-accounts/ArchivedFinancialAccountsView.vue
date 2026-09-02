@@ -37,10 +37,27 @@ async function confirmRestore() {
 
 <template>
   <div>
-    <PageHeader title="Archived accounts" description="Historical accounts stay available here until you restore them." />
+    <PageHeader
+      title="Archived accounts"
+      description="Historical accounts stay available here until you restore them."
+    />
 
-    <p v-if="successMessage" class="feedback feedback-success" role="status">{{ successMessage }}</p>
-    <p v-if="store.error" class="feedback feedback-error" role="alert">{{ store.error.message }}</p>
+    <ElAlert
+      v-if="successMessage"
+      class="feedback"
+      :title="successMessage"
+      type="success"
+      :closable="false"
+      show-icon
+    />
+    <ElAlert
+      v-if="store.error"
+      class="feedback"
+      :title="store.error.message"
+      type="error"
+      :closable="false"
+      show-icon
+    />
 
     <FinancialAccountList
       :accounts="store.archivedAccounts"
@@ -62,19 +79,5 @@ async function confirmRestore() {
 <style scoped>
 .feedback {
   margin-bottom: 16px;
-  padding: 12px 16px;
-  border-radius: var(--radius-md);
-}
-
-.feedback-success {
-  border: 1px solid var(--color-success);
-  color: var(--color-success);
-  background: var(--color-surface);
-}
-
-.feedback-error {
-  border: 1px solid var(--color-danger);
-  color: var(--color-danger);
-  background: var(--color-surface);
 }
 </style>

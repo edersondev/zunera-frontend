@@ -4,7 +4,11 @@ import { useRoute } from 'vue-router'
 import FinancialAccountForm from '@/components/financial-accounts/FinancialAccountForm.vue'
 import FinancialAccountLifecycleDialog from '@/components/financial-accounts/FinancialAccountLifecycleDialog.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
-import { ACCOUNT_TYPE_LABELS, COLOR_LABELS, ICON_LABELS } from '@/utils/financial-accounts/accountOptions'
+import {
+  ACCOUNT_TYPE_LABELS,
+  COLOR_LABELS,
+  ICON_LABELS,
+} from '@/utils/financial-accounts/accountOptions'
 import { formatBRL } from '@/utils/financial-accounts/currency'
 import { useFinancialAccountStore } from '@/stores/financial-accounts/financialAccountStore'
 
@@ -53,7 +57,8 @@ async function confirmLifecycle() {
       await store.restore(account.value)
     }
     lifecycle.visible = false
-    successMessage.value = lifecycle.action === 'archive' ? 'Financial account archived.' : 'Financial account restored.'
+    successMessage.value =
+      lifecycle.action === 'archive' ? 'Financial account archived.' : 'Financial account restored.'
   } catch {
     // Store keeps the server error for the alert.
   }
@@ -62,15 +67,34 @@ async function confirmLifecycle() {
 
 <template>
   <div v-if="account" v-loading="store.loading">
-    <PageHeader :title="account.name" :description="`${ACCOUNT_TYPE_LABELS[account.account_type] ?? account.account_type} · ${account.status}`">
+    <PageHeader
+      :title="account.name"
+      :description="`${ACCOUNT_TYPE_LABELS[account.account_type] ?? account.account_type} · ${account.status}`"
+    >
       <template #actions>
-        <ElButton v-if="account.status === 'active'" @click="askLifecycle('archive')">Archive account</ElButton>
+        <ElButton v-if="account.status === 'active'" @click="askLifecycle('archive')"
+          >Archive account</ElButton
+        >
         <ElButton v-else type="primary" @click="askLifecycle('restore')">Restore account</ElButton>
       </template>
     </PageHeader>
 
-    <p v-if="successMessage" class="feedback feedback-success" role="status">{{ successMessage }}</p>
-    <p v-if="store.error" class="feedback feedback-error" role="alert">{{ store.error.message }}</p>
+    <ElAlert
+      v-if="successMessage"
+      class="feedback"
+      :title="successMessage"
+      type="success"
+      :closable="false"
+      show-icon
+    />
+    <ElAlert
+      v-if="store.error"
+      class="feedback"
+      :title="store.error.message"
+      type="error"
+      :closable="false"
+      show-icon
+    />
 
     <section class="detail-panel" aria-labelledby="details-title">
       <h2 id="details-title">Account details</h2>
@@ -104,7 +128,11 @@ async function confirmLifecycle() {
 
     <section class="content-section" aria-labelledby="edit-title">
       <h2 id="edit-title">Edit account</h2>
-      <FinancialAccountForm :account="account" :submitting="store.updating" @submit="updateAccount" />
+      <FinancialAccountForm
+        :account="account"
+        :submitting="store.updating"
+        @submit="updateAccount"
+      />
     </section>
 
     <FinancialAccountLifecycleDialog
@@ -122,24 +150,10 @@ async function confirmLifecycle() {
 <style scoped>
 .feedback {
   margin-bottom: 16px;
-  padding: 12px 16px;
-  border-radius: var(--radius-md);
-}
-
-.feedback-success {
-  border: 1px solid var(--color-success);
-  color: var(--color-success);
-  background: var(--color-surface);
-}
-
-.feedback-error {
-  border: 1px solid var(--color-danger);
-  color: var(--color-danger);
-  background: var(--color-surface);
 }
 
 .detail-panel {
-  padding: 20px;
+  padding: 24px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
@@ -179,7 +193,7 @@ async function confirmLifecycle() {
 
 .content-section {
   margin-top: 24px;
-  padding: 20px;
+  padding: 24px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);

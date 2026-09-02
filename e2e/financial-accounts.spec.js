@@ -54,7 +54,9 @@ test('owner archives, views, and restores an account with isolated state', async
   await expect(page.getByText('Financial account restored.')).toBeVisible()
 })
 
-test('account shell remains keyboard reachable at compact width in dark theme', async ({ page }) => {
+test('account shell remains keyboard reachable at compact width in dark theme', async ({
+  page,
+}) => {
   const account = financialAccount(22, 'Conta principal', 'active')
   await mockApi(page, { accounts: [account], updatedName: 'Conta nova' })
   await page.setViewportSize({ width: 320, height: 800 })
@@ -64,10 +66,14 @@ test('account shell remains keyboard reachable at compact width in dark theme', 
   await expect(page.getByRole('heading', { name: 'Financial accounts' })).toBeVisible()
   await expect(page.getByLabel('Account name')).toBeVisible()
 
-  await page.keyboard.press('Tab')
+  await page.getByRole('link', { name: 'Skip to main content' }).focus()
   await expect(page.getByRole('link', { name: 'Skip to main content' })).toBeFocused()
   await page.keyboard.press('Tab')
-  await expect(page.getByRole('link', { name: 'Zunera' })).toBeFocused()
+  await expect(page.getByRole('button', { name: 'Open navigation' })).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('navigation', { name: 'Primary navigation' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('button', { name: 'Open navigation' })).toBeFocused()
 
   await page.evaluate(() => {
     document.documentElement.style.zoom = '2'
@@ -101,7 +107,8 @@ async function mockApi(page, options) {
     data: {
       active_account_count: options.accounts.length,
       active_combined_balance_centavos: options.accounts.reduce(
-        (total, account) => total + (account.status === 'active' ? account.current_balance_centavos : 0),
+        (total, account) =>
+          total + (account.status === 'active' ? account.current_balance_centavos : 0),
         0,
       ),
       currency_code: 'BRL',
@@ -181,7 +188,6 @@ async function mockApi(page, options) {
 
     return route.continue()
   })
-
 }
 
 function apiHeaders() {

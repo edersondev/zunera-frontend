@@ -33,7 +33,12 @@ const initialBalanceLocked = ref(false)
 const rules = {
   name: [
     { required: true, message: 'Enter an account name.', trigger: 'blur' },
-    { min: 1, max: 120, message: 'Account name must be between 1 and 120 characters.', trigger: 'blur' },
+    {
+      min: 1,
+      max: 120,
+      message: 'Account name must be between 1 and 120 characters.',
+      trigger: 'blur',
+    },
   ],
   accountType: [{ required: true, message: 'Choose an account type.', trigger: 'change' }],
 }
@@ -64,6 +69,21 @@ function resetCreateForm() {
   form.icon = 'circle'
   initialBalance.value = 0
   initialBalanceLocked.value = false
+}
+
+function formatBalance(value) {
+  if (typeof value !== 'number') {
+    return ''
+  }
+
+  return value.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+}
+
+function parseBalance(value) {
+  return parseBRLToCentavos(value) / 100
 }
 
 async function submit() {
@@ -135,8 +155,12 @@ defineExpose({ resetCreateForm })
         :disabled="initialBalanceLocked"
         :min="-9999999999.99"
         :max="9999999999.99"
+        :formatter="formatBalance"
+        :parser="parseBalance"
         placeholder="0,00"
-      />
+      >
+        <template #prefix>R$</template>
+      </ElInputNumber>
       <p v-if="initialBalanceLocked" class="field-help">
         The opening balance is locked because this account already has financial movements.
       </p>
@@ -146,13 +170,23 @@ defineExpose({ resetCreateForm })
     <div class="form-row">
       <ElFormItem label="Color" prop="color">
         <ElSelect v-model="form.color" name="color" aria-label="Color">
-          <ElOption v-for="color in COLOR_OPTIONS" :key="color.value" :label="color.label" :value="color.value" />
+          <ElOption
+            v-for="color in COLOR_OPTIONS"
+            :key="color.value"
+            :label="color.label"
+            :value="color.value"
+          />
         </ElSelect>
       </ElFormItem>
 
       <ElFormItem label="Icon" prop="icon">
         <ElSelect v-model="form.icon" name="icon" aria-label="Icon">
-          <ElOption v-for="icon in ICON_OPTIONS" :key="icon.value" :label="icon.label" :value="icon.value" />
+          <ElOption
+            v-for="icon in ICON_OPTIONS"
+            :key="icon.value"
+            :label="icon.label"
+            :value="icon.value"
+          />
         </ElSelect>
       </ElFormItem>
     </div>
