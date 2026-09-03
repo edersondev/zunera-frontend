@@ -1,5 +1,5 @@
 <script setup>
-import { computed, shallowRef } from 'vue'
+import { shallowRef } from 'vue'
 import { Folder, House, Wallet } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
@@ -16,14 +16,6 @@ const navigationItems = [
   { routeName: 'financial-accounts', label: 'Financial accounts', icon: Wallet },
   { routeName: 'financial-accounts-archived', label: 'Archived accounts', icon: Folder },
 ]
-
-const activeNavigationRoute = computed(() => {
-  if (route.name === 'financial-account-detail') {
-    return 'financial-accounts'
-  }
-
-  return route.name
-})
 
 async function navigate(routeName) {
   navigationOpen.value = false
@@ -46,11 +38,7 @@ async function signOut() {
     />
     <div class="app-body">
       <aside class="desktop-navigation">
-        <AppNavigation
-          :items="navigationItems"
-          :active-route="activeNavigationRoute"
-          @navigate="navigate"
-        />
+        <AppNavigation :items="navigationItems" :active-route="route.name" @navigate="navigate" />
       </aside>
       <main id="main-content" class="app-main" tabindex="-1">
         <RouterView />
@@ -59,11 +47,7 @@ async function signOut() {
     <ElDrawer v-model="navigationOpen" direction="ltr" size="min(86vw, 320px)" :with-header="false">
       <div class="drawer-navigation">
         <p class="drawer-title">Navigation</p>
-        <AppNavigation
-          :items="navigationItems"
-          :active-route="activeNavigationRoute"
-          @navigate="navigate"
-        />
+        <AppNavigation :items="navigationItems" :active-route="route.name" @navigate="navigate" />
       </div>
     </ElDrawer>
   </div>

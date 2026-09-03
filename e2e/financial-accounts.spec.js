@@ -1,38 +1,74 @@
 import { expect, test } from '@playwright/test'
 
 test('authenticated user creates and sees an active account', async ({ page }) => {
-  await mockApi(page, { accounts: [], createdName: 'Conta principal' })
+  let createPayload = null
+  await mockApi(page, {
+    accounts: [],
+    createdName: 'Conta principal',
+    onCreate: (payload) => {
+      createPayload = payload
+    },
+  })
+  await page.emulateMedia({ colorScheme: 'dark' })
 
   await page.goto('/app/financial-accounts')
   await expect(page.getByRole('heading', { name: 'Financial accounts' })).toBeVisible()
   await expect(page.getByText('No active accounts yet')).toBeVisible()
+  const newAccountButton = page.getByRole('button', { name: 'New account' })
+  await expect(newAccountButton).toHaveCSS('background-color', 'rgb(45, 212, 191)')
+  await expect(newAccountButton).toHaveCSS('color', 'rgb(4, 47, 46)')
+  await newAccountButton.hover()
+  await expect(newAccountButton).toHaveCSS('background-color', 'rgb(94, 234, 212)')
 
-  await page.getByLabel('Account name').fill('Conta principal')
-  await page.getByLabel('Financial institution (optional)').fill('Nubank')
-  await page.getByLabel('Opening balance').fill('1250.50')
-  await page.getByRole('button', { name: 'Create account' }).click()
+  await newAccountButton.click()
+  const createDialog = page.getByRole('dialog', { name: 'New account' })
+  await createDialog.getByRole('button', { name: 'Cancel' }).click()
+  await expect(createDialog).not.toBeVisible()
+
+  await page.getByRole('button', { name: 'New account' }).click()
+  await createDialog.getByLabel('Account name').fill('Conta principal')
+  await createDialog.getByLabel('Financial institution (optional)').fill('Nubank')
+  const openingBalance = createDialog.getByLabel('Opening balance')
+  await openingBalance.pressSequentially('2032')
+  await expect(openingBalance).toHaveValue('20,32')
+  await createDialog.getByRole('button', { name: 'Create account' }).click()
 
   await expect(page.getByText('Financial account created.')).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Conta principal' })).toBeVisible()
-  await expect(page.getByText('R$ 1.250,50').first()).toBeVisible()
+  await expect(page.locator('.feedback')).toHaveCSS('background-color', 'rgb(21, 58, 39)')
+  await expect(page.getByRole('button', { name: 'Conta principal' })).toBeVisible()
+  await expect(page.getByText('R$ 20,32').first()).toBeVisible()
+  expect(createPayload.initial_balance_centavos).toBe(2_032)
+
+  await page.getByRole('button', { name: 'Archive' }).click()
+  const archiveDialog = page.getByRole('dialog', { name: 'Archive account' })
+  const archiveButton = archiveDialog.getByRole('button', { name: 'Archive account' })
+  await expect(archiveButton).toHaveCSS('background-color', 'rgb(251, 191, 36)')
+  await expect(archiveButton).toHaveCSS('color', 'rgb(67, 20, 7)')
+  await archiveButton.hover()
+  await expect(archiveButton).toHaveCSS('background-color', 'rgb(252, 211, 77)')
+  await archiveDialog.getByRole('button', { name: 'Cancel' }).click()
 })
 
-test('owner opens account details and edits the name', async ({ page }) => {
+test('owner opens the edit dialog from the active account list and updates the name', async ({
+  page,
+}) => {
   const account = financialAccount(7, 'Conta principal', 'active')
   await mockApi(page, { accounts: [account], updatedName: 'Conta nova' })
 
-  await page.goto('/app/financial-accounts/7')
-  await expect(page.getByRole('heading', { name: 'Conta principal' })).toBeVisible()
+  await page.goto('/app/financial-accounts')
+  await expect(page.getByRole('button', { name: 'Conta principal' })).toBeVisible()
   await expect(page.getByText('Nubank')).toBeVisible()
 
-  await page.getByLabel('Account name').fill('Conta nova')
-  await page.getByRole('button', { name: 'Save changes' }).click()
+  await page.getByRole('button', { name: 'Conta principal' }).click()
+  const editDialog = page.getByRole('dialog', { name: 'Edit account' })
+  await editDialog.getByLabel('Account name').fill('Conta nova')
+  await editDialog.getByRole('button', { name: 'Save changes' }).click()
 
   await expect(page.getByText('Account details saved.')).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Conta nova' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Conta nova' })).toBeVisible()
 })
 
-test('owner archives, views, and restores an account with isolated state', async ({ page }) => {
+test('owner archives and restores an account with isolated state', async ({ page }) => {
   const active = financialAccount(11, 'Conta corrente', 'active')
   const archived = { ...active, status: 'archived', archived_at: '2026-09-02T15:00:00Z' }
   await mockApi(page, { accounts: [active, archived], archived, activeAccount: active })
@@ -46,7 +82,7 @@ test('owner archives, views, and restores an account with isolated state', async
   await expect(page.getByText('Financial account archived.')).toBeVisible()
 
   await page.goto('/app/financial-accounts/archived')
-  await expect(page.getByRole('link', { name: 'Conta corrente' })).toBeVisible()
+  await expect(page.getByText('Conta corrente', { exact: true })).toBeVisible()
 
   await page.getByRole('button', { name: 'Restore' }).click()
   const restoreDialog = page.getByRole('dialog')
@@ -64,7 +100,6 @@ test('account shell remains keyboard reachable at compact width in dark theme', 
 
   await page.goto('/app/financial-accounts')
   await expect(page.getByRole('heading', { name: 'Financial accounts' })).toBeVisible()
-  await expect(page.getByLabel('Account name')).toBeVisible()
 
   await page.getByRole('link', { name: 'Skip to main content' }).focus()
   await expect(page.getByRole('link', { name: 'Skip to main content' })).toBeFocused()
@@ -79,7 +114,10 @@ test('account shell remains keyboard reachable at compact width in dark theme', 
     document.documentElement.style.zoom = '2'
   })
   await expect(page.getByRole('heading', { name: 'Financial accounts' })).toBeVisible()
-  await expect(page.getByLabel('Account name')).toBeVisible()
+  await page.getByRole('button', { name: 'New account' }).click()
+  await expect(
+    page.getByRole('dialog', { name: 'New account' }).getByLabel('Account name'),
+  ).toBeVisible()
 })
 
 function financialAccount(id, name, status, overrides = {}) {
@@ -179,8 +217,11 @@ async function mockApi(page, options) {
 
     if (url.pathname.endsWith('/financial-accounts') && request.method() === 'POST') {
       const payload = request.postDataJSON()
+      options.onCreate?.(payload)
       const account = financialAccount(20, payload.name, 'active', {
         institution_name: payload.institution_name,
+        initial_balance_centavos: payload.initial_balance_centavos,
+        current_balance_centavos: payload.initial_balance_centavos,
       })
       options.accounts.push(account)
       return route.fulfill({ status: 201, json: { data: account }, headers: apiHeaders() })

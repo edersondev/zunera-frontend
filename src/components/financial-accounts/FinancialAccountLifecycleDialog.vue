@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { Close, FolderDelete, RefreshLeft } from '@element-plus/icons-vue'
 
 const props = defineProps({
   visible: {
@@ -24,7 +25,10 @@ const props = defineProps({
 const emit = defineEmits(['update:visible', 'confirm', 'cancel'])
 
 const title = computed(() => (props.action === 'archive' ? 'Archive account' : 'Restore account'))
-const actionLabel = computed(() => (props.action === 'archive' ? 'Archive account' : 'Restore account'))
+const actionLabel = computed(() =>
+  props.action === 'archive' ? 'Archive account' : 'Restore account',
+)
+const actionIcon = computed(() => (props.action === 'archive' ? FolderDelete : RefreshLeft))
 const description = computed(() => {
   if (!props.account) {
     return ''
@@ -46,8 +50,11 @@ const description = computed(() => {
   >
     <p v-if="description" class="dialog-description">{{ description }}</p>
     <template #footer>
-      <ElButton @click="emit('update:visible', false)">Cancel</ElButton>
+      <ElButton :icon="Close" type="danger" @click="emit('update:visible', false)">
+        Cancel
+      </ElButton>
       <ElButton
+        :icon="actionIcon"
         :type="props.action === 'archive' ? 'warning' : 'primary'"
         :loading="props.loading"
         @click="emit('confirm')"

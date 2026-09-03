@@ -47,7 +47,9 @@ describe('FinancialAccountsListView', () => {
     const wrapper = mount(FinancialAccountsListView, { global: stubs() })
     await flushPromises()
 
-    await wrapper.get('[data-test="submit-account"]').trigger('click')
+    await wrapper.get('[data-test="open-create-account"]').trigger('click')
+    expect(wrapper.get('[data-test="create-account"]').text()).toBe('Create account')
+    await wrapper.get('#create-financial-account-form').trigger('submit')
     await flushPromises()
 
     expect(store.create).toHaveBeenCalledWith({ name: 'Conta principal' })
@@ -55,15 +57,31 @@ describe('FinancialAccountsListView', () => {
   })
 
   it('shows server errors returned by create', async () => {
-    store.create.mockRejectedValue(Object.assign(new Error('Conflict.'), { code: 'account_name_conflict' }))
+    store.create.mockRejectedValue(
+      Object.assign(new Error('Conflict.'), { code: 'account_name_conflict' }),
+    )
     store.error = { message: 'An active account with this name already exists.' }
     const wrapper = mount(FinancialAccountsListView, { global: stubs() })
     await flushPromises()
 
-    await wrapper.get('[data-test="submit-account"]').trigger('click')
+    await wrapper.get('[data-test="open-create-account"]').trigger('click')
+    await wrapper.get('#create-financial-account-form').trigger('submit')
     await flushPromises()
 
     expect(wrapper.text()).toContain('An active account with this name already exists.')
+  })
+
+  it('opens an edit dialog from an active account and saves changes', async () => {
+    store.update.mockResolvedValue({ id: 1, name: 'Conta nova' })
+    const wrapper = mount(FinancialAccountsListView, { global: stubs() })
+    await flushPromises()
+
+    await wrapper.get('[data-test="edit-account"]').trigger('click')
+    await wrapper.get('#edit-financial-account-form').trigger('submit')
+    await flushPromises()
+
+    expect(store.update).toHaveBeenCalledWith(1, { name: 'Conta principal' })
+    expect(wrapper.text()).toContain('Account details saved.')
   })
 })
 
@@ -72,15 +90,27 @@ function stubs() {
     stubs: {
       PageHeader: {
         props: ['title', 'description'],
-        template: '<header><h1>{{ title }}</h1><p>{{ description }}</p><slot name="actions" /></header>',
+        template:
+          '<header><h1>{{ title }}</h1><p>{{ description }}</p><slot name="actions" /></header>',
       },
       FinancialAccountSummary: { template: '<div />' },
-      FinancialAccountList: { template: '<div />' },
+      FinancialAccountList: {
+        emits: ['edit'],
+        template:
+          '<button data-test="edit-account" @click="$emit(\'edit\', { id: 1, name: \'Conta principal\' })">Conta principal</button>',
+      },
       FinancialAccountForm: {
+        props: ['formId'],
         emits: ['submit'],
-        template: '<button data-test="submit-account" @click="$emit(\'submit\', { name: \'Conta principal\' })">Create</button>',
+        template:
+          '<form :id="formId" @submit.prevent="$emit(\'submit\', { name: \'Conta principal\' })"></form>',
       },
       FinancialAccountLifecycleDialog: { template: '<div />' },
+      ElDialog: {
+        props: ['modelValue', 'title'],
+        template:
+          '<section v-if="modelValue" role="dialog"><h2>{{ title }}</h2><slot /><footer><slot name="footer" /></footer></section>',
+      },
     },
     plugins: [ElementPlus],
   }

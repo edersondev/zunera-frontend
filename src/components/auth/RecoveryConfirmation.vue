@@ -14,7 +14,6 @@ defineProps({
     title="Check your email"
     description="If an account exists for that email, recovery instructions will arrive shortly."
     show-icon
-    :closable="false"
   />
   <p class="confirmation-email">{{ email }}</p>
   <RouterLink class="auth-link" :to="{ name: 'sign-in' }">Return to sign in</RouterLink>

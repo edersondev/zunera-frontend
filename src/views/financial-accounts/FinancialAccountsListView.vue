@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, reactive, shallowRef } from 'vue'
+import { Check, CirclePlus, Close, Edit, Plus } from '@element-plus/icons-vue'
 import FinancialAccountForm from '@/components/financial-accounts/FinancialAccountForm.vue'
 import FinancialAccountLifecycleDialog from '@/components/financial-accounts/FinancialAccountLifecycleDialog.vue'
 import FinancialAccountList from '@/components/financial-accounts/FinancialAccountList.vue'
@@ -9,6 +10,9 @@ import { useFinancialAccountStore } from '@/stores/financial-accounts/financialA
 
 const store = useFinancialAccountStore()
 const formRef = shallowRef(null)
+const createDialogVisible = shallowRef(false)
+const editDialogVisible = shallowRef(false)
+const editingAccount = shallowRef(null)
 const successMessage = shallowRef('')
 const lifecycle = reactive({
   visible: false,
@@ -28,10 +32,48 @@ async function createAccount(payload) {
     if (typeof formRef.value?.resetCreateForm === 'function') {
       formRef.value.resetCreateForm()
     }
+    createDialogVisible.value = false
     successMessage.value = 'Financial account created.'
   } catch {
     // Store keeps the server error for the alert.
   }
+}
+
+function openCreateDialog() {
+  successMessage.value = ''
+  createDialogVisible.value = true
+}
+
+function closeCreateDialog() {
+  createDialogVisible.value = false
+}
+
+async function updateAccount(payload) {
+  if (!editingAccount.value) {
+    return
+  }
+
+  successMessage.value = ''
+
+  try {
+    await store.update(editingAccount.value.id, payload)
+    editDialogVisible.value = false
+    editingAccount.value = null
+    successMessage.value = 'Account details saved.'
+  } catch {
+    // Store keeps the server error for the alert.
+  }
+}
+
+function openEditDialog(account) {
+  successMessage.value = ''
+  editingAccount.value = account
+  editDialogVisible.value = true
+}
+
+function closeEditDialog() {
+  editDialogVisible.value = false
+  editingAccount.value = null
 }
 
 function askArchive(account) {
@@ -58,14 +100,24 @@ async function confirmLifecycle() {
     <PageHeader
       title="Financial accounts"
       description="Create and manage the accounts where your money is held."
-    />
+    >
+      <template #actions>
+        <ElButton
+          data-test="open-create-account"
+          type="primary"
+          :icon="Plus"
+          @click="openCreateDialog"
+        >
+          New account
+        </ElButton>
+      </template>
+    </PageHeader>
 
     <ElAlert
       v-if="successMessage"
       class="feedback"
       :title="successMessage"
       type="success"
-      :closable="false"
       show-icon
     />
     <ElAlert
@@ -73,27 +125,90 @@ async function confirmLifecycle() {
       class="feedback"
       :title="store.error.message"
       type="error"
-      :closable="false"
       show-icon
     />
 
     <FinancialAccountSummary :summary="store.summary" />
 
-    <div class="accounts-workspace">
-      <section class="content-section content-section--create" aria-labelledby="create-title">
-        <h2 id="create-title">New account</h2>
-        <FinancialAccountForm ref="formRef" :submitting="store.creating" @submit="createAccount" />
-      </section>
+    <section class="content-section" aria-labelledby="active-title">
+      <h2 id="active-title">Active accounts</h2>
+      <FinancialAccountList
+        :accounts="store.accounts"
+        editable
+        :loading="store.loading"
+        @archive="askArchive"
+        @edit="openEditDialog"
+      />
+    </section>
 
-      <section class="content-section content-section--accounts" aria-labelledby="active-title">
-        <h2 id="active-title">Active accounts</h2>
-        <FinancialAccountList
-          :accounts="store.accounts"
-          :loading="store.loading"
-          @archive="askArchive"
-        />
-      </section>
-    </div>
+    <ElDialog
+      v-model="createDialogVisible"
+      title="New account"
+      width="min(92vw, 640px)"
+      :close-on-click-modal="!store.creating"
+      :close-on-press-escape="!store.creating"
+      :show-close="!store.creating"
+      destroy-on-close
+    >
+      <FinancialAccountForm
+        ref="formRef"
+        form-id="create-financial-account-form"
+        :show-submit="false"
+        :submitting="store.creating"
+        @submit="createAccount"
+      />
+
+      <template #footer>
+        <ElButton :icon="Close" :disabled="store.creating" type="danger" @click="closeCreateDialog">
+          Cancel
+        </ElButton>
+        <ElButton
+          data-test="create-account"
+          :icon="CirclePlus"
+          native-type="submit"
+          type="primary"
+          form="create-financial-account-form"
+          :loading="store.creating"
+        >
+          Create account
+        </ElButton>
+      </template>
+    </ElDialog>
+
+    <ElDialog
+      v-model="editDialogVisible"
+      title="Edit account"
+      width="min(92vw, 640px)"
+      :close-on-click-modal="!store.updating"
+      :close-on-press-escape="!store.updating"
+      :show-close="!store.updating"
+      destroy-on-close
+    >
+      <FinancialAccountForm
+        v-if="editingAccount"
+        form-id="edit-financial-account-form"
+        :account="editingAccount"
+        :show-submit="false"
+        :submitting="store.updating"
+        @submit="updateAccount"
+      />
+
+      <template #footer>
+        <ElButton :icon="Close" :disabled="store.updating" type="danger" @click="closeEditDialog">
+          Cancel
+        </ElButton>
+        <ElButton
+          data-test="save-account"
+          :icon="Check"
+          native-type="submit"
+          type="primary"
+          form="edit-financial-account-form"
+          :loading="store.updating"
+        >
+          Save changes
+        </ElButton>
+      </template>
+    </ElDialog>
 
     <FinancialAccountLifecycleDialog
       v-model:visible="lifecycle.visible"
@@ -110,14 +225,8 @@ async function confirmLifecycle() {
   margin-bottom: 16px;
 }
 
-.accounts-workspace {
-  display: grid;
-  gap: 24px;
-  margin-top: 24px;
-}
-
 .content-section {
-  min-width: 0;
+  margin-top: 24px;
 }
 
 .content-section h2 {
@@ -125,19 +234,5 @@ async function confirmLifecycle() {
   color: var(--color-text);
   font-size: 20px;
   line-height: 28px;
-}
-
-.content-section--create {
-  padding: 24px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
-}
-
-@media (min-width: 1024px) {
-  .accounts-workspace {
-    grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
-    align-items: start;
-  }
 }
 </style>

@@ -1,5 +1,7 @@
 <script setup>
 import { reactive, ref, shallowRef, watch } from 'vue'
+import { vMaska } from 'maska/vue'
+import { Check, CirclePlus } from '@element-plus/icons-vue'
 import {
   ACCOUNT_TYPES,
   COLOR_OPTIONS,
@@ -16,11 +18,27 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  formId: {
+    type: String,
+    default: undefined,
+  },
+  showSubmit: {
+    type: Boolean,
+    default: true,
+  },
 })
 
 const emit = defineEmits(['submit'])
 const formRef = shallowRef(null)
-const initialBalance = ref(0)
+const initialBalance = ref('')
+const balanceMask = {
+  number: {
+    locale: 'pt-BR',
+    fraction: 2,
+    unsigned: false,
+  },
+  preProcess: normalizeBalanceInput,
+}
 const form = reactive({
   name: '',
   accountType: 'checking',
@@ -55,7 +73,7 @@ watch(
     form.institutionName = account.institution_name ?? ''
     form.color = account.color ?? 'teal'
     form.icon = account.icon ?? 'circle'
-    initialBalance.value = account.initial_balance_centavos / 100
+    initialBalance.value = formatBalance(account.initial_balance_centavos)
     initialBalanceLocked.value = Boolean(account.has_financial_movements)
   },
   { immediate: true },
@@ -67,23 +85,28 @@ function resetCreateForm() {
   form.institutionName = ''
   form.color = 'teal'
   form.icon = 'circle'
-  initialBalance.value = 0
+  initialBalance.value = ''
   initialBalanceLocked.value = false
 }
 
-function formatBalance(value) {
-  if (typeof value !== 'number') {
-    return ''
-  }
-
-  return value.toLocaleString('pt-BR', {
+function formatBalance(centavos) {
+  return (Number(centavos) / 100).toLocaleString('pt-BR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
 }
 
-function parseBalance(value) {
-  return parseBRLToCentavos(value) / 100
+function normalizeBalanceInput(value) {
+  const raw = String(value)
+  const negative = raw.startsWith('-')
+  const digits = raw.replace(/\D/g, '')
+
+  if (!digits) {
+    return negative ? '-' : ''
+  }
+
+  const padded = digits.padStart(3, '0')
+  return `${negative ? '-' : ''}${padded.slice(0, -2)},${padded.slice(-2)}`
 }
 
 async function submit() {
@@ -115,7 +138,14 @@ defineExpose({ resetCreateForm })
 </script>
 
 <template>
-  <ElForm ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent="submit">
+  <ElForm
+    :id="props.formId"
+    ref="formRef"
+    :model="form"
+    :rules="rules"
+    label-position="top"
+    @submit.prevent="submit"
+  >
     <ElFormItem label="Account name" prop="name">
       <ElInput
         v-model="form.name"
@@ -146,21 +176,17 @@ defineExpose({ resetCreateForm })
     </ElFormItem>
 
     <ElFormItem label="Opening balance" required>
-      <ElInputNumber
+      <ElInput
         v-model="initialBalance"
+        v-maska="balanceMask"
         name="opening-balance"
-        :controls="false"
-        :precision="2"
-        :step="0.01"
+        inputmode="decimal"
+        autocomplete="off"
         :disabled="initialBalanceLocked"
-        :min="-9999999999.99"
-        :max="9999999999.99"
-        :formatter="formatBalance"
-        :parser="parseBalance"
         placeholder="0,00"
       >
-        <template #prefix>R$</template>
-      </ElInputNumber>
+        <template #prefix><span class="currency-prefix">R$</span></template>
+      </ElInput>
       <p v-if="initialBalanceLocked" class="field-help">
         The opening balance is locked because this account already has financial movements.
       </p>
@@ -191,7 +217,14 @@ defineExpose({ resetCreateForm })
       </ElFormItem>
     </div>
 
-    <ElButton class="form-submit" native-type="submit" type="primary" :loading="props.submitting">
+    <ElButton
+      v-if="props.showSubmit"
+      class="form-submit"
+      :icon="props.account ? Check : CirclePlus"
+      native-type="submit"
+      type="primary"
+      :loading="props.submitting"
+    >
       {{ props.account ? 'Save changes' : 'Create account' }}
     </ElButton>
   </ElForm>
@@ -210,6 +243,10 @@ defineExpose({ resetCreateForm })
   color: var(--color-text-muted);
   font-size: 12px;
   line-height: 16px;
+}
+
+.currency-prefix {
+  margin-right: 4px;
 }
 
 .form-submit {

@@ -47,7 +47,6 @@ async function confirmRestore() {
       class="feedback"
       :title="successMessage"
       type="success"
-      :closable="false"
       show-icon
     />
     <ElAlert
@@ -55,7 +54,6 @@ async function confirmRestore() {
       class="feedback"
       :title="store.error.message"
       type="error"
-      :closable="false"
       show-icon
     />
 

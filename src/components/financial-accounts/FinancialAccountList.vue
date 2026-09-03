@@ -1,4 +1,5 @@
 <script setup>
+import { Edit, FolderDelete, RefreshLeft } from '@element-plus/icons-vue'
 import { ACCOUNT_TYPE_LABELS } from '@/utils/financial-accounts/accountOptions'
 import { formatBRL } from '@/utils/financial-accounts/currency'
 
@@ -15,9 +16,13 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  editable: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-const emit = defineEmits(['archive', 'restore'])
+const emit = defineEmits(['archive', 'edit', 'restore'])
 </script>
 
 <template>
@@ -33,12 +38,16 @@ const emit = defineEmits(['archive', 'restore'])
     <ul v-else class="account-list">
       <li v-for="account in props.accounts" :key="account.id" class="account-card">
         <div class="account-identity">
-          <RouterLink
+          <button
+            v-if="props.editable"
             class="account-name"
-            :to="{ name: 'financial-account-detail', params: { id: account.id } }"
+            type="button"
+            @click="emit('edit', account)"
           >
-            {{ account.name }}
-          </RouterLink>
+            <ElIcon class="account-edit-icon"><Edit /></ElIcon>
+            <span>{{ account.name }}</span>
+          </button>
+          <span v-else class="account-name account-name--static">{{ account.name }}</span>
           <p class="account-meta">
             {{ ACCOUNT_TYPE_LABELS[account.account_type] ?? account.account_type }}
             <template v-if="account.institution_name"> · {{ account.institution_name }}</template>
@@ -48,6 +57,7 @@ const emit = defineEmits(['archive', 'restore'])
         <ElButton
           v-if="!props.archived"
           class="account-action"
+          :icon="FolderDelete"
           plain
           @click="emit('archive', account)"
         >
@@ -56,6 +66,7 @@ const emit = defineEmits(['archive', 'restore'])
         <ElButton
           v-else
           class="account-action"
+          :icon="RefreshLeft"
           plain
           type="primary"
           @click="emit('restore', account)"
@@ -88,9 +99,36 @@ const emit = defineEmits(['archive', 'restore'])
 }
 
 .account-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-action-primary);
+  cursor: pointer;
   font-size: 16px;
   line-height: 24px;
   font-weight: 600;
+  text-align: left;
+}
+
+.account-edit-icon {
+  flex: 0 0 auto;
+}
+
+.account-name:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.account-name:not(.account-name--static):hover {
+  text-decoration: underline;
+}
+
+.account-name--static {
+  color: var(--color-text);
+  cursor: default;
 }
 
 .account-meta {

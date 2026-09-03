@@ -81,7 +81,7 @@ async function submit() {
 <template>
   <RecoveryLinkState :code="serverError?.code" />
   <AuthFormAlert :message="alertMessage" />
-  <ElAlert v-if="success" class="success-alert" type="success" :title="success" show-icon :closable="false" />
+  <ElAlert v-if="success" class="success-alert" type="success" :title="success" show-icon />
   <ElForm ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent="submit">
     <ElFormItem label="Email" prop="email" :error="serverError?.errors?.email?.[0]">
       <ElInput v-model="form.email" name="email" autocomplete="email" />
@@ -108,13 +108,20 @@ async function submit() {
         show-password
       />
     </ElFormItem>
-    <ElButton class="auth-submit" native-type="submit" type="primary" :loading="sessionStore.loading">
+    <ElButton
+      class="auth-submit"
+      native-type="submit"
+      type="primary"
+      :loading="sessionStore.loading"
+    >
       Reset password
     </ElButton>
   </ElForm>
   <p class="form-switch">
     <RouterLink class="auth-link" :to="{ name: 'sign-in' }">Return to sign in</RouterLink>
-    <ElButton v-if="success" link type="primary" @click="router.push({ name: 'sign-in' })">Sign in now</ElButton>
+    <ElButton v-if="success" link type="primary" @click="router.push({ name: 'sign-in' })"
+      >Sign in now</ElButton
+    >
   </p>
 </template>
 

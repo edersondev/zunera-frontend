@@ -56,12 +56,6 @@ const router = createRouter({
           component: () => import('@/views/financial-accounts/ArchivedFinancialAccountsView.vue'),
           meta: { requiresAuth: true, title: 'Archived accounts' },
         },
-        {
-          path: 'financial-accounts/:id',
-          name: 'financial-account-detail',
-          component: () => import('@/views/financial-accounts/FinancialAccountDetailView.vue'),
-          meta: { requiresAuth: true, title: 'Account details' },
-        },
       ],
     },
   ],
