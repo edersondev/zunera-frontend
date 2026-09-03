@@ -22,7 +22,12 @@ test('authenticated user creates and sees an active account', async ({ page }) =
 
   await newAccountButton.click()
   const createDialog = page.getByRole('dialog', { name: 'New account' })
-  await createDialog.getByRole('button', { name: 'Cancel' }).click()
+  const cancelButton = createDialog.getByRole('button', { name: 'Cancel' })
+  await expect(cancelButton).toHaveCSS('background-color', 'rgb(248, 113, 113)')
+  await expect(cancelButton).toHaveCSS('color', 'rgb(69, 10, 10)')
+  await cancelButton.hover()
+  await expect(cancelButton).toHaveCSS('background-color', 'rgb(252, 165, 165)')
+  await cancelButton.click()
   await expect(createDialog).not.toBeVisible()
 
   await page.getByRole('button', { name: 'New account' }).click()

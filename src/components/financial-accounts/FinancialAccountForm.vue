@@ -146,52 +146,56 @@ defineExpose({ resetCreateForm })
     label-position="top"
     @submit.prevent="submit"
   >
-    <ElFormItem label="Account name" prop="name">
-      <ElInput
-        v-model="form.name"
-        name="account-name"
-        autocomplete="off"
-        placeholder="Conta principal"
-      />
-    </ElFormItem>
-
-    <ElFormItem label="Account type" prop="accountType">
-      <ElSelect v-model="form.accountType" name="account-type" aria-label="Account type">
-        <ElOption
-          v-for="type in ACCOUNT_TYPES"
-          :key="type.value"
-          :label="type.label"
-          :value="type.value"
+    <div class="form-row">
+      <ElFormItem label="Account name" prop="name">
+        <ElInput
+          v-model="form.name"
+          name="account-name"
+          autocomplete="off"
+          placeholder="Conta principal"
         />
-      </ElSelect>
-    </ElFormItem>
+      </ElFormItem>
 
-    <ElFormItem label="Financial institution (optional)" prop="institutionName">
-      <ElInput
-        v-model="form.institutionName"
-        name="institution-name"
-        autocomplete="organization"
-        placeholder="Nubank"
-      />
-    </ElFormItem>
+      <ElFormItem label="Account type" prop="accountType">
+        <ElSelect v-model="form.accountType" name="account-type" aria-label="Account type">
+          <ElOption
+            v-for="type in ACCOUNT_TYPES"
+            :key="type.value"
+            :label="type.label"
+            :value="type.value"
+          />
+        </ElSelect>
+      </ElFormItem>
+    </div>
 
-    <ElFormItem label="Opening balance" required>
-      <ElInput
-        v-model="initialBalance"
-        v-maska="balanceMask"
-        name="opening-balance"
-        inputmode="decimal"
-        autocomplete="off"
-        :disabled="initialBalanceLocked"
-        placeholder="0,00"
-      >
-        <template #prefix><span class="currency-prefix">R$</span></template>
-      </ElInput>
-      <p v-if="initialBalanceLocked" class="field-help">
-        The opening balance is locked because this account already has financial movements.
-      </p>
-      <p v-else class="field-help">Enter the balance the account started with, not income.</p>
-    </ElFormItem>
+    <div class="form-row">
+      <ElFormItem label="Opening balance" required>
+        <ElInput
+          v-model="initialBalance"
+          v-maska="balanceMask"
+          name="opening-balance"
+          inputmode="decimal"
+          autocomplete="off"
+          :disabled="initialBalanceLocked"
+          placeholder="0,00"
+        >
+          <template #prefix><span class="currency-prefix">R$</span></template>
+        </ElInput>
+        <p v-if="initialBalanceLocked" class="field-help">
+          The opening balance is locked because this account already has financial movements.
+        </p>
+        <p v-else class="field-help">Enter the balance the account started with, not income.</p>
+      </ElFormItem>
+
+      <ElFormItem label="Financial institution (optional)" prop="institutionName">
+        <ElInput
+          v-model="form.institutionName"
+          name="institution-name"
+          autocomplete="organization"
+          placeholder="Nubank"
+        />
+      </ElFormItem>
+    </div>
 
     <div class="form-row">
       <ElFormItem label="Color" prop="color">
