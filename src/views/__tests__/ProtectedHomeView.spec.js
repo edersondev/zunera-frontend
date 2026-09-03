@@ -22,6 +22,9 @@ vi.mock('@/stores/auth/sessionStore', () => ({
 }))
 
 const stubs = {
+  RouterLink: {
+    template: '<a><slot /></a>',
+  },
   ElButton: {
     emits: ['click'],
     template: '<button @click="$emit(\'click\')"><slot /></button>',
@@ -36,5 +39,11 @@ describe('ProtectedHomeView', () => {
 
     expect(logout).toHaveBeenCalledOnce()
     expect(push).toHaveBeenCalledWith({ name: 'sign-in' })
+  })
+
+  it('links to the financial accounts workspace', () => {
+    const wrapper = mount(ProtectedHomeView, { global: { stubs } })
+
+    expect(wrapper.text()).toContain('Open financial accounts')
   })
 })

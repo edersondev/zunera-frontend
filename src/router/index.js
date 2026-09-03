@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { authGuard } from './authGuard'
+import AppShell from '@/layouts/AppShell.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -34,9 +35,28 @@ const router = createRouter({
     },
     {
       path: '/app',
-      name: 'protected-home',
-      component: () => import('@/views/ProtectedHomeView.vue'),
-      meta: { requiresAuth: true, title: 'Zunera account' },
+      component: AppShell,
+      meta: { requiresAuth: true },
+      children: [
+        {
+          path: '',
+          name: 'protected-home',
+          component: () => import('@/views/ProtectedHomeView.vue'),
+          meta: { requiresAuth: true, title: 'Zunera account' },
+        },
+        {
+          path: 'financial-accounts',
+          name: 'financial-accounts',
+          component: () => import('@/views/financial-accounts/FinancialAccountsListView.vue'),
+          meta: { requiresAuth: true, title: 'Financial accounts' },
+        },
+        {
+          path: 'financial-accounts/archived',
+          name: 'financial-accounts-archived',
+          component: () => import('@/views/financial-accounts/ArchivedFinancialAccountsView.vue'),
+          meta: { requiresAuth: true, title: 'Archived accounts' },
+        },
+      ],
     },
   ],
 })
@@ -45,6 +65,10 @@ router.beforeEach(authGuard)
 
 router.afterEach((to) => {
   document.title = to.meta.title ? `${to.meta.title} | Zunera` : 'Zunera'
+
+  queueMicrotask(() => {
+    document.getElementById('main-content')?.focus()
+  })
 })
 
 export default router

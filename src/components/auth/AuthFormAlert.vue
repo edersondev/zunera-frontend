@@ -12,14 +12,7 @@ defineProps({
 </script>
 
 <template>
-  <ElAlert
-    v-if="message"
-    :title="message"
-    :type="type"
-    class="auth-alert"
-    show-icon
-    :closable="false"
-  />
+  <ElAlert v-if="message" :title="message" :type="type" class="auth-alert" show-icon />
 </template>
 
 <style scoped>

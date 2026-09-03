@@ -12,52 +12,37 @@ async function signOut() {
 </script>
 
 <template>
-  <main class="protected-page">
-    <section class="protected-panel" aria-labelledby="protected-title">
-      <p class="brand">Zunera</p>
-      <h1 id="protected-title" class="protected-title">Account ready</h1>
-      <p class="protected-copy">
-        Signed in as {{ sessionStore.user?.email }}.
-      </p>
-      <dl class="session-details">
-        <div>
-          <dt>Idle expires</dt>
-          <dd>{{ sessionStore.session?.idle_expires_at }}</dd>
-        </div>
-        <div>
-          <dt>Absolute expires</dt>
-          <dd>{{ sessionStore.session?.absolute_expires_at }}</dd>
-        </div>
-      </dl>
-      <ElButton type="primary" :loading="sessionStore.loading" @click="signOut">
-        Sign out
-      </ElButton>
-    </section>
-  </main>
+  <section class="protected-panel" aria-labelledby="protected-title">
+    <h1 id="protected-title" class="protected-title">Account ready</h1>
+    <p class="protected-copy">
+      Signed in as {{ sessionStore.user?.email }}.
+    </p>
+    <RouterLink class="accounts-link" :to="{ name: 'financial-accounts' }">
+      Open financial accounts
+    </RouterLink>
+    <dl class="session-details">
+      <div>
+        <dt>Idle expires</dt>
+        <dd>{{ sessionStore.session?.idle_expires_at }}</dd>
+      </div>
+      <div>
+        <dt>Absolute expires</dt>
+        <dd>{{ sessionStore.session?.absolute_expires_at }}</dd>
+      </div>
+    </dl>
+    <ElButton type="primary" :loading="sessionStore.loading" @click="signOut">
+      Sign out
+    </ElButton>
+  </section>
 </template>
 
 <style scoped>
-.protected-page {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 24px 16px;
-  background: var(--color-canvas);
-}
-
 .protected-panel {
-  width: min(100%, 640px);
+  max-width: 640px;
   padding: 24px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
-}
-
-.brand {
-  margin: 0 0 16px;
-  color: var(--color-action-primary);
-  font-size: 20px;
-  font-weight: 700;
 }
 
 .protected-title {
@@ -70,6 +55,12 @@ async function signOut() {
 .protected-copy {
   margin: 8px 0 24px;
   color: var(--color-text-muted);
+}
+
+.accounts-link {
+  display: inline-block;
+  margin-bottom: 24px;
+  font-weight: 600;
 }
 
 .session-details {
