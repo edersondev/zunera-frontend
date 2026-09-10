@@ -2,6 +2,11 @@ import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import ArchivedCategoriesView from '../ArchivedCategoriesView.vue'
 
+const routerPush = vi.hoisted(() => vi.fn())
+
+vi.mock('vue-router', () => ({
+  useRouter: () => ({ push: routerPush }),
+}))
 vi.mock('@/stores/categories/categoryStore', () => ({
   useCategoryStore: () => ({
     archivedCategories: [],
@@ -13,17 +18,26 @@ vi.mock('@/stores/categories/categoryStore', () => ({
   }),
 }))
 describe('ArchivedCategoriesView', () => {
-  it('renders archived category management', () => {
+  it('renders archived category management and active category navigation', async () => {
     const wrapper = mount(ArchivedCategoriesView, {
       global: {
         stubs: {
-          PageHeader: { props: ['title'], template: '<header>{{ title }}</header>' },
+          PageHeader: {
+            props: ['title'],
+            template: '<header>{{ title }}<slot name="actions" /></header>',
+          },
           CategoryList: true,
           CategoryLifecycleDialog: true,
           ElAlert: true,
+          ElButton: { template: '<button><slot /></button>' },
         },
       },
     })
     expect(wrapper.text()).toContain('Archived categories')
+    expect(wrapper.text()).toContain('Categories')
+
+    await wrapper.find('[data-test="open-categories"]').trigger('click')
+
+    expect(routerPush).toHaveBeenCalledWith({ name: 'categories' })
   })
 })

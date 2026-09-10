@@ -37,7 +37,11 @@ const description = computed(() =>
   >
     <p class="dialog-description">{{ description }}</p>
     <template #footer
-      ><ElButton :icon="Close" :disabled="props.loading" @click="emit('update:visible', false)"
+      ><ElButton
+        :icon="Close"
+        type="danger"
+        :disabled="props.loading"
+        @click="emit('update:visible', false)"
         >Cancel</ElButton
       ><ElButton
         :icon="actionIcon"

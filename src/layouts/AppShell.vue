@@ -16,7 +16,6 @@ const navigationItems = [
   { routeName: 'financial-accounts', label: 'Financial accounts', icon: Wallet },
   { routeName: 'financial-accounts-archived', label: 'Archived accounts', icon: Folder },
   { routeName: 'categories', label: 'Categories', icon: CollectionTag },
-  { routeName: 'categories-archived', label: 'Archived categories', icon: Folder },
 ]
 
 async function navigate(routeName) {

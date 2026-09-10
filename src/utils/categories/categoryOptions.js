@@ -1,3 +1,21 @@
+import {
+  Briefcase,
+  FirstAidKit,
+  ForkSpoon,
+  House,
+  MoreFilled,
+  OfficeBuilding,
+  Present,
+  Reading,
+  RefreshLeft,
+  ShoppingBag,
+  Tickets,
+  TrendCharts,
+  Trophy,
+  Van,
+  Wallet,
+} from '@element-plus/icons-vue'
+
 export const CATEGORY_CLASSIFICATIONS = Object.freeze([
   { value: 'income', label: 'Income' },
   { value: 'expense', label: 'Expense' },
@@ -39,6 +57,24 @@ export const COLOR_LABELS = Object.freeze(
 export const ICON_LABELS = Object.freeze(
   Object.fromEntries(CATEGORY_ICONS.map((item) => [item.value, item.label])),
 )
+
+export const CATEGORY_ICON_COMPONENTS = Object.freeze({
+  home: House,
+  utensils: ForkSpoon,
+  car: Van,
+  heart: FirstAidKit,
+  book: Reading,
+  gamepad: Trophy,
+  shopping_bag: ShoppingBag,
+  receipt: Tickets,
+  landmark: OfficeBuilding,
+  circle: MoreFilled,
+  wallet: Wallet,
+  briefcase: Briefcase,
+  chart: TrendCharts,
+  gift: Present,
+  refund: RefreshLeft,
+})
 
 export function categoryColorStyle(color) {
   return { backgroundColor: `var(--chart-${color}, var(--color-surface-tertiary))` }

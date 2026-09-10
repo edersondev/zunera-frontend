@@ -9,11 +9,32 @@ describe('CategoryLifecycleDialog', () => {
       global: {
         stubs: {
           ElDialog: { template: '<section><slot /><slot name="footer" /></section>' },
-          ElButton: { template: '<button><slot /></button>' },
+          ElButton: {
+            props: ['type'],
+            template: '<button :data-button-type="type"><slot /></button>',
+          },
         },
       },
     })
     expect(wrapper.text()).toContain('past history stays intact')
     expect(wrapper.text()).not.toContain('Delete')
+    expect(wrapper.find('button').attributes('data-button-type')).toBe('danger')
+  })
+
+  it('renders restore cancellation as dangerous', () => {
+    const wrapper = mount(CategoryLifecycleDialog, {
+      props: { visible: true, category: { name: 'Pet care' }, action: 'restore' },
+      global: {
+        stubs: {
+          ElDialog: { template: '<section><slot /><slot name="footer" /></section>' },
+          ElButton: {
+            props: ['type'],
+            template: '<button :data-button-type="type"><slot /></button>',
+          },
+        },
+      },
+    })
+
+    expect(wrapper.find('button').attributes('data-button-type')).toBe('danger')
   })
 })

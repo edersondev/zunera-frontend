@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, reactive, shallowRef } from 'vue'
-import { Check, CirclePlus, Close, Plus } from '@element-plus/icons-vue'
+import { Check, CirclePlus, Close, FolderOpened, Plus } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
 import CategoryForm from '@/components/categories/CategoryForm.vue'
 import CategoryLifecycleDialog from '@/components/categories/CategoryLifecycleDialog.vue'
 import CategoryList from '@/components/categories/CategoryList.vue'
@@ -8,6 +9,7 @@ import PageHeader from '@/components/layout/PageHeader.vue'
 import { useCategoryStore } from '@/stores/categories/categoryStore'
 
 const store = useCategoryStore()
+const router = useRouter()
 const formRef = shallowRef(null)
 const createDialogVisible = shallowRef(false)
 const editDialogVisible = shallowRef(false)
@@ -19,6 +21,9 @@ onMounted(() => store.fetchCategories('active').catch(() => {}))
 function openCreateDialog() {
   successMessage.value = ''
   createDialogVisible.value = true
+}
+function openArchivedCategories() {
+  router.push({ name: 'categories-archived' })
 }
 function closeCreateDialog() {
   if (!store.creating) createDialogVisible.value = false
@@ -71,16 +76,26 @@ async function confirmLifecycle() {
     <PageHeader
       title="Categories"
       description="Organize income and expenses with system defaults and your own categories."
-      ><template #actions
-        ><ElButton
+    >
+      <template #actions>
+        <ElButton
           data-test="open-create-category"
           type="primary"
           :icon="Plus"
           @click="openCreateDialog"
-          >New category</ElButton
-        ></template
-      ></PageHeader
-    >
+        >
+          New category
+        </ElButton>
+        <ElButton
+          data-test="open-archived-categories"
+          type="warning"
+          :icon="FolderOpened"
+          @click="openArchivedCategories"
+        >
+          Archived
+        </ElButton>
+      </template>
+    </PageHeader>
     <ElAlert
       v-if="successMessage"
       class="feedback"
@@ -121,7 +136,7 @@ async function confirmLifecycle() {
         @submit="createCategory"
       />
       <template #footer
-        ><ElButton :icon="Close" :disabled="store.creating" @click="closeCreateDialog"
+        ><ElButton :icon="Close" type="danger" :disabled="store.creating" @click="closeCreateDialog"
           >Cancel</ElButton
         ><ElButton
           data-test="create-category"
@@ -152,7 +167,7 @@ async function confirmLifecycle() {
         @submit="updateCategory"
       />
       <template #footer
-        ><ElButton :icon="Close" :disabled="store.updating" @click="closeEditDialog"
+        ><ElButton :icon="Close" type="danger" :disabled="store.updating" @click="closeEditDialog"
           >Cancel</ElButton
         ><ElButton
           data-test="save-category"

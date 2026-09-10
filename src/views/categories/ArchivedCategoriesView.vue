@@ -1,17 +1,23 @@
 <script setup>
 import { onMounted, reactive, shallowRef } from 'vue'
+import { CollectionTag } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
 import CategoryLifecycleDialog from '@/components/categories/CategoryLifecycleDialog.vue'
 import CategoryList from '@/components/categories/CategoryList.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import { useCategoryStore } from '@/stores/categories/categoryStore'
 
 const store = useCategoryStore()
+const router = useRouter()
 const successMessage = shallowRef('')
 const lifecycle = reactive({ visible: false, action: 'restore', category: null })
 onMounted(() => store.fetchCategories('archived').catch(() => {}))
 function askRestore(category) {
   lifecycle.category = category
   lifecycle.visible = true
+}
+function openCategories() {
+  router.push({ name: 'categories' })
 }
 async function confirmRestore() {
   try {
@@ -27,7 +33,13 @@ async function confirmRestore() {
     <PageHeader
       title="Archived categories"
       description="Archived categories remain available for historical reporting and can be restored."
-    />
+    >
+      <template #actions>
+        <ElButton data-test="open-categories" :icon="CollectionTag" @click="openCategories">
+          Categories
+        </ElButton>
+      </template>
+    </PageHeader>
     <ElAlert
       v-if="successMessage"
       class="feedback"
