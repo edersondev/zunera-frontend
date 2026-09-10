@@ -1,0 +1,191 @@
+<script setup>
+import { onMounted, reactive, shallowRef } from 'vue'
+import { Check, CirclePlus, Close, Plus } from '@element-plus/icons-vue'
+import CategoryForm from '@/components/categories/CategoryForm.vue'
+import CategoryLifecycleDialog from '@/components/categories/CategoryLifecycleDialog.vue'
+import CategoryList from '@/components/categories/CategoryList.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
+import { useCategoryStore } from '@/stores/categories/categoryStore'
+
+const store = useCategoryStore()
+const formRef = shallowRef(null)
+const createDialogVisible = shallowRef(false)
+const editDialogVisible = shallowRef(false)
+const editingCategory = shallowRef(null)
+const successMessage = shallowRef('')
+const lifecycle = reactive({ visible: false, action: 'archive', category: null })
+onMounted(() => store.fetchCategories('active').catch(() => {}))
+
+function openCreateDialog() {
+  successMessage.value = ''
+  createDialogVisible.value = true
+}
+function closeCreateDialog() {
+  if (!store.creating) createDialogVisible.value = false
+}
+function openEditDialog(category) {
+  successMessage.value = ''
+  editingCategory.value = category
+  editDialogVisible.value = true
+}
+function closeEditDialog() {
+  if (!store.updating) {
+    editDialogVisible.value = false
+    editingCategory.value = null
+  }
+}
+async function createCategory(payload) {
+  successMessage.value = ''
+  try {
+    await store.create(payload)
+    formRef.value?.resetCreateForm?.()
+    createDialogVisible.value = false
+    successMessage.value = 'Category created.'
+  } catch {}
+}
+async function updateCategory(payload) {
+  if (!editingCategory.value) return
+  successMessage.value = ''
+  try {
+    await store.update(editingCategory.value.id, payload)
+    closeEditDialog()
+    successMessage.value = 'Category updated.'
+  } catch {}
+}
+function askArchive(category) {
+  lifecycle.category = category
+  lifecycle.action = 'archive'
+  lifecycle.visible = true
+}
+async function confirmLifecycle() {
+  try {
+    await store.archive(lifecycle.category)
+    lifecycle.visible = false
+    successMessage.value = 'Category archived.'
+  } catch {}
+}
+</script>
+
+<template>
+  <div>
+    <PageHeader
+      title="Categories"
+      description="Organize income and expenses with system defaults and your own categories."
+      ><template #actions
+        ><ElButton
+          data-test="open-create-category"
+          type="primary"
+          :icon="Plus"
+          @click="openCreateDialog"
+          >New category</ElButton
+        ></template
+      ></PageHeader
+    >
+    <ElAlert
+      v-if="successMessage"
+      class="feedback"
+      :title="successMessage"
+      type="success"
+      show-icon
+    />
+    <ElAlert
+      v-if="store.error"
+      class="feedback"
+      :title="store.error.message"
+      type="error"
+      show-icon
+    />
+    <section class="content-section" aria-labelledby="active-categories-title">
+      <h2 id="active-categories-title">Active categories</h2>
+      <CategoryList
+        :categories="store.categories"
+        :loading="store.loading"
+        @archive="askArchive"
+        @edit="openEditDialog"
+      />
+    </section>
+    <ElDialog
+      v-model="createDialogVisible"
+      title="New category"
+      width="min(92vw, 640px)"
+      :close-on-click-modal="!store.creating"
+      :close-on-press-escape="!store.creating"
+      :show-close="!store.creating"
+      destroy-on-close
+    >
+      <CategoryForm
+        ref="formRef"
+        form-id="create-category-form"
+        :show-submit="false"
+        :submitting="store.creating"
+        @submit="createCategory"
+      />
+      <template #footer
+        ><ElButton :icon="Close" :disabled="store.creating" @click="closeCreateDialog"
+          >Cancel</ElButton
+        ><ElButton
+          data-test="create-category"
+          :icon="CirclePlus"
+          native-type="submit"
+          type="primary"
+          form="create-category-form"
+          :loading="store.creating"
+          >Create category</ElButton
+        ></template
+      >
+    </ElDialog>
+    <ElDialog
+      v-model="editDialogVisible"
+      title="Edit category"
+      width="min(92vw, 640px)"
+      :close-on-click-modal="!store.updating"
+      :close-on-press-escape="!store.updating"
+      :show-close="!store.updating"
+      destroy-on-close
+    >
+      <CategoryForm
+        v-if="editingCategory"
+        form-id="edit-category-form"
+        :category="editingCategory"
+        :show-submit="false"
+        :submitting="store.updating"
+        @submit="updateCategory"
+      />
+      <template #footer
+        ><ElButton :icon="Close" :disabled="store.updating" @click="closeEditDialog"
+          >Cancel</ElButton
+        ><ElButton
+          data-test="save-category"
+          :icon="Check"
+          native-type="submit"
+          type="primary"
+          form="edit-category-form"
+          :loading="store.updating"
+          >Save changes</ElButton
+        ></template
+      >
+    </ElDialog>
+    <CategoryLifecycleDialog
+      v-model:visible="lifecycle.visible"
+      :category="lifecycle.category"
+      :action="lifecycle.action"
+      :loading="store.lifecycleLoading"
+      @confirm="confirmLifecycle"
+    />
+  </div>
+</template>
+
+<style scoped>
+.feedback {
+  margin-bottom: 16px;
+}
+.content-section {
+  margin-top: 24px;
+}
+.content-section h2 {
+  margin: 0 0 12px;
+  color: var(--color-text);
+  font-size: 20px;
+  line-height: 28px;
+}
+</style>

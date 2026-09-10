@@ -56,6 +56,18 @@ const router = createRouter({
           component: () => import('@/views/financial-accounts/ArchivedFinancialAccountsView.vue'),
           meta: { requiresAuth: true, title: 'Archived accounts' },
         },
+        {
+          path: 'categories',
+          name: 'categories',
+          component: () => import('@/views/categories/CategoriesListView.vue'),
+          meta: { requiresAuth: true, title: 'Categories' },
+        },
+        {
+          path: 'categories/archived',
+          name: 'categories-archived',
+          component: () => import('@/views/categories/ArchivedCategoriesView.vue'),
+          meta: { requiresAuth: true, title: 'Archived categories' },
+        },
       ],
     },
   ],
