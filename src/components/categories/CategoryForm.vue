@@ -54,7 +54,6 @@ async function submit() {
     color: form.color,
     icon: form.icon,
   })
-  if (!props.category) resetCreateForm()
 }
 defineExpose({ resetCreateForm })
 </script>
