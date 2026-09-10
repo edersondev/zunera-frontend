@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, reactive, shallowRef } from 'vue'
-import { Check, CirclePlus, Close, Edit, Plus } from '@element-plus/icons-vue'
+import { Check, CirclePlus, Close, Edit, FolderOpened, Plus } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
 import FinancialAccountForm from '@/components/financial-accounts/FinancialAccountForm.vue'
 import FinancialAccountLifecycleDialog from '@/components/financial-accounts/FinancialAccountLifecycleDialog.vue'
 import FinancialAccountList from '@/components/financial-accounts/FinancialAccountList.vue'
@@ -9,6 +10,7 @@ import PageHeader from '@/components/layout/PageHeader.vue'
 import { useFinancialAccountStore } from '@/stores/financial-accounts/financialAccountStore'
 
 const store = useFinancialAccountStore()
+const router = useRouter()
 const formRef = shallowRef(null)
 const createDialogVisible = shallowRef(false)
 const editDialogVisible = shallowRef(false)
@@ -42,6 +44,10 @@ async function createAccount(payload) {
 function openCreateDialog() {
   successMessage.value = ''
   createDialogVisible.value = true
+}
+
+function openArchivedAccounts() {
+  router.push({ name: 'financial-accounts-archived' })
 }
 
 function closeCreateDialog() {
@@ -109,6 +115,14 @@ async function confirmLifecycle() {
           @click="openCreateDialog"
         >
           New account
+        </ElButton>
+        <ElButton
+          data-test="open-archived-accounts"
+          type="warning"
+          :icon="FolderOpened"
+          @click="openArchivedAccounts"
+        >
+          Archived
         </ElButton>
       </template>
     </PageHeader>

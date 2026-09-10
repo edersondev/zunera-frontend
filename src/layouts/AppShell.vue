@@ -1,6 +1,6 @@
 <script setup>
 import { shallowRef } from 'vue'
-import { CollectionTag, Folder, House, Wallet } from '@element-plus/icons-vue'
+import { CollectionTag, House, Wallet } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppNavigation from '@/components/navigation/AppNavigation.vue'
@@ -14,7 +14,6 @@ const navigationOpen = shallowRef(false)
 const navigationItems = [
   { routeName: 'protected-home', label: 'Home', icon: House },
   { routeName: 'financial-accounts', label: 'Financial accounts', icon: Wallet },
-  { routeName: 'financial-accounts-archived', label: 'Archived accounts', icon: Folder },
   { routeName: 'categories', label: 'Categories', icon: CollectionTag },
 ]
 

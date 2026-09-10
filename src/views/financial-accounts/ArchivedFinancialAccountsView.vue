@@ -1,11 +1,14 @@
 <script setup>
 import { onMounted, reactive, shallowRef } from 'vue'
+import { Wallet } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
 import FinancialAccountLifecycleDialog from '@/components/financial-accounts/FinancialAccountLifecycleDialog.vue'
 import FinancialAccountList from '@/components/financial-accounts/FinancialAccountList.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import { useFinancialAccountStore } from '@/stores/financial-accounts/financialAccountStore'
 
 const store = useFinancialAccountStore()
+const router = useRouter()
 const successMessage = shallowRef('')
 const lifecycle = reactive({
   visible: false,
@@ -20,6 +23,10 @@ onMounted(async () => {
 function askRestore(account) {
   lifecycle.account = account
   lifecycle.visible = true
+}
+
+function openFinancialAccounts() {
+  router.push({ name: 'financial-accounts' })
 }
 
 async function confirmRestore() {
@@ -40,7 +47,13 @@ async function confirmRestore() {
     <PageHeader
       title="Archived accounts"
       description="Historical accounts stay available here until you restore them."
-    />
+    >
+      <template #actions>
+        <ElButton data-test="open-financial-accounts" :icon="Wallet" @click="openFinancialAccounts">
+          Financial accounts
+        </ElButton>
+      </template>
+    </PageHeader>
 
     <ElAlert
       v-if="successMessage"
