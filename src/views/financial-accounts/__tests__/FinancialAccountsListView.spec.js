@@ -21,9 +21,13 @@ const store = vi.hoisted(() => ({
   archive: vi.fn(),
   restore: vi.fn(),
 }))
+const routerPush = vi.hoisted(() => vi.fn())
 
 vi.mock('@/stores/financial-accounts/financialAccountStore', () => ({
   useFinancialAccountStore: () => store,
+}))
+vi.mock('vue-router', () => ({
+  useRouter: () => ({ push: routerPush }),
 }))
 
 describe('FinancialAccountsListView', () => {
@@ -40,6 +44,19 @@ describe('FinancialAccountsListView', () => {
     expect(store.fetchAccounts).toHaveBeenCalledWith('active')
     expect(store.fetchSummary).toHaveBeenCalledTimes(1)
     expect(wrapper.text()).toContain('Financial accounts')
+    expect(
+      wrapper
+        .findAll('[data-test]')
+        .map((button) => button.attributes('data-test'))
+        .slice(0, 2),
+    ).toEqual(['open-create-account', 'open-archived-accounts'])
+    expect(wrapper.get('[data-test="open-archived-accounts"]').classes()).toContain(
+      'el-button--warning',
+    )
+
+    await wrapper.get('[data-test="open-archived-accounts"]').trigger('click')
+
+    expect(routerPush).toHaveBeenCalledWith({ name: 'financial-accounts-archived' })
   })
 
   it('creates an account from the form and shows success feedback', async () => {

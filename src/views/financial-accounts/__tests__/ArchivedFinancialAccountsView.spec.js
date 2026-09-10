@@ -20,9 +20,13 @@ const store = vi.hoisted(() => ({
   archive: vi.fn(),
   restore: vi.fn(),
 }))
+const routerPush = vi.hoisted(() => vi.fn())
 
 vi.mock('@/stores/financial-accounts/financialAccountStore', () => ({
   useFinancialAccountStore: () => store,
+}))
+vi.mock('vue-router', () => ({
+  useRouter: () => ({ push: routerPush }),
 }))
 
 describe('ArchivedFinancialAccountsView', () => {
@@ -38,6 +42,11 @@ describe('ArchivedFinancialAccountsView', () => {
 
     expect(store.fetchAccounts).toHaveBeenCalledWith('archived')
     expect(wrapper.text()).toContain('Archived accounts')
+    expect(wrapper.text()).toContain('Financial accounts')
+
+    await wrapper.get('[data-test="open-financial-accounts"]').trigger('click')
+
+    expect(routerPush).toHaveBeenCalledWith({ name: 'financial-accounts' })
   })
 
   it('restores an archived account after confirmation', async () => {
@@ -61,17 +70,20 @@ function stubs() {
     stubs: {
       PageHeader: {
         props: ['title', 'description'],
-        template: '<header><h1>{{ title }}</h1><p>{{ description }}</p><slot name="actions" /></header>',
+        template:
+          '<header><h1>{{ title }}</h1><p>{{ description }}</p><slot name="actions" /></header>',
       },
       FinancialAccountList: {
         props: ['accounts'],
         emits: ['restore'],
-        template: '<button v-for="account in accounts" :key="account.id" data-test="restore-account" @click="$emit(\'restore\', account)">Restore</button>',
+        template:
+          '<button v-for="account in accounts" :key="account.id" data-test="restore-account" @click="$emit(\'restore\', account)">Restore</button>',
       },
       FinancialAccountLifecycleDialog: {
         props: ['visible'],
         emits: ['confirm'],
-        template: '<button v-if="visible" data-test="confirm-restore" @click="$emit(\'confirm\')">Confirm</button>',
+        template:
+          '<button v-if="visible" data-test="confirm-restore" @click="$emit(\'confirm\')">Confirm</button>',
       },
     },
     plugins: [ElementPlus],
