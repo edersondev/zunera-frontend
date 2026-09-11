@@ -69,6 +69,18 @@ const router = createRouter({
           component: () => import('@/views/categories/ArchivedCategoriesView.vue'),
           meta: { requiresAuth: true, titleKey: 'app.archivedCategories' },
         },
+        {
+          path: 'transactions',
+          name: 'transactions',
+          component: () => import('@/views/transactions/TransactionsListView.vue'),
+          meta: { requiresAuth: true, titleKey: 'app.transactions' },
+        },
+        {
+          path: 'transactions/removed',
+          name: 'transactions-removed',
+          component: () => import('@/views/transactions/RemovedTransactionsView.vue'),
+          meta: { requiresAuth: true, titleKey: 'app.removedTransactions' },
+        },
       ],
     },
   ],
