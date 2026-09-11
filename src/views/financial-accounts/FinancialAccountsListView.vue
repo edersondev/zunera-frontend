@@ -8,8 +8,10 @@ import FinancialAccountList from '@/components/financial-accounts/FinancialAccou
 import FinancialAccountSummary from '@/components/financial-accounts/FinancialAccountSummary.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import { useFinancialAccountStore } from '@/stores/financial-accounts/financialAccountStore'
+import { useI18n } from 'vue-i18n'
 
 const store = useFinancialAccountStore()
+const { t } = useI18n()
 const router = useRouter()
 const formRef = shallowRef(null)
 const createDialogVisible = shallowRef(false)
@@ -35,7 +37,7 @@ async function createAccount(payload) {
       formRef.value.resetCreateForm()
     }
     createDialogVisible.value = false
-    successMessage.value = 'Financial account created.'
+    successMessage.value = t('financialAccounts.created')
   } catch {
     // Store keeps the server error for the alert.
   }
@@ -65,7 +67,7 @@ async function updateAccount(payload) {
     await store.update(editingAccount.value.id, payload)
     editDialogVisible.value = false
     editingAccount.value = null
-    successMessage.value = 'Account details saved.'
+    successMessage.value = t('financialAccounts.saved')
   } catch {
     // Store keeps the server error for the alert.
   }
@@ -94,7 +96,7 @@ async function confirmLifecycle() {
   try {
     await store.archive(lifecycle.account)
     lifecycle.visible = false
-    successMessage.value = 'Financial account archived.'
+    successMessage.value = t('financialAccounts.archivedSuccess')
   } catch {
     // Store keeps the server error for the alert.
   }
@@ -104,8 +106,8 @@ async function confirmLifecycle() {
 <template>
   <div>
     <PageHeader
-      title="Financial accounts"
-      description="Create and manage the accounts where your money is held."
+      :title="t('financialAccounts.title')"
+      :description="t('financialAccounts.description')"
     >
       <template #actions>
         <ElButton
@@ -114,7 +116,7 @@ async function confirmLifecycle() {
           :icon="Plus"
           @click="openCreateDialog"
         >
-          New account
+          {{ t('financialAccounts.new') }}
         </ElButton>
         <ElButton
           data-test="open-archived-accounts"
@@ -122,7 +124,7 @@ async function confirmLifecycle() {
           :icon="FolderOpened"
           @click="openArchivedAccounts"
         >
-          Archived
+          {{ t('financialAccounts.archived') }}
         </ElButton>
       </template>
     </PageHeader>
@@ -145,7 +147,7 @@ async function confirmLifecycle() {
     <FinancialAccountSummary :summary="store.summary" />
 
     <section class="content-section" aria-labelledby="active-title">
-      <h2 id="active-title">Active accounts</h2>
+      <h2 id="active-title">{{ t('financialAccounts.active') }}</h2>
       <FinancialAccountList
         :accounts="store.accounts"
         editable
@@ -157,7 +159,7 @@ async function confirmLifecycle() {
 
     <ElDialog
       v-model="createDialogVisible"
-      title="New account"
+      :title="t('financialAccounts.newDialog')"
       width="min(92vw, 640px)"
       :close-on-click-modal="!store.creating"
       :close-on-press-escape="!store.creating"
@@ -174,7 +176,7 @@ async function confirmLifecycle() {
 
       <template #footer>
         <ElButton :icon="Close" :disabled="store.creating" type="danger" @click="closeCreateDialog">
-          Cancel
+          {{ t('common.cancel') }}
         </ElButton>
         <ElButton
           data-test="create-account"
@@ -184,14 +186,14 @@ async function confirmLifecycle() {
           form="create-financial-account-form"
           :loading="store.creating"
         >
-          Create account
+          {{ t('financialAccounts.create') }}
         </ElButton>
       </template>
     </ElDialog>
 
     <ElDialog
       v-model="editDialogVisible"
-      title="Edit account"
+      :title="t('financialAccounts.editDialog')"
       width="min(92vw, 640px)"
       :close-on-click-modal="!store.updating"
       :close-on-press-escape="!store.updating"
@@ -209,7 +211,7 @@ async function confirmLifecycle() {
 
       <template #footer>
         <ElButton :icon="Close" :disabled="store.updating" type="danger" @click="closeEditDialog">
-          Cancel
+          {{ t('common.cancel') }}
         </ElButton>
         <ElButton
           data-test="save-account"
@@ -219,7 +221,7 @@ async function confirmLifecycle() {
           form="edit-financial-account-form"
           :loading="store.updating"
         >
-          Save changes
+          {{ t('financialAccounts.saveChanges') }}
         </ElButton>
       </template>
     </ElDialog>

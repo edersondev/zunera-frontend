@@ -16,7 +16,7 @@ describe('CategoryLifecycleDialog', () => {
         },
       },
     })
-    expect(wrapper.text()).toContain('past history stays intact')
+    expect(wrapper.text()).toContain('histórico será mantido')
     expect(wrapper.text()).not.toContain('Delete')
     expect(wrapper.find('button').attributes('data-button-type')).toBe('danger')
   })

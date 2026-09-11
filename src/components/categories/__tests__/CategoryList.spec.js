@@ -64,16 +64,16 @@ describe('CategoryList', () => {
         },
       },
     })
-    expect(wrapper.text()).toContain('System default')
-    expect(wrapper.text()).toContain('Expense')
-    expect(wrapper.text()).toContain('Income')
-    expect(wrapper.find('.category-card').text()).not.toContain('Archive')
+    expect(wrapper.text()).toContain('Padrão do sistema')
+    expect(wrapper.text()).toContain('Despesa')
+    expect(wrapper.text()).toContain('Receita')
+    expect(wrapper.find('.category-card').text()).not.toContain('Arquivar')
     expect(wrapper.find('[data-active-tab="all"]').exists()).toBe(true)
     expect(
       wrapper.findAll('[data-tab-name]').map((tab) => tab.attributes('data-tab-name')),
     ).toEqual(['all', 'expense', 'income'])
-    expect(wrapper.find('[data-tag-type="danger"]').text()).toBe('Expense')
-    const categoryColor = wrapper.find('[aria-label="Amber category color, Food category icon"]')
+    expect(wrapper.find('[data-tag-type="danger"]').text()).toBe('Despesa')
+    const categoryColor = wrapper.find('[aria-label="Âmbar, Alimentação"]')
 
     expect(categoryColor.find('svg').exists()).toBe(true)
     expect(categoryColor.attributes('style')).toContain('var(--chart-amber')

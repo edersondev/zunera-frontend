@@ -17,35 +17,35 @@ import {
 } from '@element-plus/icons-vue'
 
 export const CATEGORY_CLASSIFICATIONS = Object.freeze([
-  { value: 'income', label: 'Income' },
-  { value: 'expense', label: 'Expense' },
+  { value: 'income', label: 'Receita' },
+  { value: 'expense', label: 'Despesa' },
 ])
 
 export const CATEGORY_COLORS = Object.freeze([
-  { value: 'teal', label: 'Teal' },
-  { value: 'blue', label: 'Blue' },
-  { value: 'violet', label: 'Violet' },
-  { value: 'amber', label: 'Amber' },
-  { value: 'rose', label: 'Rose' },
-  { value: 'cyan', label: 'Cyan' },
+  { value: 'teal', label: 'Verde-azulado' },
+  { value: 'blue', label: 'Azul' },
+  { value: 'violet', label: 'Violeta' },
+  { value: 'amber', label: 'Âmbar' },
+  { value: 'rose', label: 'Rosa' },
+  { value: 'cyan', label: 'Ciano' },
 ])
 
 export const CATEGORY_ICONS = Object.freeze([
-  { value: 'home', label: 'Home' },
-  { value: 'utensils', label: 'Food' },
-  { value: 'car', label: 'Car' },
-  { value: 'heart', label: 'Health' },
-  { value: 'book', label: 'Education' },
-  { value: 'gamepad', label: 'Entertainment' },
-  { value: 'shopping_bag', label: 'Shopping' },
-  { value: 'receipt', label: 'Bills' },
-  { value: 'landmark', label: 'Taxes' },
-  { value: 'circle', label: 'Other' },
-  { value: 'wallet', label: 'Wallet' },
-  { value: 'briefcase', label: 'Services' },
-  { value: 'chart', label: 'Investments' },
-  { value: 'gift', label: 'Gifts' },
-  { value: 'refund', label: 'Refunds' },
+  { value: 'home', label: 'Casa' },
+  { value: 'utensils', label: 'Alimentação' },
+  { value: 'car', label: 'Carro' },
+  { value: 'heart', label: 'Saúde' },
+  { value: 'book', label: 'Educação' },
+  { value: 'gamepad', label: 'Entretenimento' },
+  { value: 'shopping_bag', label: 'Compras' },
+  { value: 'receipt', label: 'Contas' },
+  { value: 'landmark', label: 'Impostos' },
+  { value: 'circle', label: 'Outro' },
+  { value: 'wallet', label: 'Carteira' },
+  { value: 'briefcase', label: 'Serviços' },
+  { value: 'chart', label: 'Investimentos' },
+  { value: 'gift', label: 'Presentes' },
+  { value: 'refund', label: 'Reembolsos' },
 ])
 
 export const CLASSIFICATION_LABELS = Object.freeze(

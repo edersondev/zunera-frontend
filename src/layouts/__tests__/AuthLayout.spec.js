@@ -20,8 +20,8 @@ describe('AuthLayout', () => {
     })
 
     expect(wrapper.get('h1').text()).toBe('Sign in')
-    expect(wrapper.text()).toContain('Privacy notice')
-    expect(wrapper.text()).toContain('Privacy rights')
-    expect(wrapper.html().indexOf('Privacy notice')).toBeLessThan(wrapper.html().indexOf('Auth form'))
+    expect(wrapper.text()).toContain('Aviso de privacidade')
+    expect(wrapper.text()).toContain('Direitos de privacidade')
+    expect(wrapper.html().indexOf('Aviso de privacidade')).toBeLessThan(wrapper.html().indexOf('Auth form'))
   })
 })

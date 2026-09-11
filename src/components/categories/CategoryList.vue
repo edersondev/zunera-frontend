@@ -8,12 +8,7 @@ import {
   ICON_LABELS,
   categoryColorStyle,
 } from '@/utils/categories/categoryOptions'
-
-const CATEGORY_TABS = Object.freeze([
-  { label: 'All', name: 'all' },
-  { label: 'Expense', name: 'expense' },
-  { label: 'Income', name: 'income' },
-])
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
   categories: { type: Array, required: true },
@@ -21,6 +16,12 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
 })
 const emit = defineEmits(['archive', 'edit', 'restore'])
+const { t } = useI18n()
+const categoryTabs = computed(() => [
+  { label: t('categories.all'), name: 'all' },
+  { label: t('categories.expense'), name: 'expense' },
+  { label: t('categories.income'), name: 'income' },
+])
 const activeTab = shallowRef('all')
 const visibleCategories = computed(() =>
   activeTab.value === 'all'
@@ -28,11 +29,11 @@ const visibleCategories = computed(() =>
     : props.categories.filter((category) => category.classification === activeTab.value),
 )
 const emptyDescription = computed(() => {
-  const categoryType = activeTab.value === 'all' ? '' : `${activeTab.value} `
+  const categoryType = activeTab.value === 'all' ? '' : `${t(`categories.${activeTab.value}`)} `
 
   return props.archived
-    ? `No archived ${categoryType}categories yet.`
-    : `No ${categoryType}categories yet. Create one to get started.`
+    ? t('categories.emptyArchived', { type: categoryType })
+    : t('categories.empty', { type: categoryType })
 })
 </script>
 
@@ -40,7 +41,7 @@ const emptyDescription = computed(() => {
   <div v-loading="props.loading">
     <ElTabs v-model="activeTab" class="category-tabs">
       <ElTabPane
-        v-for="tab in CATEGORY_TABS"
+        v-for="tab in categoryTabs"
         :key="tab.name"
         :label="tab.label"
         :name="tab.name"
@@ -52,9 +53,7 @@ const emptyDescription = computed(() => {
             <span
               class="category-color"
               :style="categoryColorStyle(category.color)"
-              :aria-label="`${COLOR_LABELS[category.color] ?? category.color} category color, ${
-                ICON_LABELS[category.icon] ?? category.icon
-              } category icon`"
+              :aria-label="`${COLOR_LABELS[category.color] ?? category.color}, ${ICON_LABELS[category.icon] ?? category.icon}`"
               role="img"
             >
               <ElIcon :size="16" aria-hidden="true"
@@ -73,9 +72,9 @@ const emptyDescription = computed(() => {
                   }}</ElTag
                 >
                 <ElTag v-if="category.origin === 'system'" size="small" type="info"
-                  >System default</ElTag
+                  >{{ t('categories.systemDefault') }}</ElTag
                 >
-                <ElTag v-if="props.archived" size="small" type="warning">Archived</ElTag>
+                <ElTag v-if="props.archived" size="small" type="warning">{{ t('categories.archivedTag') }}</ElTag>
               </div>
             </div>
             <div v-if="category.origin === 'personal'" class="category-actions">
@@ -83,9 +82,9 @@ const emptyDescription = computed(() => {
                 v-if="!props.archived"
                 :icon="Edit"
                 plain
-                aria-label="Edit category"
+                :aria-label="t('categories.editLabel')"
                 @click="emit('edit', category)"
-                >Edit</ElButton
+                >{{ t('categories.edit') }}</ElButton
               >
               <ElButton
                 v-if="!props.archived"
@@ -93,7 +92,7 @@ const emptyDescription = computed(() => {
                 plain
                 type="warning"
                 @click="emit('archive', category)"
-                >Archive</ElButton
+                >{{ t('categories.archive') }}</ElButton
               >
               <ElButton
                 v-else
@@ -101,10 +100,10 @@ const emptyDescription = computed(() => {
                 plain
                 type="primary"
                 @click="emit('restore', category)"
-                >Restore</ElButton
+                >{{ t('categories.restore') }}</ElButton
               >
             </div>
-            <p v-else class="read-only">System default</p>
+            <p v-else class="read-only">{{ t('categories.systemDefault') }}</p>
           </li>
         </ul>
       </ElTabPane>

@@ -41,8 +41,8 @@ describe('ArchivedFinancialAccountsView', () => {
     await flushPromises()
 
     expect(store.fetchAccounts).toHaveBeenCalledWith('archived')
-    expect(wrapper.text()).toContain('Archived accounts')
-    expect(wrapper.text()).toContain('Financial accounts')
+    expect(wrapper.text()).toContain('Contas arquivadas')
+    expect(wrapper.text()).toContain('Contas financeiras')
 
     await wrapper.get('[data-test="open-financial-accounts"]').trigger('click')
 
@@ -61,7 +61,7 @@ describe('ArchivedFinancialAccountsView', () => {
     await flushPromises()
 
     expect(store.restore).toHaveBeenCalledWith(archived)
-    expect(wrapper.text()).toContain('Financial account restored.')
+    expect(wrapper.text()).toContain('Conta financeira restaurada.')
   })
 })
 

@@ -1,5 +1,6 @@
 <script setup>
 import { formatBRL } from '@/utils/financial-accounts/currency'
+import { useI18n } from 'vue-i18n'
 
 defineProps({
   summary: {
@@ -7,13 +8,14 @@ defineProps({
     required: true,
   },
 })
+const { t } = useI18n()
 </script>
 
 <template>
   <section class="account-summary" aria-labelledby="summary-title">
     <div>
-      <h2 id="summary-title">Active account summary</h2>
-      <p class="summary-count">{{ summary.active_account_count }} active account(s)</p>
+      <h2 id="summary-title">{{ t('financialAccounts.activeSummary') }}</h2>
+      <p class="summary-count">{{ t('financialAccounts.activeCount', { count: summary.active_account_count }) }}</p>
     </div>
     <p class="summary-balance">
       {{ formatBRL(summary.active_combined_balance_centavos) }}

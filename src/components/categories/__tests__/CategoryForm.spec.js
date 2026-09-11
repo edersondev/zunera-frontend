@@ -55,6 +55,6 @@ describe('CategoryForm', () => {
         },
       },
     })
-    expect(wrapper.text()).toContain('Classification is locked')
+    expect(wrapper.text()).toContain('A classificação está bloqueada')
   })
 })

@@ -7,6 +7,7 @@ import {
   COLOR_OPTIONS,
   ICON_OPTIONS,
 } from '@/utils/financial-accounts/accountOptions'
+import { useI18n } from 'vue-i18n'
 import { parseBRLToCentavos } from '@/utils/financial-accounts/currency'
 
 const props = defineProps({
@@ -29,6 +30,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['submit'])
+const { t } = useI18n()
 const formRef = shallowRef(null)
 const initialBalance = ref('')
 const balanceMask = {
@@ -50,15 +52,15 @@ const form = reactive({
 const initialBalanceLocked = ref(false)
 const rules = {
   name: [
-    { required: true, message: 'Enter an account name.', trigger: 'blur' },
+    { required: true, message: t('financialAccounts.nameRequired'), trigger: 'blur' },
     {
       min: 1,
       max: 120,
-      message: 'Account name must be between 1 and 120 characters.',
+      message: t('financialAccounts.nameLength'),
       trigger: 'blur',
     },
   ],
-  accountType: [{ required: true, message: 'Choose an account type.', trigger: 'change' }],
+  accountType: [{ required: true, message: t('financialAccounts.typeRequired'), trigger: 'change' }],
 }
 
 watch(
@@ -147,7 +149,7 @@ defineExpose({ resetCreateForm })
     @submit.prevent="submit"
   >
     <div class="form-row">
-      <ElFormItem label="Account name" prop="name">
+      <ElFormItem :label="t('financialAccounts.accountName')" prop="name">
         <ElInput
           v-model="form.name"
           name="account-name"
@@ -156,8 +158,8 @@ defineExpose({ resetCreateForm })
         />
       </ElFormItem>
 
-      <ElFormItem label="Account type" prop="accountType">
-        <ElSelect v-model="form.accountType" name="account-type" aria-label="Account type">
+      <ElFormItem :label="t('financialAccounts.accountType')" prop="accountType">
+        <ElSelect v-model="form.accountType" name="account-type" :aria-label="t('financialAccounts.accountType')">
           <ElOption
             v-for="type in ACCOUNT_TYPES"
             :key="type.value"
@@ -169,7 +171,7 @@ defineExpose({ resetCreateForm })
     </div>
 
     <div class="form-row">
-      <ElFormItem label="Opening balance" required>
+      <ElFormItem :label="t('financialAccounts.openingBalance')" required>
         <ElInput
           v-model="initialBalance"
           v-maska="balanceMask"
@@ -182,12 +184,12 @@ defineExpose({ resetCreateForm })
           <template #prefix><span class="currency-prefix">R$</span></template>
         </ElInput>
         <p v-if="initialBalanceLocked" class="field-help">
-          The opening balance is locked because this account already has financial movements.
+          {{ t('financialAccounts.balanceLocked') }}
         </p>
-        <p v-else class="field-help">Enter the balance the account started with, not income.</p>
+        <p v-else class="field-help">{{ t('financialAccounts.balanceHelp') }}</p>
       </ElFormItem>
 
-      <ElFormItem label="Financial institution (optional)" prop="institutionName">
+      <ElFormItem :label="t('financialAccounts.institution')" prop="institutionName">
         <ElInput
           v-model="form.institutionName"
           name="institution-name"
@@ -198,8 +200,8 @@ defineExpose({ resetCreateForm })
     </div>
 
     <div class="form-row">
-      <ElFormItem label="Color" prop="color">
-        <ElSelect v-model="form.color" name="color" aria-label="Color">
+      <ElFormItem :label="t('financialAccounts.color')" prop="color">
+        <ElSelect v-model="form.color" name="color" :aria-label="t('financialAccounts.color')">
           <ElOption
             v-for="color in COLOR_OPTIONS"
             :key="color.value"
@@ -209,8 +211,8 @@ defineExpose({ resetCreateForm })
         </ElSelect>
       </ElFormItem>
 
-      <ElFormItem label="Icon" prop="icon">
-        <ElSelect v-model="form.icon" name="icon" aria-label="Icon">
+      <ElFormItem :label="t('financialAccounts.icon')" prop="icon">
+        <ElSelect v-model="form.icon" name="icon" :aria-label="t('financialAccounts.icon')">
           <ElOption
             v-for="icon in ICON_OPTIONS"
             :key="icon.value"
@@ -229,7 +231,7 @@ defineExpose({ resetCreateForm })
       type="primary"
       :loading="props.submitting"
     >
-      {{ props.account ? 'Save changes' : 'Create account' }}
+      {{ props.account ? t('financialAccounts.saveChanges') : t('financialAccounts.create') }}
     </ElButton>
   </ElForm>
 </template>

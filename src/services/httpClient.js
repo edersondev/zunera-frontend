@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { i18n } from '@/i18n'
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8001'
 
@@ -21,6 +22,11 @@ export const httpClient = axios.create({
     Accept: 'application/json',
     'X-Requested-With': 'XMLHttpRequest',
   },
+})
+
+httpClient.interceptors.request.use((config) => {
+  config.headers['Accept-Language'] = i18n.global.locale.value
+  return config
 })
 
 let csrfPromise = null

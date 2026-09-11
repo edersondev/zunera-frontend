@@ -1,21 +1,23 @@
 <script setup>
-import { shallowRef } from 'vue'
+import { computed, shallowRef } from 'vue'
 import { CollectionTag, House, Wallet } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppNavigation from '@/components/navigation/AppNavigation.vue'
 import { useSessionStore } from '@/stores/auth/sessionStore'
+import { useI18n } from 'vue-i18n'
 
 const route = useRoute()
 const router = useRouter()
 const sessionStore = useSessionStore()
 const navigationOpen = shallowRef(false)
+const { t } = useI18n()
 
-const navigationItems = [
-  { routeName: 'protected-home', label: 'Home', icon: House },
-  { routeName: 'financial-accounts', label: 'Financial accounts', icon: Wallet },
-  { routeName: 'categories', label: 'Categories', icon: CollectionTag },
-]
+const navigationItems = computed(() => [
+  { routeName: 'protected-home', label: t('app.home'), icon: House },
+  { routeName: 'financial-accounts', label: t('app.financialAccounts'), icon: Wallet },
+  { routeName: 'categories', label: t('app.categories'), icon: CollectionTag },
+])
 
 async function navigate(routeName) {
   navigationOpen.value = false
@@ -30,7 +32,7 @@ async function signOut() {
 
 <template>
   <div class="app-shell">
-    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <a class="skip-link" href="#main-content">{{ t('app.skipToContent') }}</a>
     <AppHeader
       :user="sessionStore.user"
       @open-navigation="navigationOpen = true"
@@ -46,7 +48,7 @@ async function signOut() {
     </div>
     <ElDrawer v-model="navigationOpen" direction="ltr" size="min(86vw, 320px)" :with-header="false">
       <div class="drawer-navigation">
-        <p class="drawer-title">Navigation</p>
+        <p class="drawer-title">{{ t('app.navigation') }}</p>
         <AppNavigation :items="navigationItems" :active-route="route.name" @navigate="navigate" />
       </div>
     </ElDrawer>

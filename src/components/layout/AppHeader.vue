@@ -1,5 +1,8 @@
 <script setup>
 import { ArrowDown, Menu, UserFilled } from '@element-plus/icons-vue'
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useLocale } from '@/composables/useLocale'
 
 const props = defineProps({
   user: {
@@ -9,11 +12,16 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['open-navigation', 'sign-out'])
+const { t } = useI18n()
+const { activeLocale, setLocale } = useLocale()
+const displayName = computed(() => props.user?.name?.trim() || props.user?.email || t('common.currentUser'))
 
 function handleAccountCommand(command) {
   if (command === 'sign-out') {
     emit('sign-out')
   }
+
+  if (command.startsWith('locale:')) setLocale(command.slice(7))
 }
 </script>
 
@@ -24,7 +32,7 @@ function handleAccountCommand(command) {
         class="navigation-trigger"
         text
         :icon="Menu"
-        aria-label="Open navigation"
+        :aria-label="t('app.openNavigation')"
         @click="emit('open-navigation')"
       />
       <RouterLink class="brand" :to="{ name: 'protected-home' }">Zunera</RouterLink>
@@ -32,23 +40,26 @@ function handleAccountCommand(command) {
 
     <div class="header-end">
       <p class="workspace-context">
-        <span>Workspace</span>
-        <strong>Personal</strong>
+        <span>{{ t('app.workspace') }}</span>
+        <strong>{{ t('app.personal') }}</strong>
       </p>
 
       <ElDropdown trigger="click" @command="handleAccountCommand">
         <ElButton
           class="account-menu"
           text
-          :aria-label="`Account menu for ${props.user?.email ?? 'current user'}`"
+          :aria-label="t('app.accountMenu', { name: displayName })"
         >
           <ElIcon><UserFilled /></ElIcon>
-          <span class="account-email">{{ props.user?.email ?? 'Account' }}</span>
+          <span class="account-email">{{ displayName }}</span>
           <ElIcon class="account-chevron"><ArrowDown /></ElIcon>
         </ElButton>
         <template #dropdown>
           <ElDropdownMenu>
-            <ElDropdownItem command="sign-out">Sign out</ElDropdownItem>
+            <ElDropdownItem disabled>{{ t('common.language') }}</ElDropdownItem>
+            <ElDropdownItem command="locale:pt-BR" :disabled="activeLocale === 'pt-BR'">{{ t('common.portuguese') }}</ElDropdownItem>
+            <ElDropdownItem command="locale:en" :disabled="activeLocale === 'en'">{{ t('common.english') }}</ElDropdownItem>
+            <ElDropdownItem divided command="sign-out">{{ t('common.signOut') }}</ElDropdownItem>
           </ElDropdownMenu>
         </template>
       </ElDropdown>

@@ -44,6 +44,6 @@ describe('ProtectedHomeView', () => {
   it('links to the financial accounts workspace', () => {
     const wrapper = mount(ProtectedHomeView, { global: { stubs } })
 
-    expect(wrapper.text()).toContain('Open financial accounts')
+    expect(wrapper.text()).toContain('Abrir contas financeiras')
   })
 })

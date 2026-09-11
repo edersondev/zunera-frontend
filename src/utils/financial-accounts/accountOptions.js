@@ -1,28 +1,28 @@
 export const ACCOUNT_TYPES = Object.freeze([
-  { value: 'checking', label: 'Checking account' },
-  { value: 'savings', label: 'Savings account' },
-  { value: 'cash_wallet', label: 'Cash or wallet' },
-  { value: 'investment', label: 'Investment account' },
-  { value: 'digital', label: 'Digital account' },
-  { value: 'other', label: 'Other' },
+  { value: 'checking', label: 'Conta corrente' },
+  { value: 'savings', label: 'Conta poupança' },
+  { value: 'cash_wallet', label: 'Dinheiro ou carteira' },
+  { value: 'investment', label: 'Conta de investimento' },
+  { value: 'digital', label: 'Conta digital' },
+  { value: 'other', label: 'Outro' },
 ])
 
 export const COLOR_OPTIONS = Object.freeze([
-  { value: 'teal', label: 'Teal' },
-  { value: 'blue', label: 'Blue' },
-  { value: 'violet', label: 'Violet' },
-  { value: 'amber', label: 'Amber' },
-  { value: 'rose', label: 'Rose' },
-  { value: 'cyan', label: 'Cyan' },
+  { value: 'teal', label: 'Verde-azulado' },
+  { value: 'blue', label: 'Azul' },
+  { value: 'violet', label: 'Violeta' },
+  { value: 'amber', label: 'Âmbar' },
+  { value: 'rose', label: 'Rosa' },
+  { value: 'cyan', label: 'Ciano' },
 ])
 
 export const ICON_OPTIONS = Object.freeze([
-  { value: 'bank', label: 'Bank' },
-  { value: 'piggy_bank', label: 'Piggy bank' },
-  { value: 'wallet', label: 'Wallet' },
-  { value: 'chart', label: 'Chart' },
-  { value: 'smartphone', label: 'Smartphone' },
-  { value: 'circle', label: 'Circle' },
+  { value: 'bank', label: 'Banco' },
+  { value: 'piggy_bank', label: 'Cofrinho' },
+  { value: 'wallet', label: 'Carteira' },
+  { value: 'chart', label: 'Gráfico' },
+  { value: 'smartphone', label: 'Celular' },
+  { value: 'circle', label: 'Círculo' },
 ])
 
 export const ACCOUNT_TYPE_LABELS = Object.freeze(

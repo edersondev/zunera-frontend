@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { authGuard } from './authGuard'
 import AppShell from '@/layouts/AppShell.vue'
+import { i18n } from '@/i18n'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -13,25 +14,25 @@ const router = createRouter({
       path: '/register',
       name: 'register',
       component: () => import('@/views/auth/RegisterView.vue'),
-      meta: { guestOnly: true, title: 'Create account' },
+      meta: { guestOnly: true, titleKey: 'auth.createAccount' },
     },
     {
       path: '/login',
       name: 'sign-in',
       component: () => import('@/views/auth/SignInView.vue'),
-      meta: { guestOnly: true, title: 'Sign in' },
+      meta: { guestOnly: true, titleKey: 'common.signIn' },
     },
     {
       path: '/forgot-password',
       name: 'forgot-password',
       component: () => import('@/views/auth/ForgotPasswordView.vue'),
-      meta: { guestOnly: true, title: 'Recover password' },
+      meta: { guestOnly: true, titleKey: 'auth.recoverPassword' },
     },
     {
       path: '/reset-password',
       name: 'reset-password',
       component: () => import('@/views/auth/ResetPasswordView.vue'),
-      meta: { guestOnly: true, title: 'Reset password' },
+      meta: { guestOnly: true, titleKey: 'auth.resetPassword' },
     },
     {
       path: '/app',
@@ -42,31 +43,31 @@ const router = createRouter({
           path: '',
           name: 'protected-home',
           component: () => import('@/views/ProtectedHomeView.vue'),
-          meta: { requiresAuth: true, title: 'Zunera account' },
+          meta: { requiresAuth: true, titleKey: 'app.accountReady' },
         },
         {
           path: 'financial-accounts',
           name: 'financial-accounts',
           component: () => import('@/views/financial-accounts/FinancialAccountsListView.vue'),
-          meta: { requiresAuth: true, title: 'Financial accounts' },
+          meta: { requiresAuth: true, titleKey: 'app.financialAccounts' },
         },
         {
           path: 'financial-accounts/archived',
           name: 'financial-accounts-archived',
           component: () => import('@/views/financial-accounts/ArchivedFinancialAccountsView.vue'),
-          meta: { requiresAuth: true, title: 'Archived accounts' },
+          meta: { requiresAuth: true, titleKey: 'app.archivedAccounts' },
         },
         {
           path: 'categories',
           name: 'categories',
           component: () => import('@/views/categories/CategoriesListView.vue'),
-          meta: { requiresAuth: true, title: 'Categories' },
+          meta: { requiresAuth: true, titleKey: 'app.categories' },
         },
         {
           path: 'categories/archived',
           name: 'categories-archived',
           component: () => import('@/views/categories/ArchivedCategoriesView.vue'),
-          meta: { requiresAuth: true, title: 'Archived categories' },
+          meta: { requiresAuth: true, titleKey: 'app.archivedCategories' },
         },
       ],
     },
@@ -76,7 +77,7 @@ const router = createRouter({
 router.beforeEach(authGuard)
 
 router.afterEach((to) => {
-  document.title = to.meta.title ? `${to.meta.title} | Zunera` : 'Zunera'
+  document.title = to.meta.titleKey ? `${i18n.global.t(to.meta.titleKey)} | Zunera` : 'Zunera'
 
   queueMicrotask(() => {
     document.getElementById('main-content')?.focus()

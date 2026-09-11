@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { Close, FolderDelete, RefreshLeft } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
   visible: { type: Boolean, required: true },
@@ -13,16 +14,17 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
 })
 const emit = defineEmits(['update:visible', 'confirm', 'cancel'])
-const title = computed(() => (props.action === 'archive' ? 'Archive category' : 'Restore category'))
+const { t } = useI18n()
+const title = computed(() => (props.action === 'archive' ? t('categories.archiveTitle') : t('categories.restoreTitle')))
 const actionLabel = computed(() =>
-  props.action === 'archive' ? 'Archive category' : 'Restore category',
+  props.action === 'archive' ? t('categories.archive') : t('categories.restore'),
 )
 const actionIcon = computed(() => (props.action === 'archive' ? FolderDelete : RefreshLeft))
 const description = computed(() =>
   props.category
     ? props.action === 'archive'
-      ? `Archive "${props.category.name}"? It will no longer appear for new transactions, while past history stays intact.`
-      : `Restore "${props.category.name}"? It will become available for new transactions again.`
+      ? t('categories.archiveDescription', { name: props.category.name })
+      : t('categories.restoreDescription', { name: props.category.name })
     : '',
 )
 </script>
@@ -42,7 +44,7 @@ const description = computed(() =>
         type="danger"
         :disabled="props.loading"
         @click="emit('update:visible', false)"
-        >Cancel</ElButton
+        >{{ t('common.cancel') }}</ElButton
       ><ElButton
         :icon="actionIcon"
         :loading="props.loading"

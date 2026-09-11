@@ -6,8 +6,10 @@ import FinancialAccountLifecycleDialog from '@/components/financial-accounts/Fin
 import FinancialAccountList from '@/components/financial-accounts/FinancialAccountList.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import { useFinancialAccountStore } from '@/stores/financial-accounts/financialAccountStore'
+import { useI18n } from 'vue-i18n'
 
 const store = useFinancialAccountStore()
+const { t } = useI18n()
 const router = useRouter()
 const successMessage = shallowRef('')
 const lifecycle = reactive({
@@ -35,7 +37,7 @@ async function confirmRestore() {
   try {
     await store.restore(lifecycle.account)
     lifecycle.visible = false
-    successMessage.value = 'Financial account restored.'
+    successMessage.value = t('financialAccounts.restored')
   } catch {
     // Store keeps the server error for the alert.
   }
@@ -45,12 +47,12 @@ async function confirmRestore() {
 <template>
   <div>
     <PageHeader
-      title="Archived accounts"
-      description="Historical accounts stay available here until you restore them."
+      :title="t('financialAccounts.archivedTitle')"
+      :description="t('financialAccounts.archivedDescription')"
     >
       <template #actions>
         <ElButton data-test="open-financial-accounts" :icon="Wallet" @click="openFinancialAccounts">
-          Financial accounts
+          {{ t('financialAccounts.title') }}
         </ElButton>
       </template>
     </PageHeader>

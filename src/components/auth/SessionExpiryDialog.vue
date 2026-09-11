@@ -2,10 +2,12 @@
 import { useRouter } from 'vue-router'
 import { useSessionExpiry } from '@/composables/useSessionExpiry'
 import { useSessionStore } from '@/stores/auth/sessionStore'
+import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
 const sessionStore = useSessionStore()
 const expiry = useSessionExpiry(sessionStore)
+const { t } = useI18n()
 
 async function continueSession() {
   await sessionStore.continueCurrentSession()
@@ -20,19 +22,19 @@ async function signOut() {
 <template>
   <ElDialog
     :model-value="expiry.showWarning.value"
-    title="Session ending soon"
+    :title="t('auth.sessionEnding')"
     width="min(92vw, 420px)"
     :close-on-click-modal="false"
     :show-close="false"
     align-center
   >
     <p class="dialog-copy">
-      Your session will expire in {{ expiry.secondsUntilIdleExpiry.value }} seconds.
+      {{ t('auth.sessionExpiresIn', { seconds: expiry.secondsUntilIdleExpiry.value }) }}
     </p>
     <template #footer>
-      <ElButton @click="signOut">Sign out</ElButton>
+      <ElButton @click="signOut">{{ t('common.signOut') }}</ElButton>
       <ElButton type="primary" :loading="sessionStore.loading" @click="continueSession">
-        Continue session
+        {{ t('auth.continueSession') }}
       </ElButton>
     </template>
   </ElDialog>

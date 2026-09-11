@@ -1,9 +1,19 @@
 <script setup>
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/stores/auth/sessionStore'
+import { useI18n } from 'vue-i18n'
+import { useLocale } from '@/composables/useLocale'
 
 const router = useRouter()
 const sessionStore = useSessionStore()
+const { t } = useI18n()
+const { activeLocale } = useLocale()
+const displayName = computed(() => sessionStore.user?.name?.trim() || sessionStore.user?.email || t('common.currentUser'))
+
+function formatDate(value) {
+  return value ? new Intl.DateTimeFormat(activeLocale.value, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : ''
+}
 
 async function signOut() {
   await sessionStore.logout()
@@ -13,25 +23,25 @@ async function signOut() {
 
 <template>
   <section class="protected-panel" aria-labelledby="protected-title">
-    <h1 id="protected-title" class="protected-title">Account ready</h1>
+    <h1 id="protected-title" class="protected-title">{{ t('app.accountReady') }}</h1>
     <p class="protected-copy">
-      Signed in as {{ sessionStore.user?.email }}.
+      {{ t('app.signedInAs', { name: displayName }) }}
     </p>
     <RouterLink class="accounts-link" :to="{ name: 'financial-accounts' }">
-      Open financial accounts
+      {{ t('app.openAccounts') }}
     </RouterLink>
     <dl class="session-details">
       <div>
-        <dt>Idle expires</dt>
-        <dd>{{ sessionStore.session?.idle_expires_at }}</dd>
+        <dt>{{ t('app.idleExpires') }}</dt>
+        <dd>{{ formatDate(sessionStore.session?.idle_expires_at) }}</dd>
       </div>
       <div>
-        <dt>Absolute expires</dt>
-        <dd>{{ sessionStore.session?.absolute_expires_at }}</dd>
+        <dt>{{ t('app.absoluteExpires') }}</dt>
+        <dd>{{ formatDate(sessionStore.session?.absolute_expires_at) }}</dd>
       </div>
     </dl>
     <ElButton type="primary" :loading="sessionStore.loading" @click="signOut">
-      Sign out
+      {{ t('common.signOut') }}
     </ElButton>
   </section>
 </template>

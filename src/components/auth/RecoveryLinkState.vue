@@ -1,10 +1,13 @@
 <script setup>
+import { useI18n } from 'vue-i18n'
+
 defineProps({
   code: {
     type: String,
     default: '',
   },
 })
+const { t } = useI18n()
 </script>
 
 <template>
@@ -12,16 +15,16 @@ defineProps({
     v-if="code === 'recovery_link_expired'"
     class="link-state"
     type="warning"
-    title="Recovery link expired"
-    description="Request a new recovery link to reset your password."
+    :title="t('auth.recoveryExpired')"
+    :description="t('auth.recoveryExpiredDescription')"
     show-icon
   />
   <ElAlert
     v-else-if="code === 'recovery_link_invalid'"
     class="link-state"
     type="error"
-    title="Recovery link invalid"
-    description="Use the newest recovery email or request a new link."
+    :title="t('auth.recoveryInvalid')"
+    :description="t('auth.recoveryInvalidDescription')"
     show-icon
   />
 </template>

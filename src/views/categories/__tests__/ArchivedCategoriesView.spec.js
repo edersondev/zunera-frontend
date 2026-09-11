@@ -33,8 +33,8 @@ describe('ArchivedCategoriesView', () => {
         },
       },
     })
-    expect(wrapper.text()).toContain('Archived categories')
-    expect(wrapper.text()).toContain('Categories')
+    expect(wrapper.text()).toContain('Categorias arquivadas')
+    expect(wrapper.text()).toContain('Categorias')
 
     await wrapper.find('[data-test="open-categories"]').trigger('click')
 
