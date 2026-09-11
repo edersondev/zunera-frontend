@@ -1,9 +1,9 @@
 <script setup>
-import { reactive, shallowRef, watch } from 'vue'
+import { computed, reactive, shallowRef, watch } from 'vue'
 import {
-  CATEGORY_CLASSIFICATIONS,
-  CATEGORY_COLORS,
-  CATEGORY_ICONS,
+  categoryClassificationOptions,
+  categoryColorOptions,
+  categoryIconOptions,
 } from '@/utils/categories/categoryOptions'
 import { useI18n } from 'vue-i18n'
 
@@ -17,7 +17,10 @@ const emit = defineEmits(['submit'])
 const { t } = useI18n()
 const formRef = shallowRef(null)
 const form = reactive({ name: '', classification: 'expense', color: 'teal', icon: 'circle' })
-const rules = {
+const classificationOptions = computed(() => categoryClassificationOptions(t))
+const colorOptions = computed(() => categoryColorOptions(t))
+const iconOptions = computed(() => categoryIconOptions(t))
+const rules = computed(() => ({
   name: [
     { required: true, message: t('categories.nameRequired'), trigger: 'blur' },
     {
@@ -28,7 +31,7 @@ const rules = {
     },
   ],
   classification: [{ required: true, message: t('categories.classificationRequired'), trigger: 'change' }],
-}
+}))
 
 watch(
   () => props.category,
@@ -75,7 +78,7 @@ defineExpose({ resetCreateForm })
           v-model="form.name"
           name="category-name"
           autocomplete="off"
-          placeholder="Pet care"
+          :placeholder="t('categories.name')"
       /></ElFormItem>
       <ElFormItem :label="t('categories.classification')" prop="classification">
         <ElSelect
@@ -85,7 +88,7 @@ defineExpose({ resetCreateForm })
           :disabled="Boolean(props.category?.has_financial_transactions)"
         >
           <ElOption
-            v-for="item in CATEGORY_CLASSIFICATIONS"
+            v-for="item in classificationOptions"
             :key="item.value"
             :label="item.label"
             :value="item.value"
@@ -100,7 +103,7 @@ defineExpose({ resetCreateForm })
       <ElFormItem :label="t('categories.color')"
         ><ElSelect v-model="form.color" name="category-color" :aria-label="t('categories.color')"
           ><ElOption
-            v-for="item in CATEGORY_COLORS"
+            v-for="item in colorOptions"
             :key="item.value"
             :label="item.label"
             :value="item.value" /></ElSelect
@@ -108,7 +111,7 @@ defineExpose({ resetCreateForm })
       <ElFormItem :label="t('categories.icon')"
         ><ElSelect v-model="form.icon" name="category-icon" :aria-label="t('categories.icon')"
           ><ElOption
-            v-for="item in CATEGORY_ICONS"
+            v-for="item in iconOptions"
             :key="item.value"
             :label="item.label"
             :value="item.value" /></ElSelect

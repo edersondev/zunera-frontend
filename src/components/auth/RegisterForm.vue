@@ -17,7 +17,7 @@ const form = reactive({
   password: '',
   password_confirmation: '',
 })
-const rules = {
+const rules = computed(() => ({
   name: [
     { required: true, message: t('auth.nameRequired'), trigger: 'blur' },
     { min: 2, message: t('auth.nameShort'), trigger: 'blur' },
@@ -43,7 +43,7 @@ const rules = {
       trigger: 'blur',
     },
   ],
-}
+}))
 
 const alertMessage = computed(() => {
   if (serverError.value?.code === 'password_safety_unavailable') {

@@ -1,14 +1,15 @@
 <script setup>
-import { reactive, ref, shallowRef, watch } from 'vue'
+import { computed, reactive, ref, shallowRef, watch } from 'vue'
 import { vMaska } from 'maska/vue'
 import { Check, CirclePlus } from '@element-plus/icons-vue'
 import {
-  ACCOUNT_TYPES,
-  COLOR_OPTIONS,
-  ICON_OPTIONS,
+  accountColorOptions,
+  accountIconOptions,
+  accountTypeOptions,
 } from '@/utils/financial-accounts/accountOptions'
 import { useI18n } from 'vue-i18n'
 import { parseBRLToCentavos } from '@/utils/financial-accounts/currency'
+import { useLocale } from '@/composables/useLocale'
 
 const props = defineProps({
   account: {
@@ -31,16 +32,26 @@ const props = defineProps({
 
 const emit = defineEmits(['submit'])
 const { t } = useI18n()
+const { activeLocale } = useLocale()
 const formRef = shallowRef(null)
 const initialBalance = ref('')
-const balanceMask = {
+const accountTypes = computed(() => accountTypeOptions(t))
+const colorOptions = computed(() => accountColorOptions(t))
+const iconOptions = computed(() => accountIconOptions(t))
+const balancePlaceholder = computed(() =>
+  new Intl.NumberFormat(activeLocale.value, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(0),
+)
+const balanceMask = computed(() => ({
   number: {
-    locale: 'pt-BR',
+    locale: activeLocale.value,
     fraction: 2,
     unsigned: false,
   },
-  preProcess: normalizeBalanceInput,
-}
+  preProcess: (value) => normalizeBalanceInput(value, activeLocale.value),
+}))
 const form = reactive({
   name: '',
   accountType: 'checking',
@@ -50,7 +61,7 @@ const form = reactive({
 })
 
 const initialBalanceLocked = ref(false)
-const rules = {
+const rules = computed(() => ({
   name: [
     { required: true, message: t('financialAccounts.nameRequired'), trigger: 'blur' },
     {
@@ -61,7 +72,7 @@ const rules = {
     },
   ],
   accountType: [{ required: true, message: t('financialAccounts.typeRequired'), trigger: 'change' }],
-}
+}))
 
 watch(
   () => props.account,
@@ -92,13 +103,13 @@ function resetCreateForm() {
 }
 
 function formatBalance(centavos) {
-  return (Number(centavos) / 100).toLocaleString('pt-BR', {
+  return (Number(centavos) / 100).toLocaleString(activeLocale.value, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
 }
 
-function normalizeBalanceInput(value) {
+function normalizeBalanceInput(value, locale) {
   const raw = String(value)
   const negative = raw.startsWith('-')
   const digits = raw.replace(/\D/g, '')
@@ -108,7 +119,11 @@ function normalizeBalanceInput(value) {
   }
 
   const padded = digits.padStart(3, '0')
-  return `${negative ? '-' : ''}${padded.slice(0, -2)},${padded.slice(-2)}`
+  const decimalSeparator = new Intl.NumberFormat(locale)
+    .formatToParts(1.1)
+    .find((part) => part.type === 'decimal')?.value ?? ','
+
+  return `${negative ? '-' : ''}${padded.slice(0, -2)}${decimalSeparator}${padded.slice(-2)}`
 }
 
 async function submit() {
@@ -154,14 +169,14 @@ defineExpose({ resetCreateForm })
           v-model="form.name"
           name="account-name"
           autocomplete="off"
-          placeholder="Conta principal"
+          :placeholder="t('financialAccounts.accountName')"
         />
       </ElFormItem>
 
       <ElFormItem :label="t('financialAccounts.accountType')" prop="accountType">
         <ElSelect v-model="form.accountType" name="account-type" :aria-label="t('financialAccounts.accountType')">
           <ElOption
-            v-for="type in ACCOUNT_TYPES"
+            v-for="type in accountTypes"
             :key="type.value"
             :label="type.label"
             :value="type.value"
@@ -179,7 +194,7 @@ defineExpose({ resetCreateForm })
           inputmode="decimal"
           autocomplete="off"
           :disabled="initialBalanceLocked"
-          placeholder="0,00"
+          :placeholder="balancePlaceholder"
         >
           <template #prefix><span class="currency-prefix">R$</span></template>
         </ElInput>
@@ -203,7 +218,7 @@ defineExpose({ resetCreateForm })
       <ElFormItem :label="t('financialAccounts.color')" prop="color">
         <ElSelect v-model="form.color" name="color" :aria-label="t('financialAccounts.color')">
           <ElOption
-            v-for="color in COLOR_OPTIONS"
+            v-for="color in colorOptions"
             :key="color.value"
             :label="color.label"
             :value="color.value"
@@ -214,7 +229,7 @@ defineExpose({ resetCreateForm })
       <ElFormItem :label="t('financialAccounts.icon')" prop="icon">
         <ElSelect v-model="form.icon" name="icon" :aria-label="t('financialAccounts.icon')">
           <ElOption
-            v-for="icon in ICON_OPTIONS"
+            v-for="icon in iconOptions"
             :key="icon.value"
             :label="icon.label"
             :value="icon.value"

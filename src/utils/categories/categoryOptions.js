@@ -16,47 +16,55 @@ import {
   Wallet,
 } from '@element-plus/icons-vue'
 
-export const CATEGORY_CLASSIFICATIONS = Object.freeze([
-  { value: 'income', label: 'Receita' },
-  { value: 'expense', label: 'Despesa' },
-])
+export const CATEGORY_CLASSIFICATIONS = Object.freeze(['income', 'expense'])
 
-export const CATEGORY_COLORS = Object.freeze([
-  { value: 'teal', label: 'Verde-azulado' },
-  { value: 'blue', label: 'Azul' },
-  { value: 'violet', label: 'Violeta' },
-  { value: 'amber', label: 'Âmbar' },
-  { value: 'rose', label: 'Rosa' },
-  { value: 'cyan', label: 'Ciano' },
-])
+export const CATEGORY_COLORS = Object.freeze(['teal', 'blue', 'violet', 'amber', 'rose', 'cyan'])
 
 export const CATEGORY_ICONS = Object.freeze([
-  { value: 'home', label: 'Casa' },
-  { value: 'utensils', label: 'Alimentação' },
-  { value: 'car', label: 'Carro' },
-  { value: 'heart', label: 'Saúde' },
-  { value: 'book', label: 'Educação' },
-  { value: 'gamepad', label: 'Entretenimento' },
-  { value: 'shopping_bag', label: 'Compras' },
-  { value: 'receipt', label: 'Contas' },
-  { value: 'landmark', label: 'Impostos' },
-  { value: 'circle', label: 'Outro' },
-  { value: 'wallet', label: 'Carteira' },
-  { value: 'briefcase', label: 'Serviços' },
-  { value: 'chart', label: 'Investimentos' },
-  { value: 'gift', label: 'Presentes' },
-  { value: 'refund', label: 'Reembolsos' },
+  'home',
+  'utensils',
+  'car',
+  'heart',
+  'book',
+  'gamepad',
+  'shopping_bag',
+  'receipt',
+  'landmark',
+  'circle',
+  'wallet',
+  'briefcase',
+  'chart',
+  'gift',
+  'refund',
 ])
 
-export const CLASSIFICATION_LABELS = Object.freeze(
-  Object.fromEntries(CATEGORY_CLASSIFICATIONS.map((item) => [item.value, item.label])),
-)
-export const COLOR_LABELS = Object.freeze(
-  Object.fromEntries(CATEGORY_COLORS.map((item) => [item.value, item.label])),
-)
-export const ICON_LABELS = Object.freeze(
-  Object.fromEntries(CATEGORY_ICONS.map((item) => [item.value, item.label])),
-)
+function localizedOptions(values, keyPrefix, t) {
+  return values.map((value) => ({ value, label: t(`${keyPrefix}.${value}`) }))
+}
+
+export function categoryClassificationOptions(t) {
+  return localizedOptions(CATEGORY_CLASSIFICATIONS, 'categories.classifications', t)
+}
+
+export function categoryColorOptions(t) {
+  return localizedOptions(CATEGORY_COLORS, 'categories.colors', t)
+}
+
+export function categoryIconOptions(t) {
+  return localizedOptions(CATEGORY_ICONS, 'categories.icons', t)
+}
+
+export function categoryClassificationLabel(value, t) {
+  return CATEGORY_CLASSIFICATIONS.includes(value) ? t(`categories.classifications.${value}`) : value
+}
+
+export function categoryColorLabel(value, t) {
+  return CATEGORY_COLORS.includes(value) ? t(`categories.colors.${value}`) : value
+}
+
+export function categoryIconLabel(value, t) {
+  return CATEGORY_ICONS.includes(value) ? t(`categories.icons.${value}`) : value
+}
 
 export const CATEGORY_ICON_COMPONENTS = Object.freeze({
   home: House,

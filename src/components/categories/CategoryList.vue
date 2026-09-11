@@ -3,10 +3,10 @@ import { computed, shallowRef } from 'vue'
 import { Edit, FolderDelete, RefreshLeft } from '@element-plus/icons-vue'
 import {
   CATEGORY_ICON_COMPONENTS,
-  CLASSIFICATION_LABELS,
-  COLOR_LABELS,
-  ICON_LABELS,
+  categoryClassificationLabel,
+  categoryColorLabel,
   categoryColorStyle,
+  categoryIconLabel,
 } from '@/utils/categories/categoryOptions'
 import { useI18n } from 'vue-i18n'
 
@@ -53,7 +53,7 @@ const emptyDescription = computed(() => {
             <span
               class="category-color"
               :style="categoryColorStyle(category.color)"
-              :aria-label="`${COLOR_LABELS[category.color] ?? category.color}, ${ICON_LABELS[category.icon] ?? category.icon}`"
+              :aria-label="`${categoryColorLabel(category.color, t)}, ${categoryIconLabel(category.icon, t)}`"
               role="img"
             >
               <ElIcon :size="16" aria-hidden="true"
@@ -68,7 +68,7 @@ const emptyDescription = computed(() => {
                   effect="plain"
                   :type="category.classification === 'expense' ? 'danger' : undefined"
                   >{{
-                    CLASSIFICATION_LABELS[category.classification] ?? category.classification
+                    categoryClassificationLabel(category.classification, t)
                   }}</ElTag
                 >
                 <ElTag v-if="category.origin === 'system'" size="small" type="info"

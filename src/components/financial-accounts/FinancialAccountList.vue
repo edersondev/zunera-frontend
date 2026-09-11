@@ -1,6 +1,6 @@
 <script setup>
 import { Edit, FolderDelete, RefreshLeft } from '@element-plus/icons-vue'
-import { ACCOUNT_TYPE_LABELS } from '@/utils/financial-accounts/accountOptions'
+import { accountTypeLabel } from '@/utils/financial-accounts/accountOptions'
 import { formatBRL } from '@/utils/financial-accounts/currency'
 import { useI18n } from 'vue-i18n'
 
@@ -51,7 +51,7 @@ const { t } = useI18n()
           </button>
           <span v-else class="account-name account-name--static">{{ account.name }}</span>
           <p class="account-meta">
-            {{ ACCOUNT_TYPE_LABELS[account.account_type] ?? account.account_type }}
+            {{ accountTypeLabel(account.account_type, t) }}
             <template v-if="account.institution_name"> · {{ account.institution_name }}</template>
           </p>
         </div>

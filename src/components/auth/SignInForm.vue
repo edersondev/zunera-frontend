@@ -15,13 +15,13 @@ const form = reactive({
   email: '',
   password: '',
 })
-const rules = {
+const rules = computed(() => ({
   email: [
     { required: true, message: t('auth.emailRequired'), trigger: 'blur' },
     { type: 'email', message: t('auth.emailInvalid'), trigger: 'blur' },
   ],
   password: [{ required: true, message: t('auth.passwordRequired'), trigger: 'blur' }],
-}
+}))
 
 const alertMessage = computed(() => {
   if (route.query.expired) {

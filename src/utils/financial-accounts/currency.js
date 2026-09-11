@@ -31,20 +31,13 @@ export function parseBRLToCentavos(value) {
     .replace(/[^\d.,-]/g, '')
     .replace(/-/g, '')
 
-  let integer = 0
-  let fraction = 0
-
-  if (normalized.includes(',')) {
-    const [whole, decimal] = normalized.split(',')
-    integer = Number(whole.replace(/\./g, '') || '0')
-    fraction = Number((decimal ?? '').padEnd(2, '0').slice(0, 2))
-  } else if (normalized.includes('.')) {
-    const parts = normalized.split('.')
-    fraction = Number((parts.pop() ?? '').padEnd(2, '0').slice(0, 2))
-    integer = Number(parts.join('') || '0')
-  } else {
-    integer = Number(normalized || '0')
-  }
+  const lastComma = normalized.lastIndexOf(',')
+  const lastPeriod = normalized.lastIndexOf('.')
+  const decimalIndex = Math.max(lastComma, lastPeriod)
+  const whole = decimalIndex === -1 ? normalized : normalized.slice(0, decimalIndex)
+  const decimal = decimalIndex === -1 ? '' : normalized.slice(decimalIndex + 1)
+  const integer = Number(whole.replace(/[.,]/g, '') || '0')
+  const fraction = Number(decimal.padEnd(2, '0').slice(0, 2))
 
   const centavos = integer * 100 + fraction
   return negative ? -centavos : centavos

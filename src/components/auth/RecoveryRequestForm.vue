@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, shallowRef } from 'vue'
+import { computed, reactive, shallowRef } from 'vue'
 import AuthFormAlert from './AuthFormAlert.vue'
 import { useSessionStore } from '@/stores/auth/sessionStore'
 import { useI18n } from 'vue-i18n'
@@ -10,12 +10,12 @@ const { t } = useI18n()
 const formRef = shallowRef(null)
 const serverError = shallowRef(null)
 const form = reactive({ email: '' })
-const rules = {
+const rules = computed(() => ({
   email: [
     { required: true, message: t('auth.emailRequired'), trigger: 'blur' },
     { type: 'email', message: t('auth.emailInvalid'), trigger: 'blur' },
   ],
-}
+}))
 
 async function submit() {
   serverError.value = null

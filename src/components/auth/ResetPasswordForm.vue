@@ -30,7 +30,7 @@ const form = reactive({
   password: '',
   password_confirmation: '',
 })
-const rules = {
+const rules = computed(() => ({
   email: [
     { required: true, message: t('auth.emailRequired'), trigger: 'blur' },
     { type: 'email', message: t('auth.emailInvalid'), trigger: 'blur' },
@@ -53,7 +53,7 @@ const rules = {
       trigger: 'blur',
     },
   ],
-}
+}))
 const alertMessage = computed(() => {
   if (serverError.value?.code === 'password_safety_unavailable') {
     return t('auth.safetyUnavailable')
