@@ -4,31 +4,38 @@ import { useRouter } from 'vue-router'
 import AuthFormAlert from './AuthFormAlert.vue'
 import PasswordRequirements from './PasswordRequirements.vue'
 import { useSessionStore } from '@/stores/auth/sessionStore'
+import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
 const sessionStore = useSessionStore()
+const { t } = useI18n()
 const formRef = shallowRef(null)
 const serverError = shallowRef(null)
 const form = reactive({
+  name: '',
   email: '',
   password: '',
   password_confirmation: '',
 })
-const rules = {
+const rules = computed(() => ({
+  name: [
+    { required: true, message: t('auth.nameRequired'), trigger: 'blur' },
+    { min: 2, message: t('auth.nameShort'), trigger: 'blur' },
+  ],
   email: [
-    { required: true, message: 'Enter your email.', trigger: 'blur' },
-    { type: 'email', message: 'Enter a valid email.', trigger: 'blur' },
+    { required: true, message: t('auth.emailRequired'), trigger: 'blur' },
+    { type: 'email', message: t('auth.emailInvalid'), trigger: 'blur' },
   ],
   password: [
-    { required: true, message: 'Enter a password.', trigger: 'blur' },
-    { min: 15, message: 'Use at least 15 characters.', trigger: 'blur' },
+    { required: true, message: t('auth.passwordRequired'), trigger: 'blur' },
+    { min: 15, message: t('auth.passwordMin'), trigger: 'blur' },
   ],
   password_confirmation: [
-    { required: true, message: 'Confirm your password.', trigger: 'blur' },
+    { required: true, message: t('auth.confirmPassword'), trigger: 'blur' },
     {
       validator: (_rule, value, callback) => {
         if (value !== form.password) {
-          callback(new Error('Passwords must match.'))
+          callback(new Error(t('auth.passwordsMatch')))
           return
         }
         callback()
@@ -36,11 +43,11 @@ const rules = {
       trigger: 'blur',
     },
   ],
-}
+}))
 
 const alertMessage = computed(() => {
   if (serverError.value?.code === 'password_safety_unavailable') {
-    return 'Password safety is temporarily unavailable. Try again soon.'
+    return t('auth.safetyUnavailable')
   }
 
   return serverError.value?.message ?? ''
@@ -62,10 +69,13 @@ async function submit() {
 <template>
   <AuthFormAlert :message="alertMessage" />
   <ElForm ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent="submit">
-    <ElFormItem label="Email" prop="email" :error="serverError?.errors?.email?.[0]">
+    <ElFormItem :label="t('auth.fullName')" prop="name" :error="serverError?.errors?.name?.[0]">
+      <ElInput v-model="form.name" name="name" autocomplete="name" />
+    </ElFormItem>
+    <ElFormItem :label="t('common.email')" prop="email" :error="serverError?.errors?.email?.[0]">
       <ElInput v-model="form.email" name="email" autocomplete="email" />
     </ElFormItem>
-    <ElFormItem label="Password" prop="password" :error="serverError?.errors?.password?.[0]">
+    <ElFormItem :label="t('common.password')" prop="password" :error="serverError?.errors?.password?.[0]">
       <ElInput
         v-model="form.password"
         name="password"
@@ -75,7 +85,7 @@ async function submit() {
       />
     </ElFormItem>
     <PasswordRequirements />
-    <ElFormItem label="Confirm password" prop="password_confirmation">
+    <ElFormItem :label="t('auth.confirmPassword')" prop="password_confirmation">
       <ElInput
         v-model="form.password_confirmation"
         name="password_confirmation"
@@ -85,12 +95,12 @@ async function submit() {
       />
     </ElFormItem>
     <ElButton class="auth-submit" native-type="submit" type="primary" :loading="sessionStore.loading">
-      Create account
+      {{ t('auth.createAccount') }}
     </ElButton>
   </ElForm>
   <p class="form-switch">
-    Already have an account?
-    <RouterLink class="auth-link" :to="{ name: 'sign-in' }">Sign in</RouterLink>
+    {{ t('auth.alreadyHaveAccount') }}
+    <RouterLink class="auth-link" :to="{ name: 'sign-in' }">{{ t('common.signIn') }}</RouterLink>
   </p>
 </template>
 

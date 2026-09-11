@@ -7,8 +7,10 @@ import CategoryLifecycleDialog from '@/components/categories/CategoryLifecycleDi
 import CategoryList from '@/components/categories/CategoryList.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import { useCategoryStore } from '@/stores/categories/categoryStore'
+import { useI18n } from 'vue-i18n'
 
 const store = useCategoryStore()
+const { t } = useI18n()
 const router = useRouter()
 const formRef = shallowRef(null)
 const createDialogVisible = shallowRef(false)
@@ -45,7 +47,7 @@ async function createCategory(payload) {
     await store.create(payload)
     formRef.value?.resetCreateForm?.()
     createDialogVisible.value = false
-    successMessage.value = 'Category created.'
+    successMessage.value = t('categories.created')
   } catch {}
 }
 async function updateCategory(payload) {
@@ -54,7 +56,7 @@ async function updateCategory(payload) {
   try {
     await store.update(editingCategory.value.id, payload)
     closeEditDialog()
-    successMessage.value = 'Category updated.'
+    successMessage.value = t('categories.saved')
   } catch {}
 }
 function askArchive(category) {
@@ -66,7 +68,7 @@ async function confirmLifecycle() {
   try {
     await store.archive(lifecycle.category)
     lifecycle.visible = false
-    successMessage.value = 'Category archived.'
+    successMessage.value = t('categories.archivedSuccess')
   } catch {}
 }
 </script>
@@ -74,8 +76,8 @@ async function confirmLifecycle() {
 <template>
   <div>
     <PageHeader
-      title="Categories"
-      description="Organize income and expenses with system defaults and your own categories."
+      :title="t('categories.title')"
+      :description="t('categories.description')"
     >
       <template #actions>
         <ElButton
@@ -84,7 +86,7 @@ async function confirmLifecycle() {
           :icon="Plus"
           @click="openCreateDialog"
         >
-          New category
+          {{ t('categories.new') }}
         </ElButton>
         <ElButton
           data-test="open-archived-categories"
@@ -92,7 +94,7 @@ async function confirmLifecycle() {
           :icon="FolderOpened"
           @click="openArchivedCategories"
         >
-          Archived
+          {{ t('categories.archived') }}
         </ElButton>
       </template>
     </PageHeader>
@@ -111,7 +113,7 @@ async function confirmLifecycle() {
       show-icon
     />
     <section class="content-section" aria-labelledby="active-categories-title">
-      <h2 id="active-categories-title">Active categories</h2>
+      <h2 id="active-categories-title">{{ t('categories.active') }}</h2>
       <CategoryList
         :categories="store.categories"
         :loading="store.loading"
@@ -121,7 +123,7 @@ async function confirmLifecycle() {
     </section>
     <ElDialog
       v-model="createDialogVisible"
-      title="New category"
+      :title="t('categories.newDialog')"
       width="min(92vw, 640px)"
       :close-on-click-modal="!store.creating"
       :close-on-press-escape="!store.creating"
@@ -137,7 +139,7 @@ async function confirmLifecycle() {
       />
       <template #footer
         ><ElButton :icon="Close" type="danger" :disabled="store.creating" @click="closeCreateDialog"
-          >Cancel</ElButton
+          >{{ t('common.cancel') }}</ElButton
         ><ElButton
           data-test="create-category"
           :icon="CirclePlus"
@@ -145,13 +147,13 @@ async function confirmLifecycle() {
           type="primary"
           form="create-category-form"
           :loading="store.creating"
-          >Create category</ElButton
+          >{{ t('categories.create') }}</ElButton
         ></template
       >
     </ElDialog>
     <ElDialog
       v-model="editDialogVisible"
-      title="Edit category"
+      :title="t('categories.editDialog')"
       width="min(92vw, 640px)"
       :close-on-click-modal="!store.updating"
       :close-on-press-escape="!store.updating"
@@ -168,7 +170,7 @@ async function confirmLifecycle() {
       />
       <template #footer
         ><ElButton :icon="Close" type="danger" :disabled="store.updating" @click="closeEditDialog"
-          >Cancel</ElButton
+          >{{ t('common.cancel') }}</ElButton
         ><ElButton
           data-test="save-category"
           :icon="Check"
@@ -176,7 +178,7 @@ async function confirmLifecycle() {
           type="primary"
           form="edit-category-form"
           :loading="store.updating"
-          >Save changes</ElButton
+          >{{ t('categories.saveChanges') }}</ElButton
         ></template
       >
     </ElDialog>

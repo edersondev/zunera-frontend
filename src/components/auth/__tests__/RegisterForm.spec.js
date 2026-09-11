@@ -47,9 +47,9 @@ describe('RegisterForm', () => {
     const wrapper = mount(RegisterForm, { global: { stubs } })
 
     expect(wrapper.get('form').attributes('label-position')).toBe('top')
-    expect(wrapper.text()).toContain('Email')
-    expect(wrapper.text()).toContain('Password')
-    expect(wrapper.text()).toContain('Confirm password')
-    expect(wrapper.text()).toContain('Use 15 to 64 characters')
+    expect(wrapper.text()).toContain('E-mail')
+    expect(wrapper.text()).toContain('Senha')
+    expect(wrapper.text()).toContain('Confirme a senha')
+    expect(wrapper.text()).toContain('Use de 15 a 64 caracteres')
   })
 })

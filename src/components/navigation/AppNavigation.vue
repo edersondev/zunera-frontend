@@ -1,4 +1,6 @@
 <script setup>
+import { useI18n } from 'vue-i18n'
+
 const props = defineProps({
   items: {
     type: Array,
@@ -11,10 +13,11 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['navigate'])
+const { t } = useI18n()
 </script>
 
 <template>
-  <nav aria-label="Primary navigation" class="primary-navigation">
+  <nav :aria-label="t('app.primaryNavigation')" class="primary-navigation">
     <ElMenu :default-active="props.activeRoute" @select="emit('navigate', $event)">
       <ElMenuItem
         v-for="item in props.items"

@@ -46,7 +46,7 @@ describe('Recovery and reset forms', () => {
     const wrapper = mount(RecoveryRequestForm, { global: { stubs } })
 
     expect(wrapper.get('form').attributes('label-position')).toBe('top')
-    expect(wrapper.text()).toContain('Email')
+    expect(wrapper.text()).toContain('E-mail')
   })
 
   it('uses top-label form and stable reset states for reset', () => {
@@ -56,8 +56,8 @@ describe('Recovery and reset forms', () => {
     })
 
     expect(wrapper.get('form').attributes('label-position')).toBe('top')
-    expect(wrapper.text()).toContain('Recovery token')
-    expect(wrapper.text()).toContain('New password')
-    expect(wrapper.text()).toContain('Confirm new password')
+    expect(wrapper.text()).toContain('Token de recuperação')
+    expect(wrapper.text()).toContain('nova senha')
+    expect(wrapper.text()).toContain('Confirme a nova senha')
   })
 })

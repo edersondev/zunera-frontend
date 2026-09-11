@@ -44,9 +44,9 @@ describe('SignInForm', () => {
     const wrapper = mount(SignInForm, { global: { stubs } })
 
     expect(wrapper.get('form').attributes('label-position')).toBe('top')
-    expect(wrapper.text()).toContain('Email')
-    expect(wrapper.text()).toContain('Password')
-    expect(wrapper.text()).toContain('Forgot password?')
-    expect(wrapper.text()).toContain('Create account')
+    expect(wrapper.text()).toContain('E-mail')
+    expect(wrapper.text()).toContain('Senha')
+    expect(wrapper.text()).toContain('Esqueceu sua senha?')
+    expect(wrapper.text()).toContain('Criar conta')
   })
 })

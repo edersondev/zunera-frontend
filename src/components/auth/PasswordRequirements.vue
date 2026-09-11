@@ -1,15 +1,19 @@
 <script setup>
+import { useI18n } from 'vue-i18n'
+
 defineProps({
   compact: {
     type: Boolean,
     default: false,
   },
 })
+
+const { t } = useI18n()
 </script>
 
 <template>
   <p class="password-help" :class="{ 'password-help-compact': compact }">
-    Use 15 to 64 characters. Spaces are allowed. Avoid common or compromised passwords.
+    {{ t('auth.passwordHelp') }}
   </p>
 </template>
 

@@ -6,8 +6,10 @@ import CategoryLifecycleDialog from '@/components/categories/CategoryLifecycleDi
 import CategoryList from '@/components/categories/CategoryList.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import { useCategoryStore } from '@/stores/categories/categoryStore'
+import { useI18n } from 'vue-i18n'
 
 const store = useCategoryStore()
+const { t } = useI18n()
 const router = useRouter()
 const successMessage = shallowRef('')
 const lifecycle = reactive({ visible: false, action: 'restore', category: null })
@@ -23,7 +25,7 @@ async function confirmRestore() {
   try {
     await store.restore(lifecycle.category)
     lifecycle.visible = false
-    successMessage.value = 'Category restored.'
+    successMessage.value = t('categories.restored')
   } catch {}
 }
 </script>
@@ -31,12 +33,12 @@ async function confirmRestore() {
 <template>
   <div>
     <PageHeader
-      title="Archived categories"
-      description="Archived categories remain available for historical reporting and can be restored."
+      :title="t('categories.archivedTitle')"
+      :description="t('categories.archivedDescription')"
     >
       <template #actions>
         <ElButton data-test="open-categories" :icon="CollectionTag" @click="openCategories">
-          Categories
+          {{ t('categories.title') }}
         </ElButton>
       </template>
     </PageHeader>

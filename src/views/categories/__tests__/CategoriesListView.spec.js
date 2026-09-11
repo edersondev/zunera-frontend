@@ -42,8 +42,8 @@ describe('CategoriesListView', () => {
         },
       },
     })
-    expect(wrapper.text()).toContain('New category')
-    expect(wrapper.text()).toContain('Archived')
+    expect(wrapper.text()).toContain('Nova categoria')
+    expect(wrapper.text()).toContain('Arquivadas')
     expect(wrapper.findAll('[data-test]').map((button) => button.attributes('data-test'))).toEqual([
       'open-create-category',
       'open-archived-categories',
@@ -80,8 +80,8 @@ describe('CategoriesListView', () => {
       },
     })
 
-    const newCategoryDialog = wrapper.find('[data-dialog-title="New category"]')
-    const editCategoryDialog = wrapper.find('[data-dialog-title="Edit category"]')
+    const newCategoryDialog = wrapper.find('[data-dialog-title="Nova categoria"]')
+    const editCategoryDialog = wrapper.find('[data-dialog-title="Editar categoria"]')
 
     expect(newCategoryDialog.find('button').attributes('data-button-type')).toBe('danger')
     expect(editCategoryDialog.find('button').attributes('data-button-type')).toBe('danger')

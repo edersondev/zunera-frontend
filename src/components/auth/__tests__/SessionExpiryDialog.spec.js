@@ -39,9 +39,9 @@ describe('SessionExpiryDialog', () => {
       },
     })
 
-    expect(wrapper.text()).toContain('45 seconds')
-    expect(wrapper.text()).toContain('Sign out')
-    expect(wrapper.text()).toContain('Continue session')
+    expect(wrapper.text()).toContain('45 segundos')
+    expect(wrapper.text()).toContain('Sair')
+    expect(wrapper.text()).toContain('Continuar sessão')
   })
 
   it('redirects to sign in after sign out', async () => {

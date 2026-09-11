@@ -1,6 +1,12 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { mount, RouterLinkStub } from '@vue/test-utils'
 import AuthLayout from '../AuthLayout.vue'
+import { i18n } from '@/i18n'
+
+afterEach(() => {
+  i18n.global.locale.value = 'pt-BR'
+  window.localStorage.clear()
+})
 
 describe('AuthLayout', () => {
   it('renders title, signed-out content, and privacy links before form slot', () => {
@@ -20,8 +26,21 @@ describe('AuthLayout', () => {
     })
 
     expect(wrapper.get('h1').text()).toBe('Sign in')
-    expect(wrapper.text()).toContain('Privacy notice')
-    expect(wrapper.text()).toContain('Privacy rights')
-    expect(wrapper.html().indexOf('Privacy notice')).toBeLessThan(wrapper.html().indexOf('Auth form'))
+    expect(wrapper.text()).toContain('Aviso de privacidade')
+    expect(wrapper.text()).toContain('Direitos de privacidade')
+    expect(wrapper.html().indexOf('Aviso de privacidade')).toBeLessThan(wrapper.html().indexOf('Auth form'))
+  })
+
+  it('switches and persists signed-out language selection', async () => {
+    const wrapper = mount(AuthLayout, {
+      props: { title: 'Entrar', subtitle: 'Acesse sua conta.' },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+
+    await wrapper.get('#auth-language').setValue('en')
+
+    expect(i18n.global.locale.value).toBe('en')
+    expect(window.localStorage.getItem('zunera.locale')).toBe('en')
+    expect(wrapper.text()).toContain('Language')
   })
 })

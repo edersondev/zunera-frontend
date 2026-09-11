@@ -43,7 +43,7 @@ describe('FinancialAccountsListView', () => {
 
     expect(store.fetchAccounts).toHaveBeenCalledWith('active')
     expect(store.fetchSummary).toHaveBeenCalledTimes(1)
-    expect(wrapper.text()).toContain('Financial accounts')
+    expect(wrapper.text()).toContain('Contas financeiras')
     expect(
       wrapper
         .findAll('[data-test]')
@@ -65,12 +65,12 @@ describe('FinancialAccountsListView', () => {
     await flushPromises()
 
     await wrapper.get('[data-test="open-create-account"]').trigger('click')
-    expect(wrapper.get('[data-test="create-account"]').text()).toBe('Create account')
+    expect(wrapper.get('[data-test="create-account"]').text()).toBe('Criar conta')
     await wrapper.get('#create-financial-account-form').trigger('submit')
     await flushPromises()
 
     expect(store.create).toHaveBeenCalledWith({ name: 'Conta principal' })
-    expect(wrapper.text()).toContain('Financial account created.')
+    expect(wrapper.text()).toContain('Conta financeira criada.')
   })
 
   it('shows server errors returned by create', async () => {
@@ -98,7 +98,7 @@ describe('FinancialAccountsListView', () => {
     await flushPromises()
 
     expect(store.update).toHaveBeenCalledWith(1, { name: 'Conta principal' })
-    expect(wrapper.text()).toContain('Account details saved.')
+    expect(wrapper.text()).toContain('Detalhes da conta salvos.')
   })
 })
 

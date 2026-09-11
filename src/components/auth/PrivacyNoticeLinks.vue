@@ -1,14 +1,17 @@
 <script setup>
+import { useI18n } from 'vue-i18n'
+
 const privacyUrl = import.meta.env.VITE_PRIVACY_URL ?? '/privacy'
 const privacyRightsUrl = import.meta.env.VITE_PRIVACY_RIGHTS_URL ?? '/privacy-rights'
+const { t } = useI18n()
 </script>
 
 <template>
   <p class="privacy-links">
-    By continuing, you agree to Zunera privacy handling.
-    <a :href="privacyUrl" class="auth-link">Privacy notice</a>
+    {{ t('auth.privacy') }}
+    <a :href="privacyUrl" class="auth-link">{{ t('auth.privacyNotice') }}</a>
     <span aria-hidden="true">·</span>
-    <a :href="privacyRightsUrl" class="auth-link">Privacy rights</a>
+    <a :href="privacyRightsUrl" class="auth-link">{{ t('auth.privacyRights') }}</a>
   </p>
 </template>
 

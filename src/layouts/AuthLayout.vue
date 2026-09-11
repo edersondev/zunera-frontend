@@ -1,5 +1,14 @@
 <script setup>
 import PrivacyNoticeLinks from '@/components/auth/PrivacyNoticeLinks.vue'
+import { useLocale } from '@/composables/useLocale'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+const { activeLocale, setLocale } = useLocale()
+
+function changeLocale(event) {
+  setLocale(event.target.value)
+}
 
 defineProps({
   title: {
@@ -16,6 +25,13 @@ defineProps({
 <template>
   <main class="auth-page">
     <section class="auth-panel" aria-labelledby="auth-title">
+      <label class="language-selector" for="auth-language">
+        <span>{{ t('common.language') }}</span>
+        <select id="auth-language" :value="activeLocale" @change="changeLocale">
+          <option value="pt-BR">{{ t('common.portuguese') }}</option>
+          <option value="en">{{ t('common.english') }}</option>
+        </select>
+      </label>
       <p class="brand">Zunera</p>
       <h1 id="auth-title" class="auth-title">{{ title }}</h1>
       <p class="auth-subtitle">{{ subtitle }}</p>
@@ -40,6 +56,26 @@ defineProps({
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
+}
+
+.language-selector {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 0 0 16px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.language-selector select {
+  min-height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
 }
 
 .brand {

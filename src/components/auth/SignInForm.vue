@@ -3,35 +3,37 @@ import { computed, reactive, shallowRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AuthFormAlert from './AuthFormAlert.vue'
 import { useSessionStore } from '@/stores/auth/sessionStore'
+import { useI18n } from 'vue-i18n'
 
 const route = useRoute()
 const router = useRouter()
 const sessionStore = useSessionStore()
+const { t } = useI18n()
 const formRef = shallowRef(null)
 const serverError = shallowRef(null)
 const form = reactive({
   email: '',
   password: '',
 })
-const rules = {
+const rules = computed(() => ({
   email: [
-    { required: true, message: 'Enter your email.', trigger: 'blur' },
-    { type: 'email', message: 'Enter a valid email.', trigger: 'blur' },
+    { required: true, message: t('auth.emailRequired'), trigger: 'blur' },
+    { type: 'email', message: t('auth.emailInvalid'), trigger: 'blur' },
   ],
-  password: [{ required: true, message: 'Enter your password.', trigger: 'blur' }],
-}
+  password: [{ required: true, message: t('auth.passwordRequired'), trigger: 'blur' }],
+}))
 
 const alertMessage = computed(() => {
   if (route.query.expired) {
-    return 'Your session expired. Sign in again to continue.'
+    return t('auth.sessionExpired')
   }
 
   if (serverError.value?.status === 429) {
-    return 'Too many sign-in attempts. Recovery remains available.'
+    return t('auth.tooManyAttempts')
   }
 
   if (serverError.value?.status === 401) {
-    return 'Email or password is incorrect.'
+    return t('auth.invalidCredentials')
   }
 
   return serverError.value?.message ?? ''
@@ -55,10 +57,10 @@ async function submit() {
 <template>
   <AuthFormAlert :message="alertMessage" :type="route.query.expired ? 'warning' : 'error'" />
   <ElForm ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent="submit">
-    <ElFormItem label="Email" prop="email" :error="serverError?.errors?.email?.[0]">
+    <ElFormItem :label="t('common.email')" prop="email" :error="serverError?.errors?.email?.[0]">
       <ElInput v-model="form.email" name="email" autocomplete="email" />
     </ElFormItem>
-    <ElFormItem label="Password" prop="password">
+    <ElFormItem :label="t('common.password')" prop="password">
       <ElInput
         v-model="form.password"
         name="password"
@@ -68,12 +70,12 @@ async function submit() {
       />
     </ElFormItem>
     <ElButton class="auth-submit" native-type="submit" type="primary" :loading="sessionStore.loading">
-      Sign in
+      {{ t('common.signIn') }}
     </ElButton>
   </ElForm>
-  <nav class="form-links" aria-label="Account options">
-    <RouterLink class="auth-link" :to="{ name: 'forgot-password' }">Forgot password?</RouterLink>
-    <RouterLink class="auth-link" :to="{ name: 'register' }">Create account</RouterLink>
+  <nav class="form-links" :aria-label="t('auth.accountOptions')">
+    <RouterLink class="auth-link" :to="{ name: 'forgot-password' }">{{ t('auth.forgotPassword') }}</RouterLink>
+    <RouterLink class="auth-link" :to="{ name: 'register' }">{{ t('auth.createAccount') }}</RouterLink>
   </nav>
 </template>
 

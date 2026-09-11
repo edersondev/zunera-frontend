@@ -1,7 +1,8 @@
 <script setup>
 import { Edit, FolderDelete, RefreshLeft } from '@element-plus/icons-vue'
-import { ACCOUNT_TYPE_LABELS } from '@/utils/financial-accounts/accountOptions'
+import { accountTypeLabel } from '@/utils/financial-accounts/accountOptions'
 import { formatBRL } from '@/utils/financial-accounts/currency'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
   accounts: {
@@ -23,6 +24,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['archive', 'edit', 'restore'])
+const { t } = useI18n()
 </script>
 
 <template>
@@ -31,8 +33,8 @@ const emit = defineEmits(['archive', 'edit', 'restore'])
       v-if="!props.accounts.length"
       :description="
         props.archived
-          ? 'No archived accounts yet.'
-          : 'No active accounts yet. Create your first account to get started.'
+          ? t('financialAccounts.emptyArchived')
+          : t('financialAccounts.empty')
       "
     />
     <ul v-else class="account-list">
@@ -49,7 +51,7 @@ const emit = defineEmits(['archive', 'edit', 'restore'])
           </button>
           <span v-else class="account-name account-name--static">{{ account.name }}</span>
           <p class="account-meta">
-            {{ ACCOUNT_TYPE_LABELS[account.account_type] ?? account.account_type }}
+            {{ accountTypeLabel(account.account_type, t) }}
             <template v-if="account.institution_name"> · {{ account.institution_name }}</template>
           </p>
         </div>
@@ -61,7 +63,7 @@ const emit = defineEmits(['archive', 'edit', 'restore'])
           plain
           @click="emit('archive', account)"
         >
-          Archive
+          {{ t('financialAccounts.archive') }}
         </ElButton>
         <ElButton
           v-else
@@ -71,7 +73,7 @@ const emit = defineEmits(['archive', 'edit', 'restore'])
           type="primary"
           @click="emit('restore', account)"
         >
-          Restore
+          {{ t('financialAccounts.restore') }}
         </ElButton>
       </li>
     </ul>

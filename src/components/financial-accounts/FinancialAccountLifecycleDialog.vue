@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { Close, FolderDelete, RefreshLeft } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
   visible: {
@@ -23,10 +24,11 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:visible', 'confirm', 'cancel'])
+const { t } = useI18n()
 
-const title = computed(() => (props.action === 'archive' ? 'Archive account' : 'Restore account'))
+const title = computed(() => (props.action === 'archive' ? t('financialAccounts.archiveTitle') : t('financialAccounts.restoreTitle')))
 const actionLabel = computed(() =>
-  props.action === 'archive' ? 'Archive account' : 'Restore account',
+  props.action === 'archive' ? t('financialAccounts.archiveTitle') : t('financialAccounts.restoreTitle'),
 )
 const actionIcon = computed(() => (props.action === 'archive' ? FolderDelete : RefreshLeft))
 const description = computed(() => {
@@ -35,8 +37,8 @@ const description = computed(() => {
   }
 
   return props.action === 'archive'
-    ? `Archive "${props.account.name}"? It will be removed from active account choices and the active balance.`
-    : `Restore "${props.account.name}"? It will become active again.`
+    ? t('financialAccounts.archiveDescription', { name: props.account.name })
+    : t('financialAccounts.restoreDescription', { name: props.account.name })
 })
 </script>
 
@@ -51,7 +53,7 @@ const description = computed(() => {
     <p v-if="description" class="dialog-description">{{ description }}</p>
     <template #footer>
       <ElButton :icon="Close" type="danger" @click="emit('update:visible', false)">
-        Cancel
+        {{ t('common.cancel') }}
       </ElButton>
       <ElButton
         :icon="actionIcon"

@@ -1,10 +1,11 @@
 <script setup>
-import { reactive, shallowRef, watch } from 'vue'
+import { computed, reactive, shallowRef, watch } from 'vue'
 import {
-  CATEGORY_CLASSIFICATIONS,
-  CATEGORY_COLORS,
-  CATEGORY_ICONS,
+  categoryClassificationOptions,
+  categoryColorOptions,
+  categoryIconOptions,
 } from '@/utils/categories/categoryOptions'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
   category: { type: Object, default: null },
@@ -13,20 +14,24 @@ const props = defineProps({
   showSubmit: { type: Boolean, default: true },
 })
 const emit = defineEmits(['submit'])
+const { t } = useI18n()
 const formRef = shallowRef(null)
 const form = reactive({ name: '', classification: 'expense', color: 'teal', icon: 'circle' })
-const rules = {
+const classificationOptions = computed(() => categoryClassificationOptions(t))
+const colorOptions = computed(() => categoryColorOptions(t))
+const iconOptions = computed(() => categoryIconOptions(t))
+const rules = computed(() => ({
   name: [
-    { required: true, message: 'Enter a category name.', trigger: 'blur' },
+    { required: true, message: t('categories.nameRequired'), trigger: 'blur' },
     {
       min: 1,
       max: 120,
-      message: 'Category name must be between 1 and 120 characters.',
+      message: t('categories.nameLength'),
       trigger: 'blur',
     },
   ],
-  classification: [{ required: true, message: 'Choose income or expense.', trigger: 'change' }],
-}
+  classification: [{ required: true, message: t('categories.classificationRequired'), trigger: 'change' }],
+}))
 
 watch(
   () => props.category,
@@ -68,45 +73,45 @@ defineExpose({ resetCreateForm })
     @submit.prevent="submit"
   >
     <div class="form-row">
-      <ElFormItem label="Category name" prop="name"
+      <ElFormItem :label="t('categories.name')" prop="name"
         ><ElInput
           v-model="form.name"
           name="category-name"
           autocomplete="off"
-          placeholder="Pet care"
+          :placeholder="t('categories.name')"
       /></ElFormItem>
-      <ElFormItem label="Financial classification" prop="classification">
+      <ElFormItem :label="t('categories.classification')" prop="classification">
         <ElSelect
           v-model="form.classification"
           name="category-classification"
-          aria-label="Financial classification"
+          :aria-label="t('categories.classification')"
           :disabled="Boolean(props.category?.has_financial_transactions)"
         >
           <ElOption
-            v-for="item in CATEGORY_CLASSIFICATIONS"
+            v-for="item in classificationOptions"
             :key="item.value"
             :label="item.label"
             :value="item.value"
           />
         </ElSelect>
         <p v-if="props.category?.has_financial_transactions" class="field-help">
-          Classification is locked because this category has financial history.
+          {{ t('categories.classificationLocked') }}
         </p>
       </ElFormItem>
     </div>
     <div class="form-row">
-      <ElFormItem label="Color (optional)"
-        ><ElSelect v-model="form.color" name="category-color" aria-label="Category color"
+      <ElFormItem :label="t('categories.color')"
+        ><ElSelect v-model="form.color" name="category-color" :aria-label="t('categories.color')"
           ><ElOption
-            v-for="item in CATEGORY_COLORS"
+            v-for="item in colorOptions"
             :key="item.value"
             :label="item.label"
             :value="item.value" /></ElSelect
       ></ElFormItem>
-      <ElFormItem label="Icon (optional)"
-        ><ElSelect v-model="form.icon" name="category-icon" aria-label="Category icon"
+      <ElFormItem :label="t('categories.icon')"
+        ><ElSelect v-model="form.icon" name="category-icon" :aria-label="t('categories.icon')"
           ><ElOption
-            v-for="item in CATEGORY_ICONS"
+            v-for="item in iconOptions"
             :key="item.value"
             :label="item.label"
             :value="item.value" /></ElSelect
@@ -117,7 +122,7 @@ defineExpose({ resetCreateForm })
       native-type="submit"
       type="primary"
       :loading="props.submitting"
-      >{{ props.category ? 'Save changes' : 'Create category' }}</ElButton
+      >{{ props.category ? t('categories.saveChanges') : t('categories.create') }}</ElButton
     >
   </ElForm>
 </template>

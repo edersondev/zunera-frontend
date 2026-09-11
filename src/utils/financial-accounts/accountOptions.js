@@ -1,38 +1,39 @@
 export const ACCOUNT_TYPES = Object.freeze([
-  { value: 'checking', label: 'Checking account' },
-  { value: 'savings', label: 'Savings account' },
-  { value: 'cash_wallet', label: 'Cash or wallet' },
-  { value: 'investment', label: 'Investment account' },
-  { value: 'digital', label: 'Digital account' },
-  { value: 'other', label: 'Other' },
+  'checking',
+  'savings',
+  'cash_wallet',
+  'investment',
+  'digital',
+  'other',
 ])
 
-export const COLOR_OPTIONS = Object.freeze([
-  { value: 'teal', label: 'Teal' },
-  { value: 'blue', label: 'Blue' },
-  { value: 'violet', label: 'Violet' },
-  { value: 'amber', label: 'Amber' },
-  { value: 'rose', label: 'Rose' },
-  { value: 'cyan', label: 'Cyan' },
+export const ACCOUNT_COLORS = Object.freeze(['teal', 'blue', 'violet', 'amber', 'rose', 'cyan'])
+
+export const ACCOUNT_ICONS = Object.freeze([
+  'bank',
+  'piggy_bank',
+  'wallet',
+  'chart',
+  'smartphone',
+  'circle',
 ])
 
-export const ICON_OPTIONS = Object.freeze([
-  { value: 'bank', label: 'Bank' },
-  { value: 'piggy_bank', label: 'Piggy bank' },
-  { value: 'wallet', label: 'Wallet' },
-  { value: 'chart', label: 'Chart' },
-  { value: 'smartphone', label: 'Smartphone' },
-  { value: 'circle', label: 'Circle' },
-])
+function localizedOptions(values, keyPrefix, t) {
+  return values.map((value) => ({ value, label: t(`${keyPrefix}.${value}`) }))
+}
 
-export const ACCOUNT_TYPE_LABELS = Object.freeze(
-  Object.fromEntries(ACCOUNT_TYPES.map((option) => [option.value, option.label])),
-)
+export function accountTypeOptions(t) {
+  return localizedOptions(ACCOUNT_TYPES, 'financialAccounts.accountTypes', t)
+}
 
-export const COLOR_LABELS = Object.freeze(
-  Object.fromEntries(COLOR_OPTIONS.map((option) => [option.value, option.label])),
-)
+export function accountColorOptions(t) {
+  return localizedOptions(ACCOUNT_COLORS, 'financialAccounts.colors', t)
+}
 
-export const ICON_LABELS = Object.freeze(
-  Object.fromEntries(ICON_OPTIONS.map((option) => [option.value, option.label])),
-)
+export function accountIconOptions(t) {
+  return localizedOptions(ACCOUNT_ICONS, 'financialAccounts.icons', t)
+}
+
+export function accountTypeLabel(value, t) {
+  return ACCOUNT_TYPES.includes(value) ? t(`financialAccounts.accountTypes.${value}`) : value
+}

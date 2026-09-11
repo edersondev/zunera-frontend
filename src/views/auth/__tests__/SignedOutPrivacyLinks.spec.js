@@ -13,7 +13,7 @@ describe('Signed-out privacy links', () => {
       },
     })
 
-    expect(wrapper.text()).toContain('Privacy notice')
-    expect(wrapper.text()).toContain('Privacy rights')
+    expect(wrapper.text()).toContain('Aviso de privacidade')
+    expect(wrapper.text()).toContain('Direitos de privacidade')
   })
 })
