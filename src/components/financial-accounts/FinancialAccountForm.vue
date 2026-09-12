@@ -1,15 +1,13 @@
 <script setup>
 import { computed, reactive, ref, shallowRef, watch } from 'vue'
-import { vMaska } from 'maska/vue'
 import { Check, CirclePlus } from '@element-plus/icons-vue'
+import CurrencyAmountInput from '@/components/common/CurrencyAmountInput.vue'
 import {
   accountColorOptions,
   accountIconOptions,
   accountTypeOptions,
 } from '@/utils/financial-accounts/accountOptions'
 import { useI18n } from 'vue-i18n'
-import { parseBRLToCentavos } from '@/utils/financial-accounts/currency'
-import { useLocale } from '@/composables/useLocale'
 
 const props = defineProps({
   account: {
@@ -32,32 +30,17 @@ const props = defineProps({
 
 const emit = defineEmits(['submit'])
 const { t } = useI18n()
-const { activeLocale } = useLocale()
 const formRef = shallowRef(null)
-const initialBalance = ref('')
 const accountTypes = computed(() => accountTypeOptions(t))
 const colorOptions = computed(() => accountColorOptions(t))
 const iconOptions = computed(() => accountIconOptions(t))
-const balancePlaceholder = computed(() =>
-  new Intl.NumberFormat(activeLocale.value, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(0),
-)
-const balanceMask = computed(() => ({
-  number: {
-    locale: activeLocale.value,
-    fraction: 2,
-    unsigned: false,
-  },
-  preProcess: (value) => normalizeBalanceInput(value, activeLocale.value),
-}))
 const form = reactive({
   name: '',
   accountType: 'checking',
   institutionName: '',
   color: 'teal',
   icon: 'circle',
+  initialBalanceCentavos: null,
 })
 
 const initialBalanceLocked = ref(false)
@@ -86,7 +69,7 @@ watch(
     form.institutionName = account.institution_name ?? ''
     form.color = account.color ?? 'teal'
     form.icon = account.icon ?? 'circle'
-    initialBalance.value = formatBalance(account.initial_balance_centavos)
+    form.initialBalanceCentavos = account.initial_balance_centavos ?? 0
     initialBalanceLocked.value = Boolean(account.has_financial_movements)
   },
   { immediate: true },
@@ -98,32 +81,8 @@ function resetCreateForm() {
   form.institutionName = ''
   form.color = 'teal'
   form.icon = 'circle'
-  initialBalance.value = ''
+  form.initialBalanceCentavos = null
   initialBalanceLocked.value = false
-}
-
-function formatBalance(centavos) {
-  return (Number(centavos) / 100).toLocaleString(activeLocale.value, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
-}
-
-function normalizeBalanceInput(value, locale) {
-  const raw = String(value)
-  const negative = raw.startsWith('-')
-  const digits = raw.replace(/\D/g, '')
-
-  if (!digits) {
-    return negative ? '-' : ''
-  }
-
-  const padded = digits.padStart(3, '0')
-  const decimalSeparator = new Intl.NumberFormat(locale)
-    .formatToParts(1.1)
-    .find((part) => part.type === 'decimal')?.value ?? ','
-
-  return `${negative ? '-' : ''}${padded.slice(0, -2)}${decimalSeparator}${padded.slice(-2)}`
 }
 
 async function submit() {
@@ -141,7 +100,7 @@ async function submit() {
   }
 
   if (!props.account || !props.account.has_financial_movements) {
-    payload.initial_balance_centavos = parseBRLToCentavos(initialBalance.value)
+    payload.initial_balance_centavos = form.initialBalanceCentavos ?? 0
   }
 
   emit('submit', payload)
@@ -187,17 +146,12 @@ defineExpose({ resetCreateForm })
 
     <div class="form-row">
       <ElFormItem :label="t('financialAccounts.openingBalance')" required>
-        <ElInput
-          v-model="initialBalance"
-          v-maska="balanceMask"
+        <CurrencyAmountInput
+          v-model="form.initialBalanceCentavos"
           name="opening-balance"
-          inputmode="decimal"
-          autocomplete="off"
           :disabled="initialBalanceLocked"
-          :placeholder="balancePlaceholder"
-        >
-          <template #prefix><span class="currency-prefix">R$</span></template>
-        </ElInput>
+          allow-negative
+        />
         <p v-if="initialBalanceLocked" class="field-help">
           {{ t('financialAccounts.balanceLocked') }}
         </p>
@@ -264,10 +218,6 @@ defineExpose({ resetCreateForm })
   color: var(--color-text-muted);
   font-size: 12px;
   line-height: 16px;
-}
-
-.currency-prefix {
-  margin-right: 4px;
 }
 
 .form-submit {

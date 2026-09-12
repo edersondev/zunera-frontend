@@ -20,7 +20,7 @@ const stubs = {
     template:
       '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
   },
-  ElInputNumber: {
+  CurrencyAmountInput: {
     props: ['modelValue'],
     emits: ['update:modelValue'],
     template:

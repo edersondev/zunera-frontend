@@ -1,6 +1,7 @@
 <script setup>
 import { computed, reactive, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import CurrencyAmountInput from '@/components/common/CurrencyAmountInput.vue'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -111,7 +112,7 @@ function submit() {
       </ElFormItem>
       <div class="form-grid">
         <ElFormItem :label="t('transactions.amountCentavos')" :error="errors.amount_centavos?.[0]">
-          <ElInputNumber v-model="form.amount_centavos" :min="1" :precision="0" data-test="transaction-amount" />
+          <CurrencyAmountInput v-model="form.amount_centavos" data-test="transaction-amount" />
         </ElFormItem>
         <ElFormItem :label="t('transactions.date')" :error="errors.transaction_date?.[0]">
           <ElDatePicker v-model="form.transaction_date" type="date" value-format="YYYY-MM-DD" data-test="transaction-date" />
