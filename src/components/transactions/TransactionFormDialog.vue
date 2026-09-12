@@ -1,5 +1,6 @@
 <script setup>
 import { computed, reactive, watch } from 'vue'
+import { Check, Close } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import CurrencyAmountInput from '@/components/common/CurrencyAmountInput.vue'
 
@@ -145,8 +146,23 @@ function submit() {
       </ElFormItem>
     </ElForm>
     <template #footer>
-      <ElButton :disabled="saving" @click="emit('update:modelValue', false)">{{ t('transactions.cancel') }}</ElButton>
-      <ElButton type="primary" :loading="saving" :disabled="saving" data-test="save-transaction" @click="submit">
+      <ElButton
+        :icon="Close"
+        type="danger"
+        :disabled="saving"
+        data-test="cancel-transaction"
+        @click="emit('update:modelValue', false)"
+      >
+        {{ t('transactions.cancel') }}
+      </ElButton>
+      <ElButton
+        :icon="Check"
+        type="primary"
+        :loading="saving"
+        :disabled="saving"
+        data-test="save-transaction"
+        @click="submit"
+      >
         {{ t('transactions.save') }}
       </ElButton>
     </template>

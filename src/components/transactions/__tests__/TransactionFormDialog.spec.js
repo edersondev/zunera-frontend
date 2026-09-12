@@ -40,8 +40,9 @@ const stubs = {
       '<input type="date" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
   },
   ElButton: {
+    props: ['icon', 'type'],
     emits: ['click'],
-    template: '<button type="button" @click="$emit(\'click\')"><slot /></button>',
+    template: '<button type="button" :data-type="type" @click="$emit(\'click\')"><component :is="icon" /><slot /></button>',
   },
 }
 
@@ -124,6 +125,29 @@ describe('TransactionFormDialog', () => {
     await wrapper.get('[data-test="save-transaction"]').trigger('click')
 
     expect(wrapper.emitted('submit')).toBeUndefined()
+  })
+
+  it('uses a dangerous cancel action with an icon', async () => {
+    const wrapper = mount(TransactionFormDialog, {
+      props: { modelValue: true, accounts: [], categories: [] },
+      global: { plugins: [i18n], stubs },
+    })
+
+    const cancel = wrapper.get('[data-test="cancel-transaction"]')
+    expect(cancel.attributes('data-type')).toBe('danger')
+    expect(cancel.find('svg').exists()).toBe(true)
+
+    await cancel.trigger('click')
+    expect(wrapper.emitted('update:modelValue')).toContainEqual([false])
+  })
+
+  it('uses an icon on the save action', () => {
+    const wrapper = mount(TransactionFormDialog, {
+      props: { modelValue: true, accounts: [], categories: [] },
+      global: { plugins: [i18n], stubs },
+    })
+
+    expect(wrapper.get('[data-test="save-transaction"] svg').exists()).toBe(true)
   })
 
   it('shows server field feedback next to the matching control', () => {
