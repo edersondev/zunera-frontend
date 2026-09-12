@@ -82,6 +82,11 @@ function stubs() {
         template:
           '<aside v-if="modelValue" data-test="detail-drawer">{{ transaction?.description }} — {{ transaction?.category?.name }} — {{ transaction?.status }}</aside>',
       },
+      TransactionRemoveDialog: {
+        props: ['visible', 'transaction', 'loading'],
+        emits: ['update:visible', 'confirm'],
+        template: '<div v-if="visible" data-test="remove-dialog"><slot /></div>',
+      },
       teleport: true,
     },
   }

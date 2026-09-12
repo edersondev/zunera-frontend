@@ -1,13 +1,13 @@
 <script setup>
 import { computed, onMounted, shallowRef } from 'vue'
 import { Delete, Plus } from '@element-plus/icons-vue'
-import { ElMessageBox } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import TransactionFormDialog from '@/components/transactions/TransactionFormDialog.vue'
 import TransactionFilterBar from '@/components/transactions/TransactionFilterBar.vue'
 import TransactionDetailDrawer from '@/components/transactions/TransactionDetailDrawer.vue'
+import TransactionRemoveDialog from '@/components/transactions/TransactionRemoveDialog.vue'
 import { useTransactionStore } from '@/stores/transactions/transactionStore'
 import { useFinancialAccountStore } from '@/stores/financial-accounts/financialAccountStore'
 import { useCategoryStore } from '@/stores/categories/categoryStore'
@@ -25,6 +25,8 @@ const { t } = useI18n()
 const dialog = shallowRef(false)
 const detailOpen = shallowRef(false)
 const editing = shallowRef(null)
+const removeDialog = shallowRef(false)
+const removingTransaction = shallowRef(null)
 
 const criteriaLabels = computed(() => ({
   q: t('transactions.criteria.q'),
@@ -90,15 +92,20 @@ function edit(transaction) {
   dialog.value = true
 }
 
-async function remove(transaction) {
+function requestRemove(transaction) {
+  removingTransaction.value = transaction
+  removeDialog.value = true
+}
+
+async function remove() {
   try {
-    await ElMessageBox.confirm(t('transactions.removeConfirmation', { description: transaction.description }), t('transactions.removeTitle'), {
-      type: 'warning',
-    })
-    await store.remove(transaction.id)
+    await store.remove(removingTransaction.value.id)
     detailOpen.value = false
   } catch {
-    /* Cancelled or failed removal keeps the current view. */
+    /* Feedback comes from the store error state. */
+  } finally {
+    removeDialog.value = false
+    removingTransaction.value = null
   }
 }
 
@@ -249,7 +256,13 @@ const clearedFilters = {
       v-model="detailOpen"
       :transaction="store.selected"
       @edit="edit"
-      @remove="remove"
+      @remove="requestRemove"
+    />
+    <TransactionRemoveDialog
+      v-model:visible="removeDialog"
+      :transaction="removingTransaction"
+      :loading="store.saving"
+      @confirm="remove"
     />
   </div>
 </template>
