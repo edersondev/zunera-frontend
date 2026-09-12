@@ -9,10 +9,10 @@ const stubs = {
     template:
       '<section v-if="modelValue" role="dialog" :aria-label="title"><slot /><footer><slot name="footer" /></footer></section>',
   },
-  ElForm: { template: '<form><slot /></form>' },
+  ElForm: { props: ['rules'], template: '<form><slot /></form>' },
   ElFormItem: {
-    props: ['label', 'error'],
-    template: '<label><span>{{ label }}</span><slot /><small v-if="error">{{ error }}</small></label>',
+    props: ['label', 'error', 'prop', 'required'],
+    template: '<label :data-prop="prop" :data-required="required"><span>{{ label }}</span><slot /><small v-if="error">{{ error }}</small></label>',
   },
   ElInput: {
     props: ['modelValue'],
@@ -33,11 +33,19 @@ const stubs = {
       '<select :value="modelValue" @change="$emit(\'update:modelValue\', $event.target.value)"><slot /></select>',
   },
   ElOption: { props: ['label', 'value'], template: '<option :value="value">{{ label }}</option>' },
+  ElRadioGroup: {
+    props: ['modelValue'],
+    template: '<fieldset :data-value="modelValue"><slot /></fieldset>',
+  },
+  ElRadio: {
+    props: ['value'],
+    template: '<label><input type="radio" :value="value" /><slot /></label>',
+  },
   ElDatePicker: {
     props: ['modelValue'],
-    emits: ['update:modelValue'],
+    emits: ['update:modelValue', 'change'],
     template:
-      '<input type="date" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+      '<input type="date" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value); $emit(\'change\', $event.target.value)" />',
   },
   ElButton: {
     props: ['icon', 'type'],
@@ -76,7 +84,9 @@ describe('TransactionFormDialog', () => {
     expect(wrapper.get('[data-test="transaction-category"]').text()).toContain(
       'Contas antigas (arquivada)',
     )
-    expect(wrapper.get('[data-test="transaction-status"]').element.value).toBe('effective')
+    expect(wrapper.get('[data-test="transaction-status"]').attributes('data-value')).toBe('effective')
+    expect(wrapper.get('[data-test="transaction-type"]').text()).toContain('Despesa')
+    expect(wrapper.get('[data-test="transaction-type"]').text()).toContain('Receita')
     expect(wrapper.get('[data-test="transaction-amount"]').element.value).toBe('1999')
     expect(wrapper.get('[data-test="transaction-date"]').element.value).toBe('2026-08-01')
 
@@ -114,6 +124,30 @@ describe('TransactionFormDialog', () => {
     expect(wrapper.text()).not.toContain('(arquivada)')
     expect(wrapper.get('[data-test="transaction-category"]').text()).toContain('Alimentação')
     expect(wrapper.get('[data-test="transaction-category"]').text()).not.toContain('Salário')
+  })
+
+  it('requires an account and category', () => {
+    const wrapper = mount(TransactionFormDialog, {
+      props: { modelValue: true, accounts: [], categories: [] },
+      global: { plugins: [i18n], stubs },
+    })
+
+    expect(wrapper.get('[data-prop="financial_account_id"]').attributes('data-required')).toBeDefined()
+    expect(wrapper.get('[data-prop="category_id"]').attributes('data-required')).toBeDefined()
+  })
+
+  it('defaults new transactions to effective and switches future dates to pending', async () => {
+    const wrapper = mount(TransactionFormDialog, {
+      props: { modelValue: true, accounts: [], categories: [] },
+      global: { plugins: [i18n], stubs },
+    })
+
+    expect(wrapper.get('[data-test="transaction-status"]').attributes('data-value')).toBe('effective')
+
+    const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
+    await wrapper.get('[data-test="transaction-date"]').setValue(tomorrow)
+
+    expect(wrapper.get('[data-test="transaction-status"]').attributes('data-value')).toBe('pending')
   })
 
   it('blocks duplicate submits while a save is in flight', async () => {

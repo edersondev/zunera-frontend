@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, watch } from 'vue'
+import { computed, reactive, shallowRef, watch } from 'vue'
 import { Check, Close } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import CurrencyAmountInput from '@/components/common/CurrencyAmountInput.vue'
@@ -14,8 +14,17 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:modelValue', 'submit'])
 const { t } = useI18n()
+const formRef = shallowRef(null)
 const form = reactive(blank())
 const title = computed(() => (props.transaction ? t('transactions.edit') : t('transactions.new')))
+const rules = computed(() => ({
+  financial_account_id: [
+    { required: true, message: t('transactions.accountRequired'), trigger: 'change' },
+  ],
+  category_id: [
+    { required: true, message: t('transactions.categoryRequired'), trigger: 'change' },
+  ],
+}))
 
 /**
  * Archived associations stay selectable while the association is unchanged so
@@ -44,7 +53,7 @@ function blank() {
     financial_account_id: null,
     category_id: null,
     type: 'expense',
-    status: null,
+    status: 'effective',
     description: '',
     notes: '',
     amount_centavos: null,
@@ -72,8 +81,13 @@ watch(
   { immediate: true },
 )
 
-function submit() {
+async function submit() {
   if (props.saving) return
+  if (formRef.value?.validate) {
+    const valid = await formRef.value.validate().catch(() => false)
+    if (!valid) return
+  }
+
   const payload = { ...form, amount_centavos: Number(form.amount_centavos) }
   if (payload.status === null || payload.status === undefined) {
     delete payload.status
@@ -82,6 +96,12 @@ function submit() {
     delete payload[key]
   }
   emit('submit', payload)
+}
+
+function setPendingForFutureDate(date) {
+  if (!props.transaction && date > new Date().toISOString().slice(0, 10)) {
+    form.status = 'pending'
+  }
 }
 </script>
 
@@ -93,19 +113,19 @@ function submit() {
     :close-on-click-modal="!saving"
     @update:model-value="emit('update:modelValue', $event)"
   >
-    <ElForm :model="form" label-position="top" data-test="transaction-form" @submit.prevent="submit">
+    <ElForm ref="formRef" :model="form" :rules="rules" label-position="top" data-test="transaction-form" @submit.prevent="submit">
       <div class="form-grid">
         <ElFormItem :label="t('transactions.type')" :error="errors.type?.[0]">
-          <ElSelect v-model="form.type" data-test="transaction-type">
-            <ElOption :label="t('transactions.expense')" value="expense" />
-            <ElOption :label="t('transactions.income')" value="income" />
-          </ElSelect>
+          <ElRadioGroup v-model="form.type" data-test="transaction-type">
+            <ElRadio value="expense">{{ t('transactions.expense') }}</ElRadio>
+            <ElRadio value="income">{{ t('transactions.income') }}</ElRadio>
+          </ElRadioGroup>
         </ElFormItem>
         <ElFormItem :label="t('transactions.status')" :error="errors.status?.[0]">
-          <ElSelect v-model="form.status" clearable data-test="transaction-status">
-            <ElOption :label="t('transactions.effective')" value="effective" />
-            <ElOption :label="t('transactions.pending')" value="pending" />
-          </ElSelect>
+          <ElRadioGroup v-model="form.status" data-test="transaction-status">
+            <ElRadio value="effective">{{ t('transactions.effective') }}</ElRadio>
+            <ElRadio value="pending">{{ t('transactions.pending') }}</ElRadio>
+          </ElRadioGroup>
         </ElFormItem>
       </div>
       <ElFormItem :label="t('transactions.descriptionField')" :error="errors.description?.[0]">
@@ -116,11 +136,22 @@ function submit() {
           <CurrencyAmountInput v-model="form.amount_centavos" data-test="transaction-amount" />
         </ElFormItem>
         <ElFormItem :label="t('transactions.date')" :error="errors.transaction_date?.[0]">
-          <ElDatePicker v-model="form.transaction_date" type="date" value-format="YYYY-MM-DD" data-test="transaction-date" />
+          <ElDatePicker
+            v-model="form.transaction_date"
+            type="date"
+            value-format="YYYY-MM-DD"
+            data-test="transaction-date"
+            @change="setPendingForFutureDate"
+          />
         </ElFormItem>
       </div>
       <div class="form-grid">
-        <ElFormItem :label="t('transactions.account')" :error="errors.financial_account_id?.[0]">
+        <ElFormItem
+          :label="t('transactions.account')"
+          prop="financial_account_id"
+          required
+          :error="errors.financial_account_id?.[0]"
+        >
           <ElSelect v-model="form.financial_account_id" data-test="transaction-account">
             <ElOption
               v-for="account in accountChoices"
@@ -130,7 +161,12 @@ function submit() {
             />
           </ElSelect>
         </ElFormItem>
-        <ElFormItem :label="t('transactions.category')" :error="errors.category_id?.[0]">
+        <ElFormItem
+          :label="t('transactions.category')"
+          prop="category_id"
+          required
+          :error="errors.category_id?.[0]"
+        >
           <ElSelect v-model="form.category_id" data-test="transaction-category">
             <ElOption
               v-for="category in categoryChoices"
