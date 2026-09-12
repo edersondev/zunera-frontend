@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import TransactionFormDialog from '../TransactionFormDialog.vue'
+import { i18n } from '@/i18n'
 
 const stubs = {
   ElDialog: {
@@ -65,7 +66,7 @@ describe('TransactionFormDialog', () => {
         accounts: [{ id: 1, name: 'Conta principal', status: 'active' }],
         categories: [{ id: 2, name: 'Alimentação', status: 'active', classification: 'expense' }],
       },
-      global: { stubs },
+      global: { plugins: [i18n], stubs },
     })
 
     expect(wrapper.get('[data-test="transaction-account"]').text()).toContain(
@@ -106,7 +107,7 @@ describe('TransactionFormDialog', () => {
           { id: 3, name: 'Salário', status: 'active', classification: 'income' },
         ],
       },
-      global: { stubs },
+      global: { plugins: [i18n], stubs },
     })
 
     expect(wrapper.text()).not.toContain('(arquivada)')
@@ -117,7 +118,7 @@ describe('TransactionFormDialog', () => {
   it('blocks duplicate submits while a save is in flight', async () => {
     const wrapper = mount(TransactionFormDialog, {
       props: { modelValue: true, saving: true, accounts: [], categories: [] },
-      global: { stubs },
+      global: { plugins: [i18n], stubs },
     })
 
     await wrapper.get('[data-test="save-transaction"]').trigger('click')
@@ -133,7 +134,7 @@ describe('TransactionFormDialog', () => {
         categories: [],
         errors: { amount_centavos: ['Valor inválido.'], status: ['Data futura exige pendente.'] },
       },
-      global: { stubs },
+      global: { plugins: [i18n], stubs },
     })
 
     expect(wrapper.text()).toContain('Valor inválido.')

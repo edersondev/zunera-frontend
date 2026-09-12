@@ -1,8 +1,18 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import TransactionFilterBar from '../TransactionFilterBar.vue'
+import { i18n } from '@/i18n'
 
 const stubs = {
+  ElCollapse: { props: ['modelValue'], template: '<section><slot /></section>' },
+  ElCollapseItem: {
+    props: ['name'],
+    template: '<section><header><slot name="title" /></header><div><slot /></div></section>',
+  },
+  ElCard: {
+    template: '<section><div><slot /></div><footer><slot name="footer" /></footer></section>',
+  },
+  ElIcon: { template: '<i><slot /></i>' },
   ElForm: { template: '<form><slot /></form>' },
   ElFormItem: { props: ['label'], template: '<label><span>{{ label }}</span><slot /></label>' },
   ElInput: {
@@ -22,11 +32,12 @@ const stubs = {
     props: ['modelValue'],
     emits: ['update:modelValue'],
     template:
-      '<input type="date" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+      '<button type="button" @click="$emit(\'update:modelValue\', [\'2026-09-01\', \'2026-09-30\'])" />',
   },
   ElButton: {
+    props: ['icon'],
     emits: ['click'],
-    template: '<button type="button" @click="$emit(\'click\')"><slot /></button>',
+    template: '<button type="button" @click="$emit(\'click\')"><component :is="icon" /><slot /></button>',
   },
 }
 
@@ -37,11 +48,39 @@ function mountBar(filters = { view: 'active', per_page: 50 }) {
       accounts: [{ id: 1, name: 'Conta principal' }],
       categories: [{ id: 2, name: 'Salário' }],
     },
-    global: { stubs },
+    global: { plugins: [i18n], stubs },
   })
 }
 
 describe('TransactionFilterBar', () => {
+  beforeEach(() => {
+    i18n.global.locale.value = 'pt-BR'
+  })
+
+  it('renders transaction labels in the active locale', () => {
+    i18n.global.locale.value = 'en'
+    const wrapper = mountBar()
+
+    expect(wrapper.get('[data-test="transaction-filter-collapse"]').text()).toContain('Search')
+    expect(wrapper.get('[data-test="filter-date-range"]').attributes('data-test')).toBe('filter-date-range')
+    expect(wrapper.text()).toContain('Filter')
+  })
+
+  it('groups the search form in a collapsible Pesquisa panel', () => {
+    const wrapper = mountBar()
+
+    expect(wrapper.get('[data-test="transaction-filter-collapse"]').text()).toContain('Pesquisar')
+    expect(wrapper.get('[data-test="transaction-filter-card"] [data-test="transaction-filters"]').exists()).toBe(true)
+    expect(wrapper.get('[data-test="transaction-filter-card"] footer [data-test="apply-filters"]').exists()).toBe(true)
+    expect(wrapper.get('[data-test="transaction-filter-card"] footer [data-test="clear-filters"]').exists()).toBe(true)
+    expect(
+      wrapper.findAll('[data-test="transaction-filter-card"] footer button').map((button) => button.attributes('data-test')),
+    ).toEqual(['clear-filters', 'apply-filters'])
+    expect(wrapper.get('[data-test="clear-filters"] svg').exists()).toBe(true)
+    expect(wrapper.get('[data-test="apply-filters"] svg').exists()).toBe(true)
+    expect(wrapper.get('[data-test="transaction-filter-collapse"] i svg').exists()).toBe(true)
+  })
+
   it('offers every supported criterion control with its options', () => {
     const wrapper = mountBar()
     const controls = wrapper.findAll('[data-test]').map((node) => node.attributes('data-test'))
@@ -53,8 +92,7 @@ describe('TransactionFilterBar', () => {
         'filter-status',
         'filter-account',
         'filter-category',
-        'filter-from',
-        'filter-to',
+        'filter-date-range',
       ]),
     )
     expect(wrapper.text()).toContain('Conta principal')
@@ -73,6 +111,18 @@ describe('TransactionFilterBar', () => {
       q: 'almoço',
       type: 'expense',
       status: 'pending',
+    })
+  })
+
+  it('maps the selected date range to the API date criteria', async () => {
+    const wrapper = mountBar()
+
+    await wrapper.get('[data-test="filter-date-range"]').trigger('click')
+    await wrapper.get('form').trigger('submit')
+
+    expect(wrapper.emitted('apply').at(-1)[0]).toMatchObject({
+      from: '2026-09-01',
+      to: '2026-09-30',
     })
   })
 

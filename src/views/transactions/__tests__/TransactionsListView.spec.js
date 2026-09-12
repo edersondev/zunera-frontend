@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import ElementPlus from 'element-plus'
 import TransactionsListView from '../TransactionsListView.vue'
+import { i18n } from '@/i18n'
 
 const store = vi.hoisted(() => ({
   items: [],
@@ -63,7 +64,7 @@ function row(id, description, overrides = {}) {
 
 function stubs() {
   return {
-    plugins: [ElementPlus],
+    plugins: [ElementPlus, i18n],
     stubs: {
       PageHeader: {
         props: ['title', 'description'],
@@ -127,6 +128,17 @@ describe('TransactionsListView', () => {
     expect(wrapper.get('[data-test="transaction-count"]').text()).toBe('3 transações')
     expect(wrapper.get('[data-test="active-criteria"]').text()).toContain('Busca: almoço')
     expect(wrapper.get('.el-table__row').text()).toContain('Almoço')
+  })
+
+  it('places the new transaction action before removed transactions', async () => {
+    const wrapper = mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+
+    expect(
+      wrapper.findAll('[data-test="new-transaction"], [data-test="open-removed-transactions"]').map((button) => button.attributes('data-test')),
+    ).toEqual(['new-transaction', 'open-removed-transactions'])
+    expect(wrapper.get('[data-test="open-removed-transactions"]').classes()).toContain('el-button--info')
+    expect(wrapper.get('[data-test="open-removed-transactions"] svg').exists()).toBe(true)
   })
 
   it('renders the newest-first order returned by the API and opens a detail view', async () => {

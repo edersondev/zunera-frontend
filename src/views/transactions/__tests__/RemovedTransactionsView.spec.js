@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import ElementPlus from 'element-plus'
 import RemovedTransactionsView from '../RemovedTransactionsView.vue'
+import { i18n } from '@/i18n'
 
 const store = vi.hoisted(() => ({
   items: [],
@@ -10,18 +11,22 @@ const store = vi.hoisted(() => ({
   setFilters: vi.fn(),
   restore: vi.fn(),
 }))
+const routerPush = vi.hoisted(() => vi.fn())
 
 vi.mock('@/stores/transactions/transactionStore', () => ({
   useTransactionStore: () => store,
 }))
+vi.mock('vue-router', () => ({
+  useRouter: () => ({ push: routerPush }),
+}))
 
 function stubs() {
   return {
-    plugins: [ElementPlus],
+    plugins: [ElementPlus, i18n],
     stubs: {
       PageHeader: {
         props: ['title', 'description'],
-        template: '<header><h1>{{ title }}</h1><p>{{ description }}</p></header>',
+        template: '<header><h1>{{ title }}</h1><p>{{ description }}</p><slot name="actions" /></header>',
       },
       teleport: true,
     },
@@ -34,6 +39,18 @@ describe('RemovedTransactionsView', () => {
     store.items = []
     store.error = null
     store.setFilters.mockResolvedValue({})
+  })
+
+  it('returns to the active transactions page', async () => {
+    const wrapper = mount(RemovedTransactionsView, { global: stubs() })
+    await flushPromises()
+
+    expect(wrapper.get('[data-test="back-to-transactions"]').text()).toContain('Transações')
+    expect(wrapper.get('[data-test="back-to-transactions"] svg').exists()).toBe(true)
+
+    await wrapper.get('[data-test="back-to-transactions"]').trigger('click')
+
+    expect(routerPush).toHaveBeenCalledWith({ name: 'transactions' })
   })
 
   it('loads the removed view on mount and lists removed transactions', async () => {

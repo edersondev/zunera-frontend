@@ -1,8 +1,9 @@
 <script setup>
 import { computed, onMounted, shallowRef } from 'vue'
-import { Plus } from '@element-plus/icons-vue'
+import { Delete, Plus } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import TransactionFormDialog from '@/components/transactions/TransactionFormDialog.vue'
 import TransactionFilterBar from '@/components/transactions/TransactionFilterBar.vue'
@@ -20,26 +21,27 @@ const accounts = useFinancialAccountStore()
 const categories = useCategoryStore()
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const dialog = shallowRef(false)
 const detailOpen = shallowRef(false)
 const editing = shallowRef(null)
 
-const criteriaLabels = {
-  q: 'Busca',
-  type: 'Tipo',
-  status: 'Status',
-  financial_account_id: 'Conta',
-  category_id: 'Categoria',
-  from: 'De',
-  to: 'Até',
-}
+const criteriaLabels = computed(() => ({
+  q: t('transactions.criteria.q'),
+  type: t('transactions.criteria.type'),
+  status: t('transactions.criteria.status'),
+  financial_account_id: t('transactions.criteria.financial_account_id'),
+  category_id: t('transactions.criteria.category_id'),
+  from: t('transactions.criteria.from'),
+  to: t('transactions.criteria.to'),
+}))
 const activeCriteria = computed(() =>
   Object.entries(store.filters)
     .filter(
       ([key, value]) =>
-        Object.hasOwn(criteriaLabels, key) && value !== undefined && value !== null && value !== '',
+        Object.hasOwn(criteriaLabels.value, key) && value !== undefined && value !== null && value !== '',
     )
-    .map(([key, value]) => `${criteriaLabels[key]}: ${value}`),
+    .map(([key, value]) => `${criteriaLabels.value[key]}: ${value}`),
 )
 
 function formatCentavos(value) {
@@ -90,7 +92,7 @@ function edit(transaction) {
 
 async function remove(transaction) {
   try {
-    await ElMessageBox.confirm(`Remover “${transaction.description}”?`, 'Remover transação', {
+    await ElMessageBox.confirm(t('transactions.removeConfirmation', { description: transaction.description }), t('transactions.removeTitle'), {
       type: 'warning',
     })
     await store.remove(transaction.id)
@@ -126,22 +128,43 @@ const clearedFilters = {
 
 <template>
   <div>
-    <PageHeader title="Transações" description="Registre e acompanhe suas receitas e despesas.">
+    <PageHeader :title="t('transactions.title')" :description="t('transactions.description')">
       <template #actions>
-        <ElButton data-test="open-removed-transactions" @click="router.push({ name: 'transactions-removed' })">
-          Transações removidas
+        <ElButton type="primary" :icon="Plus" data-test="new-transaction" @click="dialog = true"
+          >{{ t('transactions.new') }}</ElButton
+        >
+        <ElButton
+          type="info"
+          :icon="Delete"
+          data-test="open-removed-transactions"
+          @click="router.push({ name: 'transactions-removed' })"
+        >
+          {{ t('transactions.removed') }}
         </ElButton>
-        <ElButton type="primary" :icon="Plus" data-test="new-transaction" @click="dialog = true">Nova transação</ElButton>
       </template>
     </PageHeader>
-    <ElAlert v-if="store.error" type="error" show-icon :title="store.error.message" class="feedback" data-test="transaction-error" />
-    <ElAlert v-if="store.notice" type="warning" show-icon :title="store.notice.message" class="feedback" data-test="transaction-notice" />
+    <ElAlert
+      v-if="store.error"
+      type="error"
+      show-icon
+      :title="store.error.message"
+      class="feedback"
+      data-test="transaction-error"
+    />
+    <ElAlert
+      v-if="store.notice"
+      type="warning"
+      show-icon
+      :title="store.notice.message"
+      class="feedback"
+      data-test="transaction-notice"
+    />
     <ElAlert
       v-for="impact in store.lastBalanceImpact ?? []"
       :key="impact.id"
       type="success"
       show-icon
-      :title="`Saldo atualizado — ${impactMessage(impact)}`"
+      :title="t('transactions.balanceUpdated', { impact: impactMessage(impact) })"
       class="feedback"
       data-test="balance-impact"
     />
@@ -154,45 +177,63 @@ const clearedFilters = {
       @clear="applyFilters(clearedFilters)"
     />
     <p v-if="activeCriteria.length" class="criteria" data-test="active-criteria">
-      Critérios ativos: {{ activeCriteria.join(' · ') }}
+      {{ t('transactions.activeCriteria') }}: {{ activeCriteria.join(' · ') }}
     </p>
     <section aria-labelledby="transactions-title">
-      <h2 id="transactions-title" data-test="transaction-count">{{ store.meta.total ?? 0 }} transações</h2>
-      <ElTable v-loading="store.loading" :data="store.items" row-key="id" data-test="transaction-table" @row-click="openDetail">
-        <ElTableColumn label="Descrição" prop="description" min-width="180" />
-        <ElTableColumn label="Data" min-width="130">
+      <h2 id="transactions-title" data-test="transaction-count">
+        {{ t('transactions.count', { count: store.meta.total ?? 0 }) }}
+      </h2>
+      <ElTable
+        v-loading="store.loading"
+        :data="store.items"
+        row-key="id"
+        data-test="transaction-table"
+        @row-click="openDetail"
+      >
+        <ElTableColumn :label="t('transactions.columns.description')" prop="description" min-width="180" />
+        <ElTableColumn :label="t('transactions.columns.date')" min-width="130">
           <template #default="{ row }">{{ formatTransactionDate(row.transaction_date) }}</template>
         </ElTableColumn>
-        <ElTableColumn label="Conta" min-width="150">
+        <ElTableColumn :label="t('transactions.columns.account')" min-width="150">
           <template #default="{ row }">
-            {{ row.financial_account.name }}<span v-if="row.financial_account.status === 'archived'"> (arquivada)</span>
+            {{ row.financial_account.name
+            }}<span v-if="row.financial_account.status === 'archived'"> ({{ t('transactions.archived') }})</span>
           </template>
         </ElTableColumn>
-        <ElTableColumn label="Categoria" min-width="150">
+        <ElTableColumn :label="t('transactions.columns.category')" min-width="150">
           <template #default="{ row }">
-            {{ row.category.name }}<span v-if="row.category.status === 'archived'"> (arquivada)</span>
+            {{ row.category.name
+            }}<span v-if="row.category.status === 'archived'"> ({{ t('transactions.archived') }})</span>
           </template>
         </ElTableColumn>
-        <ElTableColumn label="Valor" min-width="180">
+        <ElTableColumn :label="t('transactions.columns.amount')" min-width="180">
           <template #default="{ row }">
             <span :class="row.type === 'income' ? 'income' : 'expense'">
-              {{ formatTransactionAmount(row) }} · {{ row.type === 'income' ? 'Receita' : 'Despesa' }}
+              {{ formatTransactionAmount(row) }} ·
+              {{ row.type === 'income' ? t('transactions.income') : t('transactions.expense') }}
             </span>
           </template>
         </ElTableColumn>
-        <ElTableColumn label="Status" min-width="110">
-          <template #default="{ row }"><ElTag>{{ row.status }}</ElTag></template>
+        <ElTableColumn :label="t('transactions.columns.status')" min-width="110">
+          <template #default="{ row }"
+            ><ElTag>{{ t(`transactions.${row.status}`) }}</ElTag></template
+          >
         </ElTableColumn>
       </ElTable>
     </section>
     <ElEmpty
       v-if="!store.loading && store.items.length === 0"
-      description="Nenhuma transação encontrada."
+      :description="t('transactions.empty')"
       data-test="transaction-empty"
     />
     <div class="more">
-      <ElButton v-if="store.hasMore" :loading="store.loading" data-test="load-more" @click="store.loadMore">
-        Carregar mais
+      <ElButton
+        v-if="store.hasMore"
+        :loading="store.loading"
+        data-test="load-more"
+        @click="store.loadMore"
+      >
+        {{ t('transactions.loadMore') }}
       </ElButton>
     </div>
     <TransactionFormDialog

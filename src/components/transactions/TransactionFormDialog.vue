@@ -1,5 +1,6 @@
 <script setup>
 import { computed, reactive, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -10,8 +11,9 @@ const props = defineProps({
   errors: { type: Object, default: () => ({}) },
 })
 const emit = defineEmits(['update:modelValue', 'submit'])
+const { t } = useI18n()
 const form = reactive(blank())
-const title = computed(() => (props.transaction ? 'Editar transação' : 'Nova transação'))
+const title = computed(() => (props.transaction ? t('transactions.edit') : t('transactions.new')))
 
 /**
  * Archived associations stay selectable while the association is unchanged so
@@ -91,60 +93,60 @@ function submit() {
   >
     <ElForm :model="form" label-position="top" data-test="transaction-form" @submit.prevent="submit">
       <div class="form-grid">
-        <ElFormItem label="Tipo" :error="errors.type?.[0]">
+        <ElFormItem :label="t('transactions.type')" :error="errors.type?.[0]">
           <ElSelect v-model="form.type" data-test="transaction-type">
-            <ElOption label="Despesa" value="expense" />
-            <ElOption label="Receita" value="income" />
+            <ElOption :label="t('transactions.expense')" value="expense" />
+            <ElOption :label="t('transactions.income')" value="income" />
           </ElSelect>
         </ElFormItem>
-        <ElFormItem label="Status" :error="errors.status?.[0]">
+        <ElFormItem :label="t('transactions.status')" :error="errors.status?.[0]">
           <ElSelect v-model="form.status" clearable data-test="transaction-status">
-            <ElOption label="Efetiva" value="effective" />
-            <ElOption label="Pendente" value="pending" />
+            <ElOption :label="t('transactions.effective')" value="effective" />
+            <ElOption :label="t('transactions.pending')" value="pending" />
           </ElSelect>
         </ElFormItem>
       </div>
-      <ElFormItem label="Descrição" :error="errors.description?.[0]">
+      <ElFormItem :label="t('transactions.descriptionField')" :error="errors.description?.[0]">
         <ElInput v-model="form.description" maxlength="200" data-test="transaction-description" />
       </ElFormItem>
       <div class="form-grid">
-        <ElFormItem label="Valor (centavos)" :error="errors.amount_centavos?.[0]">
+        <ElFormItem :label="t('transactions.amountCentavos')" :error="errors.amount_centavos?.[0]">
           <ElInputNumber v-model="form.amount_centavos" :min="1" :precision="0" data-test="transaction-amount" />
         </ElFormItem>
-        <ElFormItem label="Data" :error="errors.transaction_date?.[0]">
+        <ElFormItem :label="t('transactions.date')" :error="errors.transaction_date?.[0]">
           <ElDatePicker v-model="form.transaction_date" type="date" value-format="YYYY-MM-DD" data-test="transaction-date" />
         </ElFormItem>
       </div>
       <div class="form-grid">
-        <ElFormItem label="Conta" :error="errors.financial_account_id?.[0]">
+        <ElFormItem :label="t('transactions.account')" :error="errors.financial_account_id?.[0]">
           <ElSelect v-model="form.financial_account_id" data-test="transaction-account">
             <ElOption
               v-for="account in accountChoices"
               :key="account.id"
-              :label="account.archived ? `${account.name} (arquivada)` : account.name"
+              :label="account.archived ? `${account.name} (${t('transactions.archived')})` : account.name"
               :value="account.id"
             />
           </ElSelect>
         </ElFormItem>
-        <ElFormItem label="Categoria" :error="errors.category_id?.[0]">
+        <ElFormItem :label="t('transactions.category')" :error="errors.category_id?.[0]">
           <ElSelect v-model="form.category_id" data-test="transaction-category">
             <ElOption
               v-for="category in categoryChoices"
               :key="category.id"
-              :label="category.archived ? `${category.name} (arquivada)` : category.name"
+              :label="category.archived ? `${category.name} (${t('transactions.archived')})` : category.name"
               :value="category.id"
             />
           </ElSelect>
         </ElFormItem>
       </div>
-      <ElFormItem label="Observação">
+      <ElFormItem :label="t('transactions.notes')">
         <ElInput v-model="form.notes" type="textarea" maxlength="1000" data-test="transaction-notes" />
       </ElFormItem>
     </ElForm>
     <template #footer>
-      <ElButton :disabled="saving" @click="emit('update:modelValue', false)">Cancelar</ElButton>
+      <ElButton :disabled="saving" @click="emit('update:modelValue', false)">{{ t('transactions.cancel') }}</ElButton>
       <ElButton type="primary" :loading="saving" :disabled="saving" data-test="save-transaction" @click="submit">
-        Salvar
+        {{ t('transactions.save') }}
       </ElButton>
     </template>
   </ElDialog>
