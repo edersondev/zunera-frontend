@@ -87,6 +87,12 @@ function stubs() {
         emits: ['update:visible', 'confirm'],
         template: '<div v-if="visible" data-test="remove-dialog"><slot /></div>',
       },
+      TransactionRowActions: {
+        props: ['transaction', 'saving'],
+        emits: ['edit', 'update-status', 'remove'],
+        template:
+          '<div data-test="transaction-row-actions"><button data-test="row-action-edit" @click.stop="$emit(\'edit\', transaction)">edit</button><button data-test="row-action-status" @click.stop="$emit(\'update-status\', transaction, transaction.status === \'effective\' ? \'pending\' : \'effective\')">status</button><button data-test="row-action-remove" @click.stop="$emit(\'remove\', transaction)">remove</button></div>',
+      },
       teleport: true,
     },
   }
@@ -178,6 +184,25 @@ describe('TransactionsListView', () => {
     const text = wrapper.get('.el-table__row').text()
     expect(text).toContain('Conta encerrada (arquivada)')
     expect(text).toContain('Contas antigas (arquivada)')
+  })
+
+  it('shows pending transactions with a warning status tag', async () => {
+    store.items = [row(1, 'Pagamento futuro', { status: 'pending' })]
+    const wrapper = mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+
+    expect(wrapper.get('.el-tag').classes()).toContain('el-tag--warning')
+  })
+
+  it('uses row actions without opening details and toggles status directly', async () => {
+    store.items = [row(1, 'Almoço')]
+    const wrapper = mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+
+    await wrapper.get('[data-test="row-action-status"]').trigger('click')
+
+    expect(store.select).not.toHaveBeenCalled()
+    expect(store.update).toHaveBeenCalledWith(1, { status: 'pending' })
   })
 
   it('shows loading, empty, error, notice, and balance feedback states', async () => {

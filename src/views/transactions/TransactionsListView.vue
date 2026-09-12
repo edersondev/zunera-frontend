@@ -8,6 +8,7 @@ import TransactionFormDialog from '@/components/transactions/TransactionFormDial
 import TransactionFilterBar from '@/components/transactions/TransactionFilterBar.vue'
 import TransactionDetailDrawer from '@/components/transactions/TransactionDetailDrawer.vue'
 import TransactionRemoveDialog from '@/components/transactions/TransactionRemoveDialog.vue'
+import TransactionRowActions from '@/components/transactions/TransactionRowActions.vue'
 import { useTransactionStore } from '@/stores/transactions/transactionStore'
 import { useFinancialAccountStore } from '@/stores/financial-accounts/financialAccountStore'
 import { useCategoryStore } from '@/stores/categories/categoryStore'
@@ -95,6 +96,14 @@ function edit(transaction) {
 function requestRemove(transaction) {
   removingTransaction.value = transaction
   removeDialog.value = true
+}
+
+async function updateStatus(transaction, status) {
+  try {
+    await store.update(transaction.id, { status })
+  } catch {
+    /* Feedback comes from the store error state. */
+  }
 }
 
 async function remove() {
@@ -223,8 +232,19 @@ const clearedFilters = {
         </ElTableColumn>
         <ElTableColumn :label="t('transactions.columns.status')" min-width="110">
           <template #default="{ row }"
-            ><ElTag>{{ t(`transactions.${row.status}`) }}</ElTag></template
+            ><ElTag :type="row.status === 'pending' ? 'warning' : undefined">{{ t(`transactions.${row.status}`) }}</ElTag></template
           >
+        </ElTableColumn>
+        <ElTableColumn width="64" align="center">
+          <template #default="{ row }">
+            <TransactionRowActions
+              :transaction="row"
+              :saving="store.saving"
+              @edit="edit"
+              @update-status="updateStatus"
+              @remove="requestRemove"
+            />
+          </template>
         </ElTableColumn>
       </ElTable>
     </section>
