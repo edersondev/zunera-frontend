@@ -32,6 +32,18 @@ describe('transactionStore', () => {
     expect(service.createTransaction).toHaveBeenCalledTimes(1)
   })
 
+  it('reuses the idempotency key when the same mutation is retried after a request failure', async () => {
+    service.createTransaction.mockRejectedValueOnce(new Error('Network unavailable')).mockResolvedValueOnce({ id: 1 })
+    const store = useTransactionStore()
+    const payload = { description: 'Receita' }
+
+    await expect(store.create(payload)).rejects.toThrow('Network unavailable')
+    await store.create(payload)
+
+    const firstKey = service.createTransaction.mock.calls[0][1]
+    expect(service.createTransaction.mock.calls[1][1]).toBe(firstKey)
+  })
+
   it('refreshes transactions after create, update, removal, and restore', async () => {
     service.createTransaction.mockResolvedValue({ id: 1 }); service.updateTransaction.mockResolvedValue({ id: 1 }); service.removeTransaction.mockResolvedValue({ id: 1 }); service.restoreTransaction.mockResolvedValue({ id: 1 })
     const store = useTransactionStore()

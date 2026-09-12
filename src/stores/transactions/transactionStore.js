@@ -21,6 +21,7 @@ export const useTransactionStore = defineStore('transactions', () => {
   const validationErrors = shallowRef({})
   const notice = shallowRef(null)
   const lastBalanceImpact = shallowRef([])
+  const retryKeys = new Map()
   const hasMore = computed(() => (meta.value.current_page ?? 1) < (meta.value.last_page ?? 1))
 
   function applyError(value) {
@@ -83,7 +84,11 @@ export const useTransactionStore = defineStore('transactions', () => {
     return selected.value
   }
 
-  async function mutate(work) {
+  function retrySignature(action, payload = {}) {
+    return `${action}:${JSON.stringify(payload, Object.keys(payload).sort())}`
+  }
+
+  async function mutate(action, payload, work) {
     if (saving.value) return null
     saving.value = true
     error.value = null
@@ -92,15 +97,23 @@ export const useTransactionStore = defineStore('transactions', () => {
 
     const accounts = useFinancialAccountStore()
     const before = accountSnapshots(accounts)
+    const signature = retrySignature(action, payload)
+    const idempotencyKey = retryKeys.get(signature) ?? crypto.randomUUID()
 
     try {
-      const result = await work()
+      const result = await work(idempotencyKey)
+      retryKeys.delete(signature)
       notice.value = result?.meta?.notice ?? null
-      await Promise.all([fetch(), accounts.fetchAccounts(), accounts.fetchSummary()])
-      lastBalanceImpact.value = balanceImpact(before, accounts)
+      try {
+        await Promise.all([fetch(), accounts.fetchAccounts(), accounts.fetchSummary()])
+        lastBalanceImpact.value = balanceImpact(before, accounts)
+      } catch (value) {
+        applyError(value)
+      }
 
       return result?.transaction ?? result
     } catch (value) {
+      retryKeys.set(signature, idempotencyKey)
       applyError(value)
       throw value
     } finally {
@@ -108,10 +121,10 @@ export const useTransactionStore = defineStore('transactions', () => {
     }
   }
 
-  const create = (payload) => mutate(() => createTransaction(payload))
-  const update = (id, payload) => mutate(() => updateTransaction(id, payload))
-  const remove = (id) => mutate(() => removeTransaction(id))
-  const restore = (id, payload) => mutate(() => restoreTransaction(id, payload))
+  const create = (payload) => mutate('create', payload, (idempotencyKey) => createTransaction(payload, idempotencyKey))
+  const update = (id, payload) => mutate(`update:${id}`, payload, (idempotencyKey) => updateTransaction(id, payload, idempotencyKey))
+  const remove = (id) => mutate(`remove:${id}`, {}, (idempotencyKey) => removeTransaction(id, idempotencyKey))
+  const restore = (id, payload) => mutate(`restore:${id}`, payload, (idempotencyKey) => restoreTransaction(id, payload, idempotencyKey))
 
   function clearNotice() {
     notice.value = null
