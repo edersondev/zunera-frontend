@@ -25,6 +25,17 @@ export async function listTransactions(params = {}) {
   return { items: response.data.data, meta: response.data.meta, links: response.data.links }
 }
 
+/**
+ * Canonical mixed read projection used by the history screen. Each entry carries
+ * movement_kind (income, expense, or transfer); transfers include both account
+ * sides and never a category or income/expense sign.
+ */
+export async function listFinancialHistory(params = {}) {
+  const response = await apiRequest({ method: 'get', url: '/api/v1/financial-history', params })
+
+  return { items: response.data.data, meta: response.data.meta, links: response.data.links }
+}
+
 export async function getTransaction(id) {
   const response = await apiRequest({ method: 'get', url: `/api/v1/transactions/${id}` })
 

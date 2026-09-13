@@ -1,16 +1,16 @@
 import { computed, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
 import {
-  createTransaction,
-  getTransaction,
-  listFinancialHistory,
-  removeTransaction,
-  restoreTransaction,
-  updateTransaction,
-} from '@/services/transactionService'
+  createTransfer,
+  getTransfer,
+  listTransfers,
+  removeTransfer,
+  restoreTransfer,
+  updateTransfer,
+} from '@/services/transferService'
 import { useFinancialAccountStore } from '@/stores/financial-accounts/financialAccountStore'
 
-export const useTransactionStore = defineStore('transactions', () => {
+export const useTransferStore = defineStore('transfers', () => {
   const items = shallowRef([])
   const meta = shallowRef({ total: 0 })
   const selected = shallowRef(null)
@@ -23,30 +23,17 @@ export const useTransactionStore = defineStore('transactions', () => {
   const lastBalanceImpact = shallowRef([])
   const retryKeys = new Map()
   const hasMore = computed(() => (meta.value.current_page ?? 1) < (meta.value.last_page ?? 1))
-  /** Income/expense/result totals reported by the backend; transfers are excluded there. */
-  const totals = computed(() => meta.value.totals ?? null)
 
   function applyError(value) {
     error.value = value
     validationErrors.value = value?.errors ?? {}
   }
 
-  /**
-   * Mixed history entries use movement_kind and movement_date. Income and expense
-   * entries keep the transaction shape the existing screens already expect, while
-   * transfer entries stay discriminated with both account sides.
-   */
-  function normalizeEntry(entry) {
-    if (entry?.movement_kind === 'transfer') return entry
-
-    return { ...entry, type: entry.movement_kind, transaction_date: entry.movement_date }
-  }
-
   function accountSnapshots(accounts) {
     return new Map((accounts?.accounts ?? []).map((account) => [account.id, account]))
   }
 
-  /** Balance deltas for the accounts the financial-account store refreshed after a mutation. */
+  /** Balance deltas for both refreshed sides of the last mutation. */
   function balanceImpact(before, accounts) {
     return [...accountSnapshots(accounts).values()]
       .filter((account) => before.has(account.id))
@@ -65,9 +52,8 @@ export const useTransactionStore = defineStore('transactions', () => {
     error.value = null
 
     try {
-      const result = await listFinancialHistory(filters.value)
-      const entries = (result.items ?? []).map(normalizeEntry)
-      items.value = append ? [...items.value, ...entries] : entries
+      const result = await listTransfers(filters.value)
+      items.value = append ? [...items.value, ...result.items] : result.items
       meta.value = result.meta
 
       return result
@@ -92,15 +78,8 @@ export const useTransactionStore = defineStore('transactions', () => {
     return fetch({ append: true })
   }
 
-  /** Accepts a history entry (transfer rows carry their own detail) or a transaction id. */
-  async function select(idOrEntry) {
-    if (idOrEntry !== null && typeof idOrEntry === 'object') {
-      selected.value = idOrEntry
-
-      return selected.value
-    }
-
-    selected.value = await getTransaction(idOrEntry)
+  async function select(id) {
+    selected.value = await getTransfer(id)
 
     return selected.value
   }
@@ -132,7 +111,7 @@ export const useTransactionStore = defineStore('transactions', () => {
         applyError(value)
       }
 
-      return result?.transaction ?? result
+      return result?.transfer ?? result
     } catch (value) {
       retryKeys.set(signature, idempotencyKey)
       applyError(value)
@@ -142,10 +121,14 @@ export const useTransactionStore = defineStore('transactions', () => {
     }
   }
 
-  const create = (payload) => mutate('create', payload, (idempotencyKey) => createTransaction(payload, idempotencyKey))
-  const update = (id, payload) => mutate(`update:${id}`, payload, (idempotencyKey) => updateTransaction(id, payload, idempotencyKey))
-  const remove = (id) => mutate(`remove:${id}`, {}, (idempotencyKey) => removeTransaction(id, idempotencyKey))
-  const restore = (id, payload) => mutate(`restore:${id}`, payload, (idempotencyKey) => restoreTransaction(id, payload, idempotencyKey))
+  const create = (payload) =>
+    mutate('create', payload, (idempotencyKey) => createTransfer(payload, idempotencyKey))
+  const update = (id, payload) =>
+    mutate(`update:${id}`, payload, (idempotencyKey) => updateTransfer(id, payload, idempotencyKey))
+  const remove = (id) =>
+    mutate(`remove:${id}`, {}, (idempotencyKey) => removeTransfer(id, idempotencyKey))
+  const restore = (id, payload = {}) =>
+    mutate(`restore:${id}`, payload, (idempotencyKey) => restoreTransfer(id, payload, idempotencyKey))
 
   function clearNotice() {
     notice.value = null
@@ -164,7 +147,6 @@ export const useTransactionStore = defineStore('transactions', () => {
     notice,
     lastBalanceImpact,
     hasMore,
-    totals,
     fetch,
     setFilters,
     loadMore,

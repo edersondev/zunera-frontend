@@ -15,6 +15,7 @@ const store = vi.hoisted(() => ({
   validationErrors: {},
   notice: null,
   lastBalanceImpact: [],
+  totals: null,
   hasMore: false,
   fetch: vi.fn(),
   setFilters: vi.fn(),
@@ -106,6 +107,7 @@ describe('TransactionsListView', () => {
     store.error = null
     store.notice = null
     store.lastBalanceImpact = []
+    store.totals = null
     store.hasMore = false
     store.meta = { total: 0, current_page: 1, last_page: 1, per_page: 50 }
     store.filters = { view: 'active', per_page: 50 }
@@ -253,6 +255,78 @@ describe('TransactionsListView', () => {
     expect(routerReplace).toHaveBeenLastCalledWith({ query: { view: 'active', per_page: 50 } })
     expect(store.setFilters).toHaveBeenLastCalledWith(
       expect.objectContaining({ view: 'active', per_page: 50, q: undefined, type: undefined }),
+    )
+  })
+
+  it('renders a transfer labelled with both account sides, no category, and no income sign', async () => {
+    store.items = [
+      {
+        movement_kind: 'transfer',
+        id: 9,
+        amount_centavos: 250_000,
+        movement_date: '2026-09-13',
+        status: 'effective',
+        description: 'Reserva do mês',
+        notes: null,
+        source_financial_account: { id: 1, name: 'Conta corrente', status: 'active' },
+        destination_financial_account: { id: 2, name: 'Poupança', status: 'archived' },
+        category: null,
+      },
+      row(8, 'Mercado'),
+    ]
+    store.meta = { total: 2, current_page: 1, last_page: 1, per_page: 50 }
+    const wrapper = mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+
+    const transferRow = wrapper.findAll('.el-table__row')[0].text()
+    expect(transferRow).toContain('Transferência')
+    expect(transferRow).toContain('Conta corrente → Poupança (arquivada)')
+    expect(transferRow).not.toContain('+')
+    expect(transferRow).not.toContain('−')
+    expect(wrapper.get('[data-test="transfer-history-no-category"]').text()).toBe('—')
+    expect(wrapper.get('[data-test="transfer-history-amount"]').text()).toContain('2.500,00')
+    expect(wrapper.findAll('.el-table__row')[1].text()).toContain('Mercado')
+  })
+
+  it('reports income and expense totals that a transfer never changes', async () => {
+    const totals = { income_centavos: 500_000, expense_centavos: 200_000, financial_result_centavos: 300_000 }
+    store.totals = totals
+    store.items = [row(1, 'Salário', { type: 'income' })]
+    store.meta = { total: 1, current_page: 1, last_page: 1, per_page: 50, totals }
+    const before = mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+
+    expect(before.get('[data-test="history-total-income"]').text()).toContain('5.000,00')
+    expect(before.get('[data-test="history-total-expense"]').text()).toContain('2.000,00')
+    expect(before.get('[data-test="history-total-result"]').text()).toContain('3.000,00')
+    expect(before.get('[data-test="history-total-excludes"]').text()).toContain('Transferências')
+
+    store.items = [
+      {
+        movement_kind: 'transfer',
+        id: 12,
+        amount_centavos: 90_000,
+        movement_date: '2026-09-13',
+        status: 'effective',
+        description: null,
+        notes: null,
+        source_financial_account: { id: 1, name: 'Conta corrente', status: 'active' },
+        destination_financial_account: { id: 2, name: 'Poupança', status: 'active' },
+        category: null,
+      },
+      row(1, 'Salário', { type: 'income' }),
+    ]
+    const after = mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+
+    expect(after.get('[data-test="history-total-income"]').text()).toBe(
+      before.get('[data-test="history-total-income"]').text(),
+    )
+    expect(after.get('[data-test="history-total-expense"]').text()).toBe(
+      before.get('[data-test="history-total-expense"]').text(),
+    )
+    expect(after.get('[data-test="history-total-result"]').text()).toBe(
+      before.get('[data-test="history-total-result"]').text(),
     )
   })
 })

@@ -104,6 +104,9 @@ async function mockApi(page, { accounts, categories, transactions, foreign = [] 
 
     return route.fulfill({ json: { data: item, meta: {} }, headers })
   })
+  await page.route(/\/api\/v1\/financial-history(?:\?[^/]*)?$/, (route) =>
+    fulfillHistory(route, state),
+  )
 }
 
 function createTransaction(route, state) {
@@ -186,6 +189,82 @@ function fulfillList(route, state) {
         current_page: pageNumber,
         last_page: Math.max(1, Math.ceil(matches.length / perPage)),
         per_page: perPage,
+      },
+      links: {},
+    },
+    headers,
+  })
+}
+
+/**
+ * The history screen now reads the canonical mixed projection. These journeys
+ * have no transfers, so every entry is its income/expense movement, and totals
+ * come straight from effective transactions.
+ */
+function fulfillHistory(route, state) {
+  const query = new URL(route.request().url()).searchParams
+  const term = (query.get('q') ?? '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
+  const kind = query.get('movement_kind') ?? 'all'
+  const matches = state.transactions
+    .filter((item) => item.removed_at === null)
+    .filter((item) => kind === 'all' || kind === item.type)
+    .filter((item) => !query.get('status') || item.status === query.get('status'))
+    .filter((item) => !query.get('financial_account_id') || String(item.financial_account.id) === query.get('financial_account_id'))
+    .filter((item) => !query.get('category_id') || String(item.category.id) === query.get('category_id'))
+    .filter((item) => !query.get('from') || item.transaction_date >= query.get('from'))
+    .filter((item) => !query.get('to') || item.transaction_date <= query.get('to'))
+    .filter(
+      (item) =>
+        !term ||
+        `${item.description} ${item.notes ?? ''}`
+          .normalize('NFD')
+          .replace(/\p{Diacritic}/gu, '')
+          .toLowerCase()
+          .includes(term),
+    )
+    .sort((first, second) =>
+      first.transaction_date === second.transaction_date
+        ? second.id - first.id
+        : second.transaction_date.localeCompare(first.transaction_date),
+    )
+  const pageNumber = Number(query.get('page') ?? 1)
+  const perPage = Number(query.get('per_page') ?? 50)
+  const items = matches.slice((pageNumber - 1) * perPage, pageNumber * perPage).map((item) => ({
+    movement_kind: item.type,
+    id: item.id,
+    amount_centavos: item.amount_centavos,
+    currency_code: item.currency_code,
+    movement_date: item.transaction_date,
+    status: item.status,
+    description: item.description,
+    notes: item.notes,
+    financial_account: item.financial_account,
+    category: item.category,
+  }))
+  const effective = state.transactions.filter(
+    (item) => item.removed_at === null && item.status === 'effective',
+  )
+  const income = effective
+    .filter((item) => item.type === 'income')
+    .reduce((total, item) => total + item.amount_centavos, 0)
+  const expense = effective
+    .filter((item) => item.type === 'expense')
+    .reduce((total, item) => total + item.amount_centavos, 0)
+
+  return route.fulfill({
+    json: {
+      data: items,
+      meta: {
+        total: matches.length,
+        current_page: pageNumber,
+        last_page: Math.max(1, Math.ceil(matches.length / perPage)),
+        per_page: perPage,
+        totals: {
+          income_centavos: income,
+          expense_centavos: expense,
+          financial_result_centavos: income - expense,
+          currency_code: 'BRL',
+        },
       },
       links: {},
     },

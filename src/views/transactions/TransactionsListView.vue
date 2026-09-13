@@ -16,6 +16,11 @@ import {
   formatTransactionAmount,
   formatTransactionDate,
 } from '@/utils/transactions/transactionFormatters'
+import {
+  accountLabel,
+  formatTransferAmount,
+  formatTransferRoute,
+} from '@/utils/transfers/transferFormatters'
 
 const store = useTransactionStore()
 const accounts = useFinancialAccountStore()
@@ -83,7 +88,7 @@ async function save(payload) {
 }
 
 async function openDetail(row) {
-  await store.select(row.id)
+  await store.select(row.movement_kind === 'transfer' ? row : row.id)
   detailOpen.value = true
 }
 
@@ -195,6 +200,29 @@ const clearedFilters = {
     <p v-if="activeCriteria.length" class="criteria" data-test="active-criteria">
       {{ t('transactions.activeCriteria') }}: {{ activeCriteria.join(' · ') }}
     </p>
+    <ElDescriptions
+      v-if="store.totals"
+      :title="t('transfers.totals.label')"
+      :column="3"
+      border
+      class="totals"
+      data-test="history-totals"
+    >
+      <ElDescriptionsItem :label="t('transfers.totals.income')">
+        <span data-test="history-total-income">{{ formatCentavos(store.totals.income_centavos) }}</span>
+      </ElDescriptionsItem>
+      <ElDescriptionsItem :label="t('transfers.totals.expense')">
+        <span data-test="history-total-expense">{{ formatCentavos(store.totals.expense_centavos) }}</span>
+      </ElDescriptionsItem>
+      <ElDescriptionsItem :label="t('transfers.totals.result')">
+        <span data-test="history-total-result">{{
+          formatCentavos(store.totals.financial_result_centavos)
+        }}</span>
+      </ElDescriptionsItem>
+      <ElDescriptionsItem :span="3" class="totals-note">
+        <span data-test="history-total-excludes">{{ t('transfers.totals.excludes') }}</span>
+      </ElDescriptionsItem>
+    </ElDescriptions>
     <section aria-labelledby="transactions-title">
       <h2 id="transactions-title" data-test="transaction-count">
         {{ t('transactions.count', { count: store.meta.total ?? 0 }) }}
@@ -206,25 +234,52 @@ const clearedFilters = {
         data-test="transaction-table"
         @row-click="openDetail"
       >
-        <ElTableColumn :label="t('transactions.columns.description')" prop="description" min-width="180" />
+        <ElTableColumn :label="t('transactions.columns.description')" min-width="180">
+          <template #default="{ row }">
+            <span v-if="row.movement_kind === 'transfer'" data-test="transfer-history-label">
+              {{ t('transfers.transfer') }}
+            </span>
+            <span v-else>{{ row.description }}</span>
+          </template>
+        </ElTableColumn>
         <ElTableColumn :label="t('transactions.columns.date')" min-width="130">
-          <template #default="{ row }">{{ formatTransactionDate(row.transaction_date) }}</template>
+          <template #default="{ row }">
+            {{ formatTransactionDate(row.movement_date ?? row.transaction_date) }}
+          </template>
         </ElTableColumn>
         <ElTableColumn :label="t('transactions.columns.account')" min-width="150">
           <template #default="{ row }">
-            {{ row.financial_account.name
-            }}<span v-if="row.financial_account.status === 'archived'"> ({{ t('transactions.archived') }})</span>
+            <span v-if="row.movement_kind === 'transfer'" data-test="transfer-history-route">
+              {{ accountLabel(row.source_financial_account, t) }} →
+              {{ accountLabel(row.destination_financial_account, t) }}
+            </span>
+            <template v-else>
+              {{ row.financial_account.name
+              }}<span v-if="row.financial_account.status === 'archived'"> ({{ t('transactions.archived') }})</span>
+            </template>
           </template>
         </ElTableColumn>
         <ElTableColumn :label="t('transactions.columns.category')" min-width="150">
           <template #default="{ row }">
-            {{ row.category.name
-            }}<span v-if="row.category.status === 'archived'"> ({{ t('transactions.archived') }})</span>
+            <span v-if="row.movement_kind === 'transfer'" data-test="transfer-history-no-category">
+              {{ t('transfers.noNotes') }}
+            </span>
+            <template v-else>
+              {{ row.category.name
+              }}<span v-if="row.category.status === 'archived'"> ({{ t('transactions.archived') }})</span>
+            </template>
           </template>
         </ElTableColumn>
         <ElTableColumn :label="t('transactions.columns.amount')" min-width="180">
           <template #default="{ row }">
-            <span :class="row.type === 'income' ? 'income' : 'expense'">
+            <span
+              v-if="row.movement_kind === 'transfer'"
+              class="transfer"
+              data-test="transfer-history-amount"
+            >
+              {{ formatTransferAmount(row) }} · {{ formatTransferRoute(row, t) }}
+            </span>
+            <span v-else :class="row.type === 'income' ? 'income' : 'expense'">
               {{ formatTransactionAmount(row) }} ·
               {{ row.type === 'income' ? t('transactions.income') : t('transactions.expense') }}
             </span>
@@ -238,6 +293,7 @@ const clearedFilters = {
         <ElTableColumn width="64" align="center">
           <template #default="{ row }">
             <TransactionRowActions
+              v-if="row.movement_kind !== 'transfer'"
               :transaction="row"
               :saving="store.saving"
               @edit="edit"
@@ -307,6 +363,16 @@ h2 {
 }
 .expense {
   color: var(--color-financial-negative);
+  font-variant-numeric: tabular-nums;
+}
+.totals {
+  margin-bottom: 16px;
+}
+.totals-note {
+  color: var(--color-text-muted, #666);
+  font-size: 13px;
+}
+.transfer {
   font-variant-numeric: tabular-nums;
 }
 .more {
