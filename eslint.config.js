@@ -13,7 +13,14 @@ export default defineConfig([
     files: ['**/*.{vue,js,mjs,jsx}'],
   },
 
-  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**']),
+  globalIgnores([
+    '**/node_modules/**',
+    '**/dist/**',
+    '**/dist-ssr/**',
+    '**/build/**',
+    '**/coverage/**',
+    '**/*.min.js',
+  ]),
 
   {
     languageOptions: {
