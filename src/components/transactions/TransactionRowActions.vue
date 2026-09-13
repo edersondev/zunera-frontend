@@ -13,9 +13,7 @@ const { t } = useI18n()
 const nextStatus = computed(() =>
   props.transaction.status === 'effective' ? 'pending' : 'effective',
 )
-const nextStatusIcon = computed(() =>
-  nextStatus.value === 'effective' ? CircleCheck : Clock,
-)
+const nextStatusIcon = computed(() => (nextStatus.value === 'effective' ? CircleCheck : Clock))
 
 function handleCommand(command) {
   if (props.saving) return
@@ -29,8 +27,8 @@ function handleCommand(command) {
 <template>
   <ElDropdown trigger="click" @command="handleCommand">
     <ElButton
-      text
       circle
+      type="info"
       :icon="MoreFilled"
       :disabled="props.saving"
       :aria-label="t('transactions.actions')"
@@ -43,7 +41,11 @@ function handleCommand(command) {
           <ElIcon><Edit /></ElIcon>
           <span>{{ t('transactions.editAction') }}</span>
         </ElDropdownItem>
-        <ElDropdownItem command="status" :disabled="props.saving" data-test="transaction-action-status">
+        <ElDropdownItem
+          command="status"
+          :disabled="props.saving"
+          data-test="transaction-action-status"
+        >
           <ElIcon><component :is="nextStatusIcon" /></ElIcon>
           <span>{{ t(`transactions.${nextStatus}`) }}</span>
         </ElDropdownItem>
