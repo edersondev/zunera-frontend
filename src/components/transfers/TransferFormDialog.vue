@@ -21,8 +21,11 @@ const emit = defineEmits(['update:modelValue', 'submit'])
 const { t } = useI18n()
 const formRef = shallowRef(null)
 const form = reactive(blank())
+const original = shallowRef(blank())
 const statuses = computed(() => transferStatusOptions(t))
-const title = computed(() => (props.transfer ? t('transfers.editDialog') : t('transfers.newDialog')))
+const title = computed(() =>
+  props.transfer ? t('transfers.editDialog') : t('transfers.newDialog'),
+)
 const sourceOptions = computed(() => sourceSideOptions(props.accounts, props.transfer))
 const destinationOptions = computed(() =>
   destinationSideOptions(props.accounts, props.transfer, form.source_financial_account_id),
@@ -37,12 +40,14 @@ const sidesMustDiffer = computed(
  * and only reports a notice, so the form tells the user before they save.
  */
 const futureEffectiveNotice = computed(
-  () =>
-    Boolean(props.transfer) &&
-    form.status === 'effective' &&
-    form.transfer_date > today(),
+  () => Boolean(props.transfer) && form.status === 'effective' && form.transfer_date > today(),
 )
-const pendingForFuture = computed(() => !props.transfer && form.status === 'pending' && form.transfer_date > today())
+const pendingForFuture = computed(
+  () => !props.transfer && form.status === 'pending' && form.transfer_date > today(),
+)
+const hasChanges = computed(() =>
+  Object.entries(form).some(([key, value]) => value !== original.value[key]),
+)
 const rules = computed(() => ({
   source_financial_account_id: [
     { required: true, message: t('transfers.sourceRequired'), trigger: 'change' },
@@ -72,20 +77,20 @@ watch(
   () => [props.modelValue, props.transfer],
   () => {
     if (!props.modelValue) return
-    Object.assign(
-      form,
-      props.transfer
-        ? {
-            source_financial_account_id: props.transfer.source_financial_account.id,
-            destination_financial_account_id: props.transfer.destination_financial_account.id,
-            amount_centavos: props.transfer.amount_centavos,
-            transfer_date: props.transfer.transfer_date,
-            status: props.transfer.status,
-            description: props.transfer.description ?? '',
-            notes: props.transfer.notes ?? '',
-          }
-        : blank(),
-    )
+    const initial = props.transfer
+      ? {
+          source_financial_account_id: props.transfer.source_financial_account.id,
+          destination_financial_account_id: props.transfer.destination_financial_account.id,
+          amount_centavos: props.transfer.amount_centavos,
+          transfer_date: props.transfer.transfer_date,
+          status: props.transfer.status,
+          description: props.transfer.description ?? '',
+          notes: props.transfer.notes ?? '',
+        }
+      : blank()
+
+    Object.assign(form, initial)
+    original.value = { ...initial }
   },
   { immediate: true },
 )
@@ -104,7 +109,7 @@ async function submit() {
   }
   if (sidesMustDiffer.value) return
 
-  emit('submit', {
+  const payload = {
     source_financial_account_id: form.source_financial_account_id,
     destination_financial_account_id: form.destination_financial_account_id,
     amount_centavos: Number(form.amount_centavos),
@@ -112,7 +117,17 @@ async function submit() {
     status: form.status ?? undefined,
     description: form.description === '' ? null : form.description,
     notes: form.notes === '' ? null : form.notes,
-  })
+  }
+  if (!props.transfer) {
+    emit('submit', payload)
+
+    return
+  }
+
+  const changes = Object.fromEntries(
+    Object.entries(payload).filter(([key]) => form[key] !== original.value[key]),
+  )
+  if (Object.keys(changes).length > 0) emit('submit', changes)
 }
 </script>
 
@@ -154,7 +169,10 @@ async function submit() {
           required
           :error="errors.destination_financial_account_id?.[0]"
         >
-          <ElSelect v-model="form.destination_financial_account_id" data-test="transfer-destination">
+          <ElSelect
+            v-model="form.destination_financial_account_id"
+            data-test="transfer-destination"
+          >
             <ElOption
               v-for="account in destinationOptions"
               :key="account.id"
@@ -215,7 +233,7 @@ async function submit() {
         :icon="Check"
         type="primary"
         :loading="saving"
-        :disabled="saving"
+        :disabled="saving || (transfer && !hasChanges)"
         data-test="save-transfer"
         @click="submit"
       >

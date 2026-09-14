@@ -19,7 +19,8 @@ const stubs = {
   ElInput: {
     props: ['modelValue'],
     emits: ['update:modelValue'],
-    template: '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+    template:
+      '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
   },
   CurrencyAmountInput: {
     props: ['modelValue'],
@@ -30,11 +31,18 @@ const stubs = {
   ElSelect: {
     props: ['modelValue'],
     emits: ['update:modelValue'],
-    template: '<select :value="modelValue" @change="$emit(\'update:modelValue\', Number($event.target.value))"><slot /></select>',
+    template:
+      '<select :value="modelValue" @change="$emit(\'update:modelValue\', Number($event.target.value))"><slot /></select>',
   },
   ElOption: { props: ['label', 'value'], template: '<option :value="value">{{ label }}</option>' },
-  ElRadioGroup: { props: ['modelValue'], template: '<fieldset :data-value="modelValue"><slot /></fieldset>' },
-  ElRadio: { props: ['value'], template: '<label><input type="radio" :value="value" /><slot /></label>' },
+  ElRadioGroup: {
+    props: ['modelValue'],
+    template: '<fieldset :data-value="modelValue"><slot /></fieldset>',
+  },
+  ElRadio: {
+    props: ['value'],
+    template: '<label><input type="radio" :value="value" /><slot /></label>',
+  },
   ElDatePicker: {
     props: ['modelValue'],
     emits: ['update:modelValue', 'change'],
@@ -74,25 +82,22 @@ function mountDialog(props) {
 }
 
 describe('TransferFormDialog', () => {
-  it('prefills every editable field and keeps an archived current side selectable', async () => {
+  it('keeps an archived current side selectable without resubmitting its association', async () => {
     const wrapper = mountDialog({ transfer: archivedTransfer })
 
-    expect(wrapper.get('[data-test="transfer-source"]').text()).toContain('Conta encerrada (arquivada)')
+    expect(wrapper.get('[data-test="transfer-source"]').text()).toContain(
+      'Conta encerrada (arquivada)',
+    )
     expect(wrapper.get('[data-test="transfer-source"]').text()).toContain('Conta corrente')
     expect(wrapper.get('[data-test="transfer-status"]').attributes('data-value')).toBe('pending')
     expect(wrapper.get('[data-test="transfer-amount"]').element.value).toBe('12345')
     expect(wrapper.get('[data-test="transfer-date"]').element.value).toBe('2026-08-01')
 
+    await wrapper.get('[data-test="transfer-description"]').setValue('Correção histórica')
     await wrapper.get('[data-test="save-transfer"]').trigger('click')
 
     expect(wrapper.emitted('submit')[0][0]).toEqual({
-      source_financial_account_id: 9,
-      destination_financial_account_id: 2,
-      amount_centavos: 12_345,
-      transfer_date: '2026-08-01',
-      status: 'pending',
-      description: 'Histórico',
-      notes: 'Nota histórica',
+      description: 'Correção histórica',
     })
   })
 
@@ -112,7 +117,10 @@ describe('TransferFormDialog', () => {
 
   it('keeps the archived destination selectable while another side is corrected', async () => {
     const wrapper = mountDialog({
-      transfer: { ...archivedTransfer, source_financial_account: { id: 1, name: 'Conta corrente', status: 'active' } },
+      transfer: {
+        ...archivedTransfer,
+        source_financial_account: { id: 1, name: 'Conta corrente', status: 'active' },
+      },
     })
 
     expect(wrapper.get('[data-test="transfer-source"]').text()).toContain('Conta corrente')
@@ -127,7 +135,9 @@ describe('TransferFormDialog', () => {
     await wrapper.get('[data-test="transfer-date"]').setValue(tomorrow)
 
     expect(wrapper.get('[data-test="transfer-status"]').attributes('data-value')).toBe('pending')
-    expect(wrapper.get('[data-test="transfer-pending-notice"]').text()).toContain('não reservam saldo')
+    expect(wrapper.get('[data-test="transfer-pending-notice"]').text()).toContain(
+      'não reservam saldo',
+    )
   })
 
   it('warns that an effective transfer retimed into the future keeps both balance effects', async () => {
@@ -163,8 +173,12 @@ describe('TransferFormDialog', () => {
     expect(wrapper.text()).toContain('Conta arquivada.')
     expect(wrapper.text()).toContain('Data futura exige pendente.')
     expect(wrapper.text()).toContain('Valor inválido.')
-    expect(wrapper.get('[data-prop="source_financial_account_id"]').attributes('data-required')).toBeDefined()
-    expect(wrapper.get('[data-prop="destination_financial_account_id"]').attributes('data-required')).toBeDefined()
+    expect(
+      wrapper.get('[data-prop="source_financial_account_id"]').attributes('data-required'),
+    ).toBeDefined()
+    expect(
+      wrapper.get('[data-prop="destination_financial_account_id"]').attributes('data-required'),
+    ).toBeDefined()
 
     const cancel = wrapper.get('[data-test="cancel-transfer"]')
     expect(cancel.attributes('data-type')).toBe('danger')
