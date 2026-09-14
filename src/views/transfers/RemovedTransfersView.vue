@@ -21,10 +21,20 @@ const { t } = useI18n()
 const confirmDialog = shallowRef(false)
 const pending = shallowRef(null)
 const hasMoreCandidates = computed(() => store.hasMore)
+const removedFilters = {
+  view: 'removed',
+  per_page: 50,
+  q: undefined,
+  status: undefined,
+  source_financial_account_id: undefined,
+  destination_financial_account_id: undefined,
+  from: undefined,
+  to: undefined,
+}
 
 onMounted(() =>
   Promise.all([
-    store.setFilters({ view: 'removed', per_page: 50, q: undefined }),
+    store.setFilters(removedFilters),
     accounts.fetchAccounts(),
   ]).catch(() => {}),
 )

@@ -29,7 +29,10 @@ const store = vi.hoisted(() => ({
 }))
 const transferStore = vi.hoisted(() => ({
   saving: false,
+  error: null,
   validationErrors: {},
+  notice: null,
+  lastBalanceImpact: [],
   create: vi.fn(),
   update: vi.fn(),
   remove: vi.fn(),
@@ -167,6 +170,9 @@ describe('TransactionsListView', () => {
     transferStore.create.mockResolvedValue({ id: 1 })
     transferStore.update.mockResolvedValue({ id: 1 })
     transferStore.remove.mockResolvedValue({ id: 1 })
+    transferStore.error = null
+    transferStore.notice = null
+    transferStore.lastBalanceImpact = []
     route.query = {}
   })
 
@@ -360,6 +366,20 @@ describe('TransactionsListView', () => {
     expect(wrapper.get('[data-test="transaction-notice"]').text()).toContain('Permanece efetiva.')
     expect(wrapper.get('[data-test="balance-impact"]').text()).toContain('Saldo atualizado')
     expect(wrapper.get('[data-test="balance-impact"]').text()).toContain('Conta principal')
+  })
+
+  it('surfaces transfer action errors, notices, and balance impacts', async () => {
+    transferStore.error = { message: 'Transferência futura deve permanecer pendente.' }
+    transferStore.notice = { code: 'effective_future_date', message: 'Permanece efetiva.' }
+    transferStore.lastBalanceImpact = [
+      { id: 2, name: 'Poupança', before: 1_000, after: 1_200, delta: 200 },
+    ]
+    const wrapper = mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+
+    expect(wrapper.get('[data-test="transfer-error"]').text()).toContain('Transferência futura')
+    expect(wrapper.get('[data-test="transfer-notice"]').text()).toContain('Permanece efetiva.')
+    expect(wrapper.get('[data-test="transfer-balance-impact"]').text()).toContain('Poupança')
   })
 
   it('loads the next batch progressively', async () => {

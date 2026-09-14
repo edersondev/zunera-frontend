@@ -280,12 +280,28 @@ const clearedFilters = {
       data-test="transaction-error"
     />
     <ElAlert
+      v-if="transferStore.error"
+      type="error"
+      show-icon
+      :title="transferStore.error.message"
+      class="feedback"
+      data-test="transfer-error"
+    />
+    <ElAlert
       v-if="store.notice"
       type="warning"
       show-icon
       :title="store.notice.message"
       class="feedback"
       data-test="transaction-notice"
+    />
+    <ElAlert
+      v-if="transferStore.notice"
+      type="warning"
+      show-icon
+      :title="transferStore.notice.message"
+      class="feedback"
+      data-test="transfer-notice"
     />
     <ElAlert
       v-for="impact in store.lastBalanceImpact ?? []"
@@ -295,6 +311,15 @@ const clearedFilters = {
       :title="t('transactions.balanceUpdated', { impact: impactMessage(impact) })"
       class="feedback"
       data-test="balance-impact"
+    />
+    <ElAlert
+      v-for="impact in transferStore.lastBalanceImpact ?? []"
+      :key="`transfer-${impact.id}`"
+      type="success"
+      show-icon
+      :title="t('transfers.balanceUpdated', { impact: impactMessage(impact) })"
+      class="feedback"
+      data-test="transfer-balance-impact"
     />
     <TransactionFilterBar
       :filters="store.filters"
