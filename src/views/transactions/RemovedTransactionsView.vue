@@ -41,7 +41,7 @@ async function restore(id) {
         <template #default="{ row }">{{ formatTransactionAmount(row) }}</template>
       </ElTableColumn>
       <ElTableColumn :label="t('transactions.columns.date')">
-        <template #default="{ row }">{{ formatTransactionDate(row.transaction_date) }}</template>
+        <template #default="{ row }">{{ formatTransactionDate(row.movement_date ?? row.transaction_date) }}</template>
       </ElTableColumn>
       <ElTableColumn label="">
         <template #default="{ row }">

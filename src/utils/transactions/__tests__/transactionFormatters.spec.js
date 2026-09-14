@@ -8,4 +8,8 @@ describe('transaction formatters', () => {
   })
 
   it('formats calendar dates in Brazilian locale', () => expect(formatTransactionDate('2026-09-11')).toContain('2026'))
+
+  it.each([undefined, null, '', 'not-a-date'])('uses a fallback for invalid dates: %s', (value) => {
+    expect(formatTransactionDate(value)).toBe('—')
+  })
 })

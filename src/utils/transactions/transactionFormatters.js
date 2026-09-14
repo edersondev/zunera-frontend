@@ -3,5 +3,10 @@ export function formatTransactionAmount(transaction, locale = 'pt-BR') {
   return transaction.type === 'income' ? `+ ${amount}` : `− ${amount}`
 }
 export function formatTransactionDate(value, locale = 'pt-BR') {
-  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(`${value}T00:00:00`))
+  const normalizedValue = typeof value === 'string' ? value.trim() : ''
+  const date = new Date(`${normalizedValue}T00:00:00`)
+
+  if (Number.isNaN(date.getTime())) return '—'
+
+  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(date)
 }
