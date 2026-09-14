@@ -472,6 +472,11 @@ async function chooseRowAction(page, name) {
   await page.locator('.el-dropdown-menu:visible').getByRole('menuitem', { name }).click()
 }
 
+async function chooseTransactionsHeaderAction(page, trigger, action) {
+  await page.getByRole('button', { name: trigger }).click()
+  await page.locator('.el-dropdown-menu:visible').getByRole('menuitem', { name: action, exact: true }).click()
+}
+
 test('owner records an effective transfer and both balances move once', async ({ page }) => {
   const current = account({ id: 1, name: 'Conta corrente', balance: 500_000 })
   const savings = account({ id: 2, name: 'Poupança', balance: 200_000 })
@@ -644,7 +649,8 @@ test('owner corrects, removes, and restores a transfer with an archived associat
   await page.getByRole('dialog', { name: 'Restaurar transferência' }).getByRole('button', { name: 'Restaurar' }).click()
   await expect(page.locator('.el-table__row')).toHaveCount(0)
 
-  await page.locator('[data-test="back-to-transfers"]').click()
+  await page.locator('[data-test="back-to-transactions"]').click()
+  await expect(page.getByRole('heading', { name: 'Transações' })).toBeVisible()
   await expect(page.locator('.el-table__row')).toHaveCount(2)
 })
 
@@ -716,6 +722,60 @@ test('mixed history labels a transfer beside income and expense without changing
   await filterButton.focus()
   await page.keyboard.press('Enter')
   await expect(page.locator('.el-table__row')).toHaveCount(3)
+})
+
+test('transactions header opens transfer creation and removed-transfer shortcuts', async ({ page }) => {
+  const current = account({ id: 1, name: 'Conta corrente', balance: 500_000 })
+  const savings = account({ id: 2, name: 'Poupança', balance: 100_000 })
+  await mockApi(page, { accounts: [current, savings] })
+  await page.goto('/app/transactions')
+
+  await chooseTransactionsHeaderAction(page, 'Transferências', 'Nova transferência')
+  const dialog = page.getByRole('dialog', { name: 'Nova transferência' })
+  await expect(dialog).toBeVisible()
+  await expect(page).toHaveURL(/\/app\/transactions$/)
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
+
+  await page.goto('/app/transactions')
+  await chooseTransactionsHeaderAction(page, 'Transferências', 'Transferências removidas')
+  await expect(page.getByRole('heading', { name: 'Transferências removidas' })).toBeVisible()
+})
+
+test('transactions history manages transfer rows without leaving the page', async ({ page }) => {
+  const current = account({ id: 1, name: 'Conta corrente', balance: 500_000 })
+  const savings = account({ id: 2, name: 'Poupança', balance: 100_000 })
+  await mockApi(page, {
+    accounts: [current, savings],
+    transfers: [
+      transfer({
+        id: 61,
+        source: current,
+        destination: savings,
+        amount: 25_000,
+        description: 'Reserva',
+      }),
+    ],
+  })
+  await page.goto('/app/transactions')
+
+  const row = page.locator('.el-table__row').first()
+  await row.locator('[data-test="transfer-row-actions"]').click()
+  await chooseRowAction(page, 'Editar')
+  const dialog = page.getByRole('dialog', { name: 'Editar transferência' })
+  await dialog.getByLabel('Descrição').fill('Reserva revisada')
+  await dialog.getByRole('button', { name: 'Salvar' }).click()
+  await expect(dialog).toBeHidden()
+  await expect(page).toHaveURL(/\/app\/transactions$/)
+
+  await row.locator('[data-test="transfer-row-actions"]').click()
+  await chooseRowAction(page, 'Pendente')
+  await expect(row).toContainText('Pendente')
+
+  await row.locator('[data-test="transfer-row-actions"]').click()
+  await chooseRowAction(page, 'Remover')
+  await page.getByRole('dialog', { name: 'Remover transferência' }).getByRole('button', { name: 'Remover' }).click()
+  await expect(row).toHaveCount(0)
 })
 
 test('transfer workspace stays usable at 320px, 200% zoom, dark theme, and keyboard-only', async ({

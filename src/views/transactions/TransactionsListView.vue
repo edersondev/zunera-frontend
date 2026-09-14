@@ -1,15 +1,19 @@
 <script setup>
 import { computed, onMounted, shallowRef } from 'vue'
-import { Delete, Plus } from '@element-plus/icons-vue'
+import { ArrowDown, Delete, Money, Plus, Switch } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import TransactionFormDialog from '@/components/transactions/TransactionFormDialog.vue'
+import TransferFormDialog from '@/components/transfers/TransferFormDialog.vue'
+import TransferLifecycleConfirmDialog from '@/components/transfers/TransferLifecycleConfirmDialog.vue'
 import TransactionFilterBar from '@/components/transactions/TransactionFilterBar.vue'
 import TransactionDetailDrawer from '@/components/transactions/TransactionDetailDrawer.vue'
 import TransactionRemoveDialog from '@/components/transactions/TransactionRemoveDialog.vue'
 import TransactionRowActions from '@/components/transactions/TransactionRowActions.vue'
+import TransferRowActions from '@/components/transfers/TransferRowActions.vue'
 import { useTransactionStore } from '@/stores/transactions/transactionStore'
+import { useTransferStore } from '@/stores/transfers/transferStore'
 import { useFinancialAccountStore } from '@/stores/financial-accounts/financialAccountStore'
 import { useCategoryStore } from '@/stores/categories/categoryStore'
 import {
@@ -23,12 +27,17 @@ import {
 } from '@/utils/transfers/transferFormatters'
 
 const store = useTransactionStore()
+const transferStore = useTransferStore()
 const accounts = useFinancialAccountStore()
 const categories = useCategoryStore()
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
 const dialog = shallowRef(false)
+const transferDialog = shallowRef(false)
+const editingTransfer = shallowRef(null)
+const transferRemoveDialog = shallowRef(false)
+const removingTransfer = shallowRef(null)
 const detailOpen = shallowRef(false)
 const editing = shallowRef(null)
 const removeDialog = shallowRef(false)
@@ -87,6 +96,58 @@ async function save(payload) {
   }
 }
 
+async function saveTransfer(payload) {
+  try {
+    if (editingTransfer.value) await transferStore.update(editingTransfer.value.id, payload)
+    else await transferStore.create(payload)
+    await store.fetch()
+    transferDialog.value = false
+    editingTransfer.value = null
+  } catch {
+    /* Feedback comes from the transfer store error state. */
+  }
+}
+
+async function editTransfer(transfer) {
+  try {
+    editingTransfer.value = await transferStore.select(transfer.id)
+    transferDialog.value = true
+  } catch {
+    /* Feedback comes from the transfer store error state. */
+  }
+}
+
+function updateTransferDialog(visible) {
+  transferDialog.value = visible
+  if (!visible) editingTransfer.value = null
+}
+
+async function updateTransferStatus(transfer, status) {
+  try {
+    await transferStore.update(transfer.id, { status })
+    await store.fetch()
+  } catch {
+    /* Feedback comes from the transfer store error state. */
+  }
+}
+
+function requestTransferRemove(transfer) {
+  removingTransfer.value = transfer
+  transferRemoveDialog.value = true
+}
+
+async function removeTransfer() {
+  try {
+    await transferStore.remove(removingTransfer.value.id)
+    await store.fetch()
+  } catch {
+    /* Feedback comes from the transfer store error state. */
+  } finally {
+    transferRemoveDialog.value = false
+    removingTransfer.value = null
+  }
+}
+
 async function openDetail(row) {
   await store.select(row.movement_kind === 'transfer' ? row : row.id)
   detailOpen.value = true
@@ -134,6 +195,27 @@ async function applyFilters(filters) {
   return store.setFilters(filters)
 }
 
+function handleHeaderAction(command) {
+  if (command === 'new') {
+    dialog.value = true
+
+    return
+  }
+
+  if (command === 'removed') router.push({ name: 'transactions-removed' })
+}
+
+function handleTransferHeaderAction(command) {
+  if (command === 'new') {
+    editingTransfer.value = null
+    transferDialog.value = true
+
+    return
+  }
+
+  if (command === 'removed') router.push({ name: 'transfers-removed' })
+}
+
 const clearedFilters = {
   view: 'active',
   per_page: 50,
@@ -151,17 +233,42 @@ const clearedFilters = {
   <div>
     <PageHeader :title="t('transactions.title')" :description="t('transactions.description')">
       <template #actions>
-        <ElButton type="primary" :icon="Plus" data-test="new-transaction" @click="dialog = true"
-          >{{ t('transactions.new') }}</ElButton
-        >
-        <ElButton
-          type="info"
-          :icon="Delete"
-          data-test="open-removed-transactions"
-          @click="router.push({ name: 'transactions-removed' })"
-        >
-          {{ t('transactions.removed') }}
-        </ElButton>
+        <ElDropdown trigger="click" @command="handleHeaderAction">
+          <ElButton type="primary" :icon="Money" data-test="transactions-header-menu">
+            {{ t('transactions.transaction') }}
+            <ElIcon class="transactions-menu-chevron"><ArrowDown /></ElIcon>
+          </ElButton>
+          <template #dropdown>
+            <ElDropdownMenu>
+              <ElDropdownItem command="new" data-test="new-transaction">
+                <ElIcon><Plus /></ElIcon>
+                <span>{{ t('transactions.new') }}</span>
+              </ElDropdownItem>
+              <ElDropdownItem command="removed" data-test="open-removed-transactions">
+                <ElIcon><Delete /></ElIcon>
+                <span>{{ t('transactions.removed') }}</span>
+              </ElDropdownItem>
+            </ElDropdownMenu>
+          </template>
+        </ElDropdown>
+        <ElDropdown class="ml-4" trigger="click" @command="handleTransferHeaderAction">
+          <ElButton type="primary" :icon="Switch" data-test="transfers-header-menu">
+            {{ t('transfers.title') }}
+            <ElIcon class="transactions-menu-chevron"><ArrowDown /></ElIcon>
+          </ElButton>
+          <template #dropdown>
+            <ElDropdownMenu>
+              <ElDropdownItem command="new" data-test="new-transfer-from-transactions">
+                <ElIcon><Plus /></ElIcon>
+                <span>{{ t('transfers.new') }}</span>
+              </ElDropdownItem>
+              <ElDropdownItem command="removed" data-test="open-removed-transfers-from-transactions">
+                <ElIcon><Delete /></ElIcon>
+                <span>{{ t('transfers.removed') }}</span>
+              </ElDropdownItem>
+            </ElDropdownMenu>
+          </template>
+        </ElDropdown>
       </template>
     </PageHeader>
     <ElAlert
@@ -292,8 +399,16 @@ const clearedFilters = {
         </ElTableColumn>
         <ElTableColumn width="64" align="center">
           <template #default="{ row }">
+            <TransferRowActions
+              v-if="row.movement_kind === 'transfer'"
+              :transfer="row"
+              :saving="transferStore.saving"
+              @edit="editTransfer"
+              @update-status="updateTransferStatus"
+              @remove="requestTransferRemove"
+            />
             <TransactionRowActions
-              v-if="row.movement_kind !== 'transfer'"
+              v-else
               :transaction="row"
               :saving="store.saving"
               @edit="edit"
@@ -328,6 +443,22 @@ const clearedFilters = {
       :errors="store.validationErrors"
       @submit="save"
     />
+    <TransferFormDialog
+      :model-value="transferDialog"
+      :transfer="editingTransfer"
+      :accounts="accounts.accounts"
+      :saving="transferStore.saving"
+      :errors="transferStore.validationErrors"
+      @update:model-value="updateTransferDialog"
+      @submit="saveTransfer"
+    />
+    <TransferLifecycleConfirmDialog
+      v-model:visible="transferRemoveDialog"
+      :transfer="removingTransfer"
+      action="remove"
+      :loading="transferStore.saving"
+      @confirm="removeTransfer"
+    />
     <TransactionDetailDrawer
       v-model="detailOpen"
       :transaction="store.selected"
@@ -346,6 +477,9 @@ const clearedFilters = {
 <style scoped>
 .feedback {
   margin-bottom: 16px;
+}
+.transactions-menu-chevron {
+  margin-left: 4px;
 }
 .criteria {
   color: var(--color-text-muted, #666);

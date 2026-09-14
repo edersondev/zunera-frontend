@@ -291,6 +291,11 @@ async function fillTransactionForm(dialog, page, { type, description, amount, ac
   if (notes) await dialog.getByLabel('Observação').fill(notes)
 }
 
+async function chooseTransactionHeaderAction(page, name) {
+  await page.getByRole('button', { name: 'Transação' }).click()
+  await page.locator('.el-dropdown-menu:visible').getByRole('menuitem', { name, exact: true }).click()
+}
+
 test('signed-in user records income and expense and sees the balance impact', async ({ page }) => {
   const account = { id: 1, name: 'Conta principal', status: 'active', current_balance_centavos: 10_000 }
   const income = { id: 2, name: 'Salário', status: 'active', classification: 'income' }
@@ -301,7 +306,7 @@ test('signed-in user records income and expense and sees the balance impact', as
   await expect(page.getByRole('heading', { name: '0 transações' })).toBeVisible()
   await expect(page.getByText('Nenhuma transação encontrada.')).toBeVisible()
 
-  await page.getByRole('button', { name: 'Nova transação' }).click()
+  await chooseTransactionHeaderAction(page, 'Nova transação')
   const dialog = page.getByRole('dialog', { name: 'Nova transação' })
   await fillTransactionForm(dialog, page, {
     type: 'Receita',
@@ -316,7 +321,7 @@ test('signed-in user records income and expense and sees the balance impact', as
   await expect(page.locator('.income')).toContainText('Receita')
   await expect(page.locator('[data-test="balance-impact"]')).toContainText('R$ 350,00')
 
-  await page.getByRole('button', { name: 'Nova transação' }).click()
+  await chooseTransactionHeaderAction(page, 'Nova transação')
   await fillTransactionForm(dialog, page, {
     description: 'Almoço',
     amount: 3_500,
@@ -408,7 +413,7 @@ test('owner edits, removes, and restores a transaction with archived association
   await expect(page.locator('.el-table__row')).toHaveCount(0)
   await expect(page.getByText('0 transações')).toBeVisible()
 
-  await page.getByRole('button', { name: 'Transações removidas' }).click()
+  await chooseTransactionHeaderAction(page, 'Transações removidas')
   await expect(page.getByRole('heading', { name: 'Transações removidas' })).toBeVisible()
   await expect(page.locator('.el-table__row').first()).toContainText('Conta de luz corrigida')
   await page.getByRole('button', { name: 'Restaurar' }).click()
@@ -471,8 +476,15 @@ test('filters activate from the keyboard and the dialog closes with Escape in da
   await page.keyboard.press('Enter')
   await expect(page.locator('.el-table__row')).toHaveCount(1)
 
-  const trigger = page.getByRole('button', { name: 'Nova transação' })
-  await trigger.click()
+  const trigger = page.getByRole('button', { name: 'Transação' })
+  await trigger.focus()
+  await page.keyboard.press('Enter')
+  const newTransaction = page
+    .locator('.el-dropdown-menu:visible')
+    .getByRole('menuitem', { name: 'Nova transação', exact: true })
+  await expect(newTransaction).toBeVisible()
+  await newTransaction.focus()
+  await page.keyboard.press('Enter')
   const dialog = page.getByRole('dialog', { name: 'Nova transação' })
   await expect(dialog).toBeVisible()
   await page.keyboard.press('Escape')

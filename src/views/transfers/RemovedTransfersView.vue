@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, shallowRef } from 'vue'
-import { ArrowLeft, RefreshLeft } from '@element-plus/icons-vue'
+import { Money, RefreshLeft } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
@@ -50,8 +50,8 @@ async function confirmRestore() {
   <div>
     <PageHeader :title="t('transfers.removedTitle')" :description="t('transfers.removedDescription')">
       <template #actions>
-        <ElButton :icon="ArrowLeft" data-test="back-to-transfers" @click="router.push({ name: 'transfers' })">
-          {{ t('transfers.back') }}
+        <ElButton :icon="Money" data-test="back-to-transactions" @click="router.push({ name: 'transactions' })">
+          {{ t('transactions.back') }}
         </ElButton>
       </template>
     </PageHeader>
