@@ -631,7 +631,16 @@ test('owner corrects, removes, and restores a transfer with an archived associat
   await page.getByRole('button', { name: 'Transferências removidas' }).click()
   await expect(page.getByRole('heading', { name: 'Transferências removidas' })).toBeVisible()
   await expect(page.locator('.el-table__row').first()).toContainText('Reserva do mês')
-  await page.getByRole('button', { name: 'Restaurar' }).first().click()
+
+  await page.setViewportSize({ width: 320, height: 720 })
+  const removedTransferCard = page.locator('[data-test="removed-transfer-card"]')
+  await expect(removedTransferCard).toContainText('Reserva do mês')
+  await expect(removedTransferCard.locator('[data-test="restore-transfer"]')).toBeVisible()
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth))
+    .toBe(0)
+
+  await removedTransferCard.locator('[data-test="restore-transfer"]').click()
   await page.getByRole('dialog', { name: 'Restaurar transferência' }).getByRole('button', { name: 'Restaurar' }).click()
   await expect(page.locator('.el-table__row')).toHaveCount(0)
 

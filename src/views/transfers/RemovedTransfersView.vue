@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import TransferLifecycleConfirmDialog from '@/components/transfers/TransferLifecycleConfirmDialog.vue'
+import RemovedTransferCard from '@/components/transfers/RemovedTransferCard.vue'
 import { useTransferStore } from '@/stores/transfers/transferStore'
 import { useFinancialAccountStore } from '@/stores/financial-accounts/financialAccountStore'
 import {
@@ -114,6 +115,15 @@ async function confirmRestore() {
         </template>
       </ElTableColumn>
     </ElTable>
+    <section v-loading="store.loading" class="removed-transfer-cards" :aria-label="t('transfers.removedTitle')">
+      <RemovedTransferCard
+        v-for="transfer in store.items"
+        :key="transfer.id"
+        :transfer="transfer"
+        :saving="store.saving"
+        @restore="requestRestore"
+      />
+    </section>
     <ElEmpty
       v-if="!store.loading && store.items.length === 0"
       :description="t('transfers.emptyRemoved')"
@@ -156,5 +166,20 @@ h2 {
   display: flex;
   justify-content: center;
   margin-top: 16px;
+}
+
+.removed-transfer-cards {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  [data-test='removed-transfer-table'] {
+    display: none;
+  }
+
+  .removed-transfer-cards {
+    display: grid;
+    gap: 12px;
+  }
 }
 </style>
