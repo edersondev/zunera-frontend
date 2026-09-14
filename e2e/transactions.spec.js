@@ -104,6 +104,9 @@ async function mockApi(page, { accounts, categories, transactions, foreign = [] 
 
     return route.fulfill({ json: { data: item, meta: {} }, headers })
   })
+  await page.route(/\/api\/v1\/financial-history(?:\?[^/]*)?$/, (route) =>
+    fulfillHistory(route, state),
+  )
 }
 
 function createTransaction(route, state) {
@@ -193,6 +196,83 @@ function fulfillList(route, state) {
   })
 }
 
+/**
+ * The history screen now reads the canonical mixed projection. These journeys
+ * have no transfers, so every entry is its income/expense movement, and totals
+ * come straight from effective transactions.
+ */
+function fulfillHistory(route, state) {
+  const query = new URL(route.request().url()).searchParams
+  const term = (query.get('q') ?? '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
+  const view = query.get('view') ?? 'active'
+  const kind = query.get('movement_kind') ?? query.get('type') ?? 'all'
+  const matches = state.transactions
+    .filter((item) => (view === 'removed' ? item.removed_at !== null : item.removed_at === null))
+    .filter((item) => kind === 'all' || kind === item.type)
+    .filter((item) => !query.get('status') || item.status === query.get('status'))
+    .filter((item) => !query.get('financial_account_id') || String(item.financial_account.id) === query.get('financial_account_id'))
+    .filter((item) => !query.get('category_id') || String(item.category.id) === query.get('category_id'))
+    .filter((item) => !query.get('from') || item.transaction_date >= query.get('from'))
+    .filter((item) => !query.get('to') || item.transaction_date <= query.get('to'))
+    .filter(
+      (item) =>
+        !term ||
+        `${item.description} ${item.notes ?? ''}`
+          .normalize('NFD')
+          .replace(/\p{Diacritic}/gu, '')
+          .toLowerCase()
+          .includes(term),
+    )
+    .sort((first, second) =>
+      first.transaction_date === second.transaction_date
+        ? second.id - first.id
+        : second.transaction_date.localeCompare(first.transaction_date),
+    )
+  const pageNumber = Number(query.get('page') ?? 1)
+  const perPage = Number(query.get('per_page') ?? 50)
+  const items = matches.slice((pageNumber - 1) * perPage, pageNumber * perPage).map((item) => ({
+    movement_kind: item.type,
+    id: item.id,
+    amount_centavos: item.amount_centavos,
+    currency_code: item.currency_code,
+    movement_date: item.transaction_date,
+    status: item.status,
+    description: item.description,
+    notes: item.notes,
+    financial_account: item.financial_account,
+    category: item.category,
+  }))
+  const effective = state.transactions.filter(
+    (item) => item.removed_at === null && item.status === 'effective',
+  )
+  const income = effective
+    .filter((item) => item.type === 'income')
+    .reduce((total, item) => total + item.amount_centavos, 0)
+  const expense = effective
+    .filter((item) => item.type === 'expense')
+    .reduce((total, item) => total + item.amount_centavos, 0)
+
+  return route.fulfill({
+    json: {
+      data: items,
+      meta: {
+        total: matches.length,
+        current_page: pageNumber,
+        last_page: Math.max(1, Math.ceil(matches.length / perPage)),
+        per_page: perPage,
+        totals: {
+          income_centavos: income,
+          expense_centavos: expense,
+          financial_result_centavos: income - expense,
+          currency_code: 'BRL',
+        },
+      },
+      links: {},
+    },
+    headers,
+  })
+}
+
 async function fillTransactionForm(dialog, page, { type, description, amount, account, category, notes }) {
   if (type) {
     await dialog.locator('[data-test="transaction-type"]').click()
@@ -211,6 +291,11 @@ async function fillTransactionForm(dialog, page, { type, description, amount, ac
   if (notes) await dialog.getByLabel('Observação').fill(notes)
 }
 
+async function chooseTransactionHeaderAction(page, name) {
+  await page.getByRole('button', { name: 'Transação' }).click()
+  await page.locator('.el-dropdown-menu:visible').getByRole('menuitem', { name, exact: true }).click()
+}
+
 test('signed-in user records income and expense and sees the balance impact', async ({ page }) => {
   const account = { id: 1, name: 'Conta principal', status: 'active', current_balance_centavos: 10_000 }
   const income = { id: 2, name: 'Salário', status: 'active', classification: 'income' }
@@ -221,7 +306,7 @@ test('signed-in user records income and expense and sees the balance impact', as
   await expect(page.getByRole('heading', { name: '0 transações' })).toBeVisible()
   await expect(page.getByText('Nenhuma transação encontrada.')).toBeVisible()
 
-  await page.getByRole('button', { name: 'Nova transação' }).click()
+  await chooseTransactionHeaderAction(page, 'Nova transação')
   const dialog = page.getByRole('dialog', { name: 'Nova transação' })
   await fillTransactionForm(dialog, page, {
     type: 'Receita',
@@ -236,7 +321,7 @@ test('signed-in user records income and expense and sees the balance impact', as
   await expect(page.locator('.income')).toContainText('Receita')
   await expect(page.locator('[data-test="balance-impact"]')).toContainText('R$ 350,00')
 
-  await page.getByRole('button', { name: 'Nova transação' }).click()
+  await chooseTransactionHeaderAction(page, 'Nova transação')
   await fillTransactionForm(dialog, page, {
     description: 'Almoço',
     amount: 3_500,
@@ -328,7 +413,7 @@ test('owner edits, removes, and restores a transaction with archived association
   await expect(page.locator('.el-table__row')).toHaveCount(0)
   await expect(page.getByText('0 transações')).toBeVisible()
 
-  await page.getByRole('button', { name: 'Transações removidas' }).click()
+  await chooseTransactionHeaderAction(page, 'Transações removidas')
   await expect(page.getByRole('heading', { name: 'Transações removidas' })).toBeVisible()
   await expect(page.locator('.el-table__row').first()).toContainText('Conta de luz corrigida')
   await page.getByRole('button', { name: 'Restaurar' }).click()
@@ -391,8 +476,15 @@ test('filters activate from the keyboard and the dialog closes with Escape in da
   await page.keyboard.press('Enter')
   await expect(page.locator('.el-table__row')).toHaveCount(1)
 
-  const trigger = page.getByRole('button', { name: 'Nova transação' })
-  await trigger.click()
+  const trigger = page.getByRole('button', { name: 'Transação' })
+  await trigger.focus()
+  await page.keyboard.press('Enter')
+  const newTransaction = page
+    .locator('.el-dropdown-menu:visible')
+    .getByRole('menuitem', { name: 'Nova transação', exact: true })
+  await expect(newTransaction).toBeVisible()
+  await newTransaction.focus()
+  await page.keyboard.press('Enter')
   const dialog = page.getByRole('dialog', { name: 'Nova transação' })
   await expect(dialog).toBeVisible()
   await page.keyboard.press('Escape')

@@ -4,7 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 const service = vi.hoisted(() => ({
   createTransaction: vi.fn(),
   getTransaction: vi.fn(),
-  listTransactions: vi.fn(),
+  listFinancialHistory: vi.fn(),
   removeTransaction: vi.fn(),
   restoreTransaction: vi.fn(),
   updateTransaction: vi.fn(),
@@ -27,7 +27,7 @@ describe('transactionStore balance feedback', () => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
     accounts.accounts = [{ id: 1, name: 'Conta principal', current_balance_centavos: 1_000 }]
-    service.listTransactions.mockResolvedValue({
+    service.listFinancialHistory.mockResolvedValue({
       items: [],
       meta: { total: 0, current_page: 1, last_page: 1 },
       links: {},
@@ -56,7 +56,7 @@ describe('transactionStore balance feedback', () => {
 
     expect(accounts.fetchAccounts).toHaveBeenCalledTimes(4)
     expect(accounts.fetchSummary).toHaveBeenCalledTimes(4)
-    expect(service.listTransactions).toHaveBeenCalledTimes(4)
+    expect(service.listFinancialHistory).toHaveBeenCalledTimes(4)
   })
 
   it('reports the balance impact per affected account', async () => {

@@ -15,6 +15,7 @@ const store = vi.hoisted(() => ({
   validationErrors: {},
   notice: null,
   lastBalanceImpact: [],
+  totals: null,
   hasMore: false,
   fetch: vi.fn(),
   setFilters: vi.fn(),
@@ -25,6 +26,17 @@ const store = vi.hoisted(() => ({
   remove: vi.fn(),
   restore: vi.fn(),
   clearNotice: vi.fn(),
+}))
+const transferStore = vi.hoisted(() => ({
+  saving: false,
+  error: null,
+  validationErrors: {},
+  notice: null,
+  lastBalanceImpact: [],
+  create: vi.fn(),
+  update: vi.fn(),
+  remove: vi.fn(),
+  select: vi.fn(),
 }))
 const accounts = vi.hoisted(() => ({
   accounts: [{ id: 1, name: 'Conta principal', status: 'active', current_balance_centavos: 1_000 }],
@@ -37,15 +49,17 @@ const categories = vi.hoisted(() => ({
 }))
 const route = vi.hoisted(() => ({ query: {} }))
 const routerReplace = vi.hoisted(() => vi.fn())
+const routerPush = vi.hoisted(() => vi.fn())
 
 vi.mock('@/stores/transactions/transactionStore', () => ({ useTransactionStore: () => store }))
+vi.mock('@/stores/transfers/transferStore', () => ({ useTransferStore: () => transferStore }))
 vi.mock('@/stores/financial-accounts/financialAccountStore', () => ({
   useFinancialAccountStore: () => accounts,
 }))
 vi.mock('@/stores/categories/categoryStore', () => ({ useCategoryStore: () => categories }))
 vi.mock('vue-router', () => ({
   useRoute: () => route,
-  useRouter: () => ({ replace: routerReplace }),
+  useRouter: () => ({ push: routerPush, replace: routerReplace }),
 }))
 
 function row(id, description, overrides = {}) {
@@ -70,13 +84,32 @@ function stubs() {
         props: ['title', 'description'],
         template: '<header><h1>{{ title }}</h1><p>{{ description }}</p><slot name="actions" /></header>',
       },
+      ElDropdown: {
+        name: 'ElDropdown',
+        emits: ['command'],
+        template: '<div data-test="transactions-dropdown"><slot /><slot name="dropdown" /></div>',
+      },
+      ElDropdownMenu: { template: '<menu><slot /></menu>' },
+      ElDropdownItem: {
+        props: ['command'],
+        template: '<button type="button" :data-command="command"><slot /></button>',
+      },
       TransactionFilterBar: {
         props: ['filters', 'accounts', 'categories', 'loading'],
         emits: ['apply', 'clear'],
         template:
           '<div><button data-test="apply-filter" @click="$emit(\'apply\', { q: \'almoço\', type: \'expense\' })">apply</button><button data-test="clear-filter" @click="$emit(\'clear\')">clear</button></div>',
       },
-      TransactionFormDialog: { props: ['modelValue'], template: '<div data-test="form-dialog" />' },
+      TransactionFormDialog: {
+        props: ['modelValue'],
+        template: '<div v-if="modelValue" data-test="form-dialog" />',
+      },
+      TransferFormDialog: {
+        props: ['modelValue', 'transfer', 'accounts', 'saving', 'errors'],
+        emits: ['submit'],
+        template:
+          '<div v-if="modelValue" data-test="transfer-form-dialog"><span data-test="transfer-form-editing">{{ transfer?.id ?? "new" }}</span><button data-test="submit-transfer-form" @click="$emit(\'submit\', { amount_centavos: 1 })">submit</button></div>',
+      },
       TransactionDetailDrawer: {
         props: ['modelValue', 'transaction'],
         template:
@@ -87,11 +120,23 @@ function stubs() {
         emits: ['update:visible', 'confirm'],
         template: '<div v-if="visible" data-test="remove-dialog"><slot /></div>',
       },
+      TransferLifecycleConfirmDialog: {
+        props: ['visible', 'transfer', 'action', 'loading'],
+        emits: ['update:visible', 'confirm'],
+        template:
+          '<div v-if="visible" data-test="transfer-remove-dialog"><button data-test="confirm-transfer-remove" @click="$emit(\'confirm\')">confirm</button></div>',
+      },
       TransactionRowActions: {
         props: ['transaction', 'saving'],
         emits: ['edit', 'update-status', 'remove'],
         template:
           '<div data-test="transaction-row-actions"><button data-test="row-action-edit" @click.stop="$emit(\'edit\', transaction)">edit</button><button data-test="row-action-status" @click.stop="$emit(\'update-status\', transaction, transaction.status === \'effective\' ? \'pending\' : \'effective\')">status</button><button data-test="row-action-remove" @click.stop="$emit(\'remove\', transaction)">remove</button></div>',
+      },
+      TransferRowActions: {
+        props: ['transfer', 'saving'],
+        emits: ['edit', 'update-status', 'remove'],
+        template:
+          '<div data-test="transfer-row-actions"><button data-test="transfer-action-edit" @click.stop="$emit(\'edit\', transfer)">edit</button><button data-test="transfer-action-status" @click.stop="$emit(\'update-status\', transfer, transfer.status === \'effective\' ? \'pending\' : \'effective\')">status</button><button data-test="transfer-action-remove" @click.stop="$emit(\'remove\', transfer)">remove</button></div>',
       },
       teleport: true,
     },
@@ -106,6 +151,7 @@ describe('TransactionsListView', () => {
     store.error = null
     store.notice = null
     store.lastBalanceImpact = []
+    store.totals = null
     store.hasMore = false
     store.meta = { total: 0, current_page: 1, last_page: 1, per_page: 50 }
     store.filters = { view: 'active', per_page: 50 }
@@ -121,6 +167,12 @@ describe('TransactionsListView', () => {
 
       return store.selected
     })
+    transferStore.create.mockResolvedValue({ id: 1 })
+    transferStore.update.mockResolvedValue({ id: 1 })
+    transferStore.remove.mockResolvedValue({ id: 1 })
+    transferStore.error = null
+    transferStore.notice = null
+    transferStore.lastBalanceImpact = []
     route.query = {}
   })
 
@@ -141,15 +193,66 @@ describe('TransactionsListView', () => {
     expect(wrapper.get('.el-table__row').text()).toContain('Almoço')
   })
 
-  it('places the new transaction action before removed transactions', async () => {
+  it('groups transaction and transfer actions in ordered primary dropdowns', async () => {
     const wrapper = mount(TransactionsListView, { global: stubs() })
     await flushPromises()
 
+    const trigger = wrapper.get('[data-test="transactions-header-menu"]')
+    expect(trigger.classes()).toContain('el-button--primary')
+    expect(trigger.text()).toContain('Transação')
+    expect(trigger.find('svg').exists()).toBe(true)
     expect(
       wrapper.findAll('[data-test="new-transaction"], [data-test="open-removed-transactions"]').map((button) => button.attributes('data-test')),
     ).toEqual(['new-transaction', 'open-removed-transactions'])
-    expect(wrapper.get('[data-test="open-removed-transactions"]').classes()).toContain('el-button--info')
+    expect(wrapper.get('[data-test="new-transaction"]').text()).toContain('Nova transação')
+    expect(wrapper.get('[data-test="open-removed-transactions"]').text()).toContain('Transações removidas')
     expect(wrapper.get('[data-test="open-removed-transactions"] svg').exists()).toBe(true)
+
+    const transferTrigger = wrapper.get('[data-test="transfers-header-menu"]')
+    expect(transferTrigger.classes()).toContain('el-button--primary')
+    expect(transferTrigger.text()).toContain('Transferências')
+    expect(transferTrigger.find('svg').exists()).toBe(true)
+    expect(
+      wrapper
+        .findAll(
+          '[data-test="new-transaction"], [data-test="open-removed-transactions"], [data-test="new-transfer-from-transactions"], [data-test="open-removed-transfers-from-transactions"]',
+        )
+        .map((button) => button.attributes('data-test')),
+    ).toEqual([
+      'new-transaction',
+      'open-removed-transactions',
+      'new-transfer-from-transactions',
+      'open-removed-transfers-from-transactions',
+    ])
+    expect(wrapper.get('[data-test="new-transfer-from-transactions"]').text()).toContain(
+      'Nova transferência',
+    )
+    expect(wrapper.get('[data-test="open-removed-transfers-from-transactions"]').text()).toContain(
+      'Transferências removidas',
+    )
+
+    const [transactionDropdown, transferDropdown] = wrapper.findAllComponents({ name: 'ElDropdown' })
+    transactionDropdown.vm.$emit('command', 'new')
+    await flushPromises()
+    expect(wrapper.get('[data-test="form-dialog"]').exists()).toBe(true)
+
+    transactionDropdown.vm.$emit('command', 'removed')
+    expect(routerPush).toHaveBeenCalledWith({ name: 'transactions-removed' })
+
+    const pushCount = routerPush.mock.calls.length
+    transferDropdown.vm.$emit('command', 'new')
+    await flushPromises()
+    expect(wrapper.get('[data-test="transfer-form-dialog"]').exists()).toBe(true)
+    expect(routerPush).toHaveBeenCalledTimes(pushCount)
+
+    await wrapper.get('[data-test="submit-transfer-form"]').trigger('click')
+    await flushPromises()
+    expect(transferStore.create).toHaveBeenCalledWith({ amount_centavos: 1 })
+    expect(store.fetch).toHaveBeenCalledTimes(1)
+    expect(wrapper.find('[data-test="transfer-form-dialog"]').exists()).toBe(false)
+
+    transferDropdown.vm.$emit('command', 'removed')
+    expect(routerPush).toHaveBeenCalledWith({ name: 'transfers-removed' })
   })
 
   it('renders the newest-first order returned by the API and opens a detail view', async () => {
@@ -205,6 +308,44 @@ describe('TransactionsListView', () => {
     expect(store.update).toHaveBeenCalledWith(1, { status: 'pending' })
   })
 
+  it('edits, updates the status of, and removes transfer rows from mixed history', async () => {
+    const transfer = {
+      movement_kind: 'transfer',
+      id: 9,
+      amount_centavos: 250_000,
+      movement_date: '2026-09-13',
+      transfer_date: '2026-09-13',
+      status: 'effective',
+      source_financial_account: { id: 1, name: 'Conta corrente', status: 'active' },
+      destination_financial_account: { id: 2, name: 'Poupança', status: 'active' },
+    }
+    store.items = [transfer]
+    transferStore.select.mockResolvedValue(transfer)
+    const wrapper = mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+
+    await wrapper.get('[data-test="transfer-action-edit"]').trigger('click')
+    await flushPromises()
+    expect(transferStore.select).toHaveBeenCalledWith(9)
+    expect(wrapper.get('[data-test="transfer-form-editing"]').text()).toBe('9')
+
+    await wrapper.get('[data-test="submit-transfer-form"]').trigger('click')
+    await flushPromises()
+    expect(transferStore.update).toHaveBeenCalledWith(9, { amount_centavos: 1 })
+
+    await wrapper.get('[data-test="transfer-action-status"]').trigger('click')
+    await flushPromises()
+    expect(transferStore.update).toHaveBeenLastCalledWith(9, { status: 'pending' })
+
+    await wrapper.get('[data-test="transfer-action-remove"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-test="transfer-remove-dialog"]').exists()).toBe(true)
+    await wrapper.get('[data-test="confirm-transfer-remove"]').trigger('click')
+    await flushPromises()
+    expect(transferStore.remove).toHaveBeenCalledWith(9)
+    expect(store.fetch).toHaveBeenCalledTimes(3)
+  })
+
   it('shows loading, empty, error, notice, and balance feedback states', async () => {
     const wrapper = mount(TransactionsListView, { global: stubs() })
     await flushPromises()
@@ -225,6 +366,20 @@ describe('TransactionsListView', () => {
     expect(wrapper.get('[data-test="transaction-notice"]').text()).toContain('Permanece efetiva.')
     expect(wrapper.get('[data-test="balance-impact"]').text()).toContain('Saldo atualizado')
     expect(wrapper.get('[data-test="balance-impact"]').text()).toContain('Conta principal')
+  })
+
+  it('surfaces transfer action errors, notices, and balance impacts', async () => {
+    transferStore.error = { message: 'Transferência futura deve permanecer pendente.' }
+    transferStore.notice = { code: 'effective_future_date', message: 'Permanece efetiva.' }
+    transferStore.lastBalanceImpact = [
+      { id: 2, name: 'Poupança', before: 1_000, after: 1_200, delta: 200 },
+    ]
+    const wrapper = mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+
+    expect(wrapper.get('[data-test="transfer-error"]').text()).toContain('Transferência futura')
+    expect(wrapper.get('[data-test="transfer-notice"]').text()).toContain('Permanece efetiva.')
+    expect(wrapper.get('[data-test="transfer-balance-impact"]').text()).toContain('Poupança')
   })
 
   it('loads the next batch progressively', async () => {
@@ -253,6 +408,78 @@ describe('TransactionsListView', () => {
     expect(routerReplace).toHaveBeenLastCalledWith({ query: { view: 'active', per_page: 50 } })
     expect(store.setFilters).toHaveBeenLastCalledWith(
       expect.objectContaining({ view: 'active', per_page: 50, q: undefined, type: undefined }),
+    )
+  })
+
+  it('renders a transfer labelled with both account sides, no category, and no income sign', async () => {
+    store.items = [
+      {
+        movement_kind: 'transfer',
+        id: 9,
+        amount_centavos: 250_000,
+        movement_date: '2026-09-13',
+        status: 'effective',
+        description: 'Reserva do mês',
+        notes: null,
+        source_financial_account: { id: 1, name: 'Conta corrente', status: 'active' },
+        destination_financial_account: { id: 2, name: 'Poupança', status: 'archived' },
+        category: null,
+      },
+      row(8, 'Mercado'),
+    ]
+    store.meta = { total: 2, current_page: 1, last_page: 1, per_page: 50 }
+    const wrapper = mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+
+    const transferRow = wrapper.findAll('.el-table__row')[0].text()
+    expect(transferRow).toContain('Transferência')
+    expect(transferRow).toContain('Conta corrente → Poupança (arquivada)')
+    expect(transferRow).not.toContain('+')
+    expect(transferRow).not.toContain('−')
+    expect(wrapper.get('[data-test="transfer-history-no-category"]').text()).toBe('—')
+    expect(wrapper.get('[data-test="transfer-history-amount"]').text()).toContain('2.500,00')
+    expect(wrapper.findAll('.el-table__row')[1].text()).toContain('Mercado')
+  })
+
+  it('reports income and expense totals that a transfer never changes', async () => {
+    const totals = { income_centavos: 500_000, expense_centavos: 200_000, financial_result_centavos: 300_000 }
+    store.totals = totals
+    store.items = [row(1, 'Salário', { type: 'income' })]
+    store.meta = { total: 1, current_page: 1, last_page: 1, per_page: 50, totals }
+    const before = mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+
+    expect(before.get('[data-test="history-total-income"]').text()).toContain('5.000,00')
+    expect(before.get('[data-test="history-total-expense"]').text()).toContain('2.000,00')
+    expect(before.get('[data-test="history-total-result"]').text()).toContain('3.000,00')
+    expect(before.get('[data-test="history-total-excludes"]').text()).toContain('Transferências')
+
+    store.items = [
+      {
+        movement_kind: 'transfer',
+        id: 12,
+        amount_centavos: 90_000,
+        movement_date: '2026-09-13',
+        status: 'effective',
+        description: null,
+        notes: null,
+        source_financial_account: { id: 1, name: 'Conta corrente', status: 'active' },
+        destination_financial_account: { id: 2, name: 'Poupança', status: 'active' },
+        category: null,
+      },
+      row(1, 'Salário', { type: 'income' }),
+    ]
+    const after = mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+
+    expect(after.get('[data-test="history-total-income"]').text()).toBe(
+      before.get('[data-test="history-total-income"]').text(),
+    )
+    expect(after.get('[data-test="history-total-expense"]').text()).toBe(
+      before.get('[data-test="history-total-expense"]').text(),
+    )
+    expect(after.get('[data-test="history-total-result"]').text()).toBe(
+      before.get('[data-test="history-total-result"]').text(),
     )
   })
 })

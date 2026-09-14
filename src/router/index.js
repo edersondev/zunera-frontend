@@ -81,6 +81,18 @@ const router = createRouter({
           component: () => import('@/views/transactions/RemovedTransactionsView.vue'),
           meta: { requiresAuth: true, titleKey: 'app.removedTransactions' },
         },
+        {
+          path: 'transfers',
+          name: 'transfers',
+          component: () => import('@/views/transfers/TransfersListView.vue'),
+          meta: { requiresAuth: true, titleKey: 'app.transfers' },
+        },
+        {
+          path: 'transfers/removed',
+          name: 'transfers-removed',
+          component: () => import('@/views/transfers/RemovedTransfersView.vue'),
+          meta: { requiresAuth: true, titleKey: 'app.removedTransfers' },
+        },
       ],
     },
   ],

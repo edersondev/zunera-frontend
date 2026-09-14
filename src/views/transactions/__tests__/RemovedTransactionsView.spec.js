@@ -71,6 +71,23 @@ describe('RemovedTransactionsView', () => {
     expect(wrapper.find('[data-test="removed-empty"]').exists()).toBe(false)
   })
 
+  it('renders existing transfer rows safely while removed transactions load', async () => {
+    store.items = [
+      {
+        id: 9,
+        movement_kind: 'transfer',
+        description: 'Reserva',
+        amount_centavos: 500,
+        movement_date: '2026-09-01',
+      },
+    ]
+
+    const wrapper = mount(RemovedTransactionsView, { global: stubs() })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('1 de set. de 2026')
+  })
+
   it('restores a transaction and confirms it', async () => {
     store.items = [
       {

@@ -1,29 +1,43 @@
 <script setup>
 import { computed, onMounted, shallowRef } from 'vue'
-import { Delete, Plus } from '@element-plus/icons-vue'
+import { ArrowDown, Delete, Money, Plus, Switch } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import TransactionFormDialog from '@/components/transactions/TransactionFormDialog.vue'
+import TransferFormDialog from '@/components/transfers/TransferFormDialog.vue'
+import TransferLifecycleConfirmDialog from '@/components/transfers/TransferLifecycleConfirmDialog.vue'
 import TransactionFilterBar from '@/components/transactions/TransactionFilterBar.vue'
 import TransactionDetailDrawer from '@/components/transactions/TransactionDetailDrawer.vue'
 import TransactionRemoveDialog from '@/components/transactions/TransactionRemoveDialog.vue'
 import TransactionRowActions from '@/components/transactions/TransactionRowActions.vue'
+import TransferRowActions from '@/components/transfers/TransferRowActions.vue'
 import { useTransactionStore } from '@/stores/transactions/transactionStore'
+import { useTransferStore } from '@/stores/transfers/transferStore'
 import { useFinancialAccountStore } from '@/stores/financial-accounts/financialAccountStore'
 import { useCategoryStore } from '@/stores/categories/categoryStore'
 import {
   formatTransactionAmount,
   formatTransactionDate,
 } from '@/utils/transactions/transactionFormatters'
+import {
+  accountLabel,
+  formatTransferAmount,
+  formatTransferRoute,
+} from '@/utils/transfers/transferFormatters'
 
 const store = useTransactionStore()
+const transferStore = useTransferStore()
 const accounts = useFinancialAccountStore()
 const categories = useCategoryStore()
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
 const dialog = shallowRef(false)
+const transferDialog = shallowRef(false)
+const editingTransfer = shallowRef(null)
+const transferRemoveDialog = shallowRef(false)
+const removingTransfer = shallowRef(null)
 const detailOpen = shallowRef(false)
 const editing = shallowRef(null)
 const removeDialog = shallowRef(false)
@@ -82,8 +96,60 @@ async function save(payload) {
   }
 }
 
+async function saveTransfer(payload) {
+  try {
+    if (editingTransfer.value) await transferStore.update(editingTransfer.value.id, payload)
+    else await transferStore.create(payload)
+    await store.fetch()
+    transferDialog.value = false
+    editingTransfer.value = null
+  } catch {
+    /* Feedback comes from the transfer store error state. */
+  }
+}
+
+async function editTransfer(transfer) {
+  try {
+    editingTransfer.value = await transferStore.select(transfer.id)
+    transferDialog.value = true
+  } catch {
+    /* Feedback comes from the transfer store error state. */
+  }
+}
+
+function updateTransferDialog(visible) {
+  transferDialog.value = visible
+  if (!visible) editingTransfer.value = null
+}
+
+async function updateTransferStatus(transfer, status) {
+  try {
+    await transferStore.update(transfer.id, { status })
+    await store.fetch()
+  } catch {
+    /* Feedback comes from the transfer store error state. */
+  }
+}
+
+function requestTransferRemove(transfer) {
+  removingTransfer.value = transfer
+  transferRemoveDialog.value = true
+}
+
+async function removeTransfer() {
+  try {
+    await transferStore.remove(removingTransfer.value.id)
+    await store.fetch()
+  } catch {
+    /* Feedback comes from the transfer store error state. */
+  } finally {
+    transferRemoveDialog.value = false
+    removingTransfer.value = null
+  }
+}
+
 async function openDetail(row) {
-  await store.select(row.id)
+  await store.select(row.movement_kind === 'transfer' ? row : row.id)
   detailOpen.value = true
 }
 
@@ -129,6 +195,27 @@ async function applyFilters(filters) {
   return store.setFilters(filters)
 }
 
+function handleHeaderAction(command) {
+  if (command === 'new') {
+    dialog.value = true
+
+    return
+  }
+
+  if (command === 'removed') router.push({ name: 'transactions-removed' })
+}
+
+function handleTransferHeaderAction(command) {
+  if (command === 'new') {
+    editingTransfer.value = null
+    transferDialog.value = true
+
+    return
+  }
+
+  if (command === 'removed') router.push({ name: 'transfers-removed' })
+}
+
 const clearedFilters = {
   view: 'active',
   per_page: 50,
@@ -146,17 +233,42 @@ const clearedFilters = {
   <div>
     <PageHeader :title="t('transactions.title')" :description="t('transactions.description')">
       <template #actions>
-        <ElButton type="primary" :icon="Plus" data-test="new-transaction" @click="dialog = true"
-          >{{ t('transactions.new') }}</ElButton
-        >
-        <ElButton
-          type="info"
-          :icon="Delete"
-          data-test="open-removed-transactions"
-          @click="router.push({ name: 'transactions-removed' })"
-        >
-          {{ t('transactions.removed') }}
-        </ElButton>
+        <ElDropdown trigger="click" @command="handleHeaderAction">
+          <ElButton type="primary" :icon="Money" data-test="transactions-header-menu">
+            {{ t('transactions.transaction') }}
+            <ElIcon class="transactions-menu-chevron"><ArrowDown /></ElIcon>
+          </ElButton>
+          <template #dropdown>
+            <ElDropdownMenu>
+              <ElDropdownItem command="new" data-test="new-transaction">
+                <ElIcon><Plus /></ElIcon>
+                <span>{{ t('transactions.new') }}</span>
+              </ElDropdownItem>
+              <ElDropdownItem command="removed" data-test="open-removed-transactions">
+                <ElIcon><Delete /></ElIcon>
+                <span>{{ t('transactions.removed') }}</span>
+              </ElDropdownItem>
+            </ElDropdownMenu>
+          </template>
+        </ElDropdown>
+        <ElDropdown class="ml-4" trigger="click" @command="handleTransferHeaderAction">
+          <ElButton type="primary" :icon="Switch" data-test="transfers-header-menu">
+            {{ t('transfers.title') }}
+            <ElIcon class="transactions-menu-chevron"><ArrowDown /></ElIcon>
+          </ElButton>
+          <template #dropdown>
+            <ElDropdownMenu>
+              <ElDropdownItem command="new" data-test="new-transfer-from-transactions">
+                <ElIcon><Plus /></ElIcon>
+                <span>{{ t('transfers.new') }}</span>
+              </ElDropdownItem>
+              <ElDropdownItem command="removed" data-test="open-removed-transfers-from-transactions">
+                <ElIcon><Delete /></ElIcon>
+                <span>{{ t('transfers.removed') }}</span>
+              </ElDropdownItem>
+            </ElDropdownMenu>
+          </template>
+        </ElDropdown>
       </template>
     </PageHeader>
     <ElAlert
@@ -168,12 +280,28 @@ const clearedFilters = {
       data-test="transaction-error"
     />
     <ElAlert
+      v-if="transferStore.error"
+      type="error"
+      show-icon
+      :title="transferStore.error.message"
+      class="feedback"
+      data-test="transfer-error"
+    />
+    <ElAlert
       v-if="store.notice"
       type="warning"
       show-icon
       :title="store.notice.message"
       class="feedback"
       data-test="transaction-notice"
+    />
+    <ElAlert
+      v-if="transferStore.notice"
+      type="warning"
+      show-icon
+      :title="transferStore.notice.message"
+      class="feedback"
+      data-test="transfer-notice"
     />
     <ElAlert
       v-for="impact in store.lastBalanceImpact ?? []"
@@ -183,6 +311,15 @@ const clearedFilters = {
       :title="t('transactions.balanceUpdated', { impact: impactMessage(impact) })"
       class="feedback"
       data-test="balance-impact"
+    />
+    <ElAlert
+      v-for="impact in transferStore.lastBalanceImpact ?? []"
+      :key="`transfer-${impact.id}`"
+      type="success"
+      show-icon
+      :title="t('transfers.balanceUpdated', { impact: impactMessage(impact) })"
+      class="feedback"
+      data-test="transfer-balance-impact"
     />
     <TransactionFilterBar
       :filters="store.filters"
@@ -195,6 +332,29 @@ const clearedFilters = {
     <p v-if="activeCriteria.length" class="criteria" data-test="active-criteria">
       {{ t('transactions.activeCriteria') }}: {{ activeCriteria.join(' · ') }}
     </p>
+    <ElDescriptions
+      v-if="store.totals"
+      :title="t('transfers.totals.label')"
+      :column="3"
+      border
+      class="totals"
+      data-test="history-totals"
+    >
+      <ElDescriptionsItem :label="t('transfers.totals.income')">
+        <span data-test="history-total-income">{{ formatCentavos(store.totals.income_centavos) }}</span>
+      </ElDescriptionsItem>
+      <ElDescriptionsItem :label="t('transfers.totals.expense')">
+        <span data-test="history-total-expense">{{ formatCentavos(store.totals.expense_centavos) }}</span>
+      </ElDescriptionsItem>
+      <ElDescriptionsItem :label="t('transfers.totals.result')">
+        <span data-test="history-total-result">{{
+          formatCentavos(store.totals.financial_result_centavos)
+        }}</span>
+      </ElDescriptionsItem>
+      <ElDescriptionsItem :span="3" class="totals-note">
+        <span data-test="history-total-excludes">{{ t('transfers.totals.excludes') }}</span>
+      </ElDescriptionsItem>
+    </ElDescriptions>
     <section aria-labelledby="transactions-title">
       <h2 id="transactions-title" data-test="transaction-count">
         {{ t('transactions.count', { count: store.meta.total ?? 0 }) }}
@@ -206,25 +366,52 @@ const clearedFilters = {
         data-test="transaction-table"
         @row-click="openDetail"
       >
-        <ElTableColumn :label="t('transactions.columns.description')" prop="description" min-width="180" />
+        <ElTableColumn :label="t('transactions.columns.description')" min-width="180">
+          <template #default="{ row }">
+            <span v-if="row.movement_kind === 'transfer'" data-test="transfer-history-label">
+              {{ t('transfers.transfer') }}
+            </span>
+            <span v-else>{{ row.description }}</span>
+          </template>
+        </ElTableColumn>
         <ElTableColumn :label="t('transactions.columns.date')" min-width="130">
-          <template #default="{ row }">{{ formatTransactionDate(row.transaction_date) }}</template>
+          <template #default="{ row }">
+            {{ formatTransactionDate(row.movement_date ?? row.transaction_date) }}
+          </template>
         </ElTableColumn>
         <ElTableColumn :label="t('transactions.columns.account')" min-width="150">
           <template #default="{ row }">
-            {{ row.financial_account.name
-            }}<span v-if="row.financial_account.status === 'archived'"> ({{ t('transactions.archived') }})</span>
+            <span v-if="row.movement_kind === 'transfer'" data-test="transfer-history-route">
+              {{ accountLabel(row.source_financial_account, t) }} →
+              {{ accountLabel(row.destination_financial_account, t) }}
+            </span>
+            <template v-else>
+              {{ row.financial_account.name
+              }}<span v-if="row.financial_account.status === 'archived'"> ({{ t('transactions.archived') }})</span>
+            </template>
           </template>
         </ElTableColumn>
         <ElTableColumn :label="t('transactions.columns.category')" min-width="150">
           <template #default="{ row }">
-            {{ row.category.name
-            }}<span v-if="row.category.status === 'archived'"> ({{ t('transactions.archived') }})</span>
+            <span v-if="row.movement_kind === 'transfer'" data-test="transfer-history-no-category">
+              {{ t('transfers.noNotes') }}
+            </span>
+            <template v-else>
+              {{ row.category.name
+              }}<span v-if="row.category.status === 'archived'"> ({{ t('transactions.archived') }})</span>
+            </template>
           </template>
         </ElTableColumn>
         <ElTableColumn :label="t('transactions.columns.amount')" min-width="180">
           <template #default="{ row }">
-            <span :class="row.type === 'income' ? 'income' : 'expense'">
+            <span
+              v-if="row.movement_kind === 'transfer'"
+              class="transfer"
+              data-test="transfer-history-amount"
+            >
+              {{ formatTransferAmount(row) }} · {{ formatTransferRoute(row, t) }}
+            </span>
+            <span v-else :class="row.type === 'income' ? 'income' : 'expense'">
               {{ formatTransactionAmount(row) }} ·
               {{ row.type === 'income' ? t('transactions.income') : t('transactions.expense') }}
             </span>
@@ -237,7 +424,16 @@ const clearedFilters = {
         </ElTableColumn>
         <ElTableColumn width="64" align="center">
           <template #default="{ row }">
+            <TransferRowActions
+              v-if="row.movement_kind === 'transfer'"
+              :transfer="row"
+              :saving="transferStore.saving"
+              @edit="editTransfer"
+              @update-status="updateTransferStatus"
+              @remove="requestTransferRemove"
+            />
             <TransactionRowActions
+              v-else
               :transaction="row"
               :saving="store.saving"
               @edit="edit"
@@ -272,6 +468,22 @@ const clearedFilters = {
       :errors="store.validationErrors"
       @submit="save"
     />
+    <TransferFormDialog
+      :model-value="transferDialog"
+      :transfer="editingTransfer"
+      :accounts="accounts.accounts"
+      :saving="transferStore.saving"
+      :errors="transferStore.validationErrors"
+      @update:model-value="updateTransferDialog"
+      @submit="saveTransfer"
+    />
+    <TransferLifecycleConfirmDialog
+      v-model:visible="transferRemoveDialog"
+      :transfer="removingTransfer"
+      action="remove"
+      :loading="transferStore.saving"
+      @confirm="removeTransfer"
+    />
     <TransactionDetailDrawer
       v-model="detailOpen"
       :transaction="store.selected"
@@ -291,6 +503,9 @@ const clearedFilters = {
 .feedback {
   margin-bottom: 16px;
 }
+.transactions-menu-chevron {
+  margin-left: 4px;
+}
 .criteria {
   color: var(--color-text-muted, #666);
   font-size: 14px;
@@ -307,6 +522,16 @@ h2 {
 }
 .expense {
   color: var(--color-financial-negative);
+  font-variant-numeric: tabular-nums;
+}
+.totals {
+  margin-bottom: 16px;
+}
+.totals-note {
+  color: var(--color-text-muted, #666);
+  font-size: 13px;
+}
+.transfer {
   font-variant-numeric: tabular-nums;
 }
 .more {
