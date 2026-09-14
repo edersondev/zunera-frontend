@@ -1,6 +1,6 @@
 <script setup>
 import { computed, shallowRef } from 'vue'
-import { CollectionTag, House, Money, Wallet } from '@element-plus/icons-vue'
+import { Calendar, CollectionTag, House, Money, Wallet } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppNavigation from '@/components/navigation/AppNavigation.vue'
@@ -18,6 +18,7 @@ const navigationItems = computed(() => [
   { routeName: 'financial-accounts', label: t('app.financialAccounts'), icon: Wallet },
   { routeName: 'categories', label: t('app.categories'), icon: CollectionTag },
   { routeName: 'transactions', label: t('app.transactions'), icon: Money },
+  { routeName: 'recurring-transactions', label: t('recurringTransactions.nav'), icon: Calendar },
 ])
 
 async function navigate(routeName) {
