@@ -204,9 +204,10 @@ function fulfillList(route, state) {
 function fulfillHistory(route, state) {
   const query = new URL(route.request().url()).searchParams
   const term = (query.get('q') ?? '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
-  const kind = query.get('movement_kind') ?? 'all'
+  const view = query.get('view') ?? 'active'
+  const kind = query.get('movement_kind') ?? query.get('type') ?? 'all'
   const matches = state.transactions
-    .filter((item) => item.removed_at === null)
+    .filter((item) => (view === 'removed' ? item.removed_at !== null : item.removed_at === null))
     .filter((item) => kind === 'all' || kind === item.type)
     .filter((item) => !query.get('status') || item.status === query.get('status'))
     .filter((item) => !query.get('financial_account_id') || String(item.financial_account.id) === query.get('financial_account_id'))
