@@ -11,6 +11,7 @@ function rule(overrides = {}) {
   return {
     id: 1,
     description: 'Aluguel',
+    type: 'expense',
     frequency: 'monthly',
     state: 'active',
     paused_reason: null,
@@ -41,11 +42,12 @@ describe('RecurringTransactionList', () => {
     expect(wrapper.text()).toContain('Nenhuma recorrência encontrada.')
   })
 
-  it('communicates state, next date, and amount without relying on color', async () => {
+  it('communicates type, state, next date, and amount without relying on color', async () => {
     const wrapper = await factory([rule()])
 
     const text = wrapper.text()
     expect(text).toContain('Aluguel')
+    expect(wrapper.find('[data-test="recurrence-type"]').text()).toContain('Despesa')
     expect(text).toContain('Ativa')
     expect(text).toMatch(/05\/10\/2026/)
     expect(text).toContain('1.200,00')
@@ -53,7 +55,11 @@ describe('RecurringTransactionList', () => {
 
   it('explains an archived association and exposes lifecycle actions', async () => {
     const paused = await factory([
-      rule({ state: 'paused', paused_reason: 'association_archived', next_expected_occurrence: null }),
+      rule({
+        state: 'paused',
+        paused_reason: 'association_archived',
+        next_expected_occurrence: null,
+      }),
       rule({ id: 2, state: 'ended' }),
     ])
 

@@ -18,12 +18,20 @@ const { t } = useI18n()
 
 <template>
   <div data-test="recurrence-list">
-    <ElTable :data="rules" :empty-text="t('recurringTransactions.empty')" row-key="id" @row-click="emit('open', $event)">
+    <ElTable
+      :data="rules"
+      :empty-text="t('recurringTransactions.empty')"
+      row-key="id"
+      @row-click="emit('open', $event)"
+    >
       <ElTableColumn :label="t('recurringTransactions.columns.description')" min-width="220">
         <template #default="{ row }">
           <div class="cell-stack">
             <strong>{{ row.description }}</strong>
             <span class="muted">{{ row.financial_account?.name }} · {{ row.category?.name }}</span>
+            <ElTag effect="plain" size="small" data-test="recurrence-type">
+              {{ t(`transactions.${row.type}`) }}
+            </ElTag>
           </div>
         </template>
       </ElTableColumn>
@@ -42,10 +50,18 @@ const { t } = useI18n()
       <ElTableColumn :label="t('recurringTransactions.columns.state')" width="230">
         <template #default="{ row }">
           <span class="cell-stack">
-            <ElTag :type="row.state === 'active' ? 'success' : 'info'" effect="plain" data-test="recurrence-state">
+            <ElTag
+              :type="row.state === 'active' ? 'success' : 'info'"
+              effect="plain"
+              data-test="recurrence-state"
+            >
               {{ stateLabel(row, t) }}
             </ElTag>
-            <span v-if="row.paused_reason === 'association_archived'" class="hint" data-test="recurrence-repair-hint">
+            <span
+              v-if="row.paused_reason === 'association_archived'"
+              class="hint"
+              data-test="recurrence-repair-hint"
+            >
               {{ t('recurringTransactions.repairAssociation') }}
             </span>
           </span>
@@ -94,7 +110,12 @@ const { t } = useI18n()
       </ElTableColumn>
     </ElTable>
     <div v-if="loading" class="hint" data-test="recurrence-loading">{{ t('common.loading') }}</div>
-    <ElButton v-if="hasMore" class="load-more" data-test="recurrence-load-more" @click="emit('load-more')">
+    <ElButton
+      v-if="hasMore"
+      class="load-more"
+      data-test="recurrence-load-more"
+      @click="emit('load-more')"
+    >
       {{ t('recurringTransactions.loadMore') }}
     </ElButton>
   </div>
