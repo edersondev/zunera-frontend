@@ -71,7 +71,10 @@ export const useRecurringTransactionStore = defineStore('recurring-transactions'
   }
 
   async function loadMore() {
-    return fetch({ append: true, page: (meta.value.current_page ?? 1) + 1 })
+    const page = (meta.value.current_page ?? 1) + 1
+    filters.value = { ...filters.value, page }
+
+    return fetch({ append: true })
   }
 
   async function select(id) {

@@ -91,6 +91,9 @@ function filtered(state, query) {
         !query.get('financial_account_id') ||
         String(item.financial_account.id) === query.get('financial_account_id'),
     )
+    .filter(
+      (item) => !query.get('category_id') || String(item.category.id) === query.get('category_id'),
+    )
     .filter((item) => !query.get('frequency') || item.frequency === query.get('frequency'))
     .filter((item) => !query.get('state') || item.state === query.get('state'))
 }
@@ -137,10 +140,25 @@ async function mockApi(page, { accounts, categories, rules = [], transactions = 
   await page.route(/\/api\/v1\/transactions(?:\?[^/]*)?$/, (route) =>
     route.fulfill({ json: { data: state.transactions, meta: metaFor(state.transactions) }, headers }),
   )
+  await page.route(/\/api\/v1\/financial-history(?:\?[^/]*)?$/, (route) =>
+    route.fulfill({ json: { data: state.transactions, meta: metaFor(state.transactions) }, headers }),
+  )
   await page.route(/\/api\/v1\/transactions\/(\d+)$/, (route) => {
     const id = Number(route.request().url().match(/transactions\/(\d+)/)[1])
     const item = state.transactions.find((entry) => entry.id === id)
     if (!item) return route.fulfill({ status: 404, json: { message: 'Não encontrada.' }, headers })
+
+    if (route.request().method() === 'PATCH') {
+      const body = route.request().postDataJSON()
+      Object.assign(item, {
+        description: body.description ?? item.description,
+        amount_centavos: body.amount_centavos ?? item.amount_centavos,
+        notes: body.notes ?? item.notes,
+        status: body.status ?? item.status,
+      })
+
+      return route.fulfill({ json: { data: item, meta: {} }, headers })
+    }
 
     return route.fulfill({ json: { data: item }, headers })
   })
@@ -251,7 +269,7 @@ test('owner creates a monthly recurrence and sees its next expected date', async
 
   await chooseOption(page, page.locator('[data-test="recurrence-account"]'), 'Conta corrente')
   await chooseOption(page, page.locator('[data-test="recurrence-category"]'), 'Assinaturas')
-  await page.locator('[data-test="recurrence-amount"] input').fill('250,00')
+  await page.locator('[data-test="recurrence-amount"]').fill('250,00')
   await page.locator('[data-test="recurrence-description"]').fill('Assinatura de música')
   await page.locator('[data-test="recurrence-save"]').click()
 
@@ -262,6 +280,19 @@ test('owner creates a monthly recurrence and sees its next expected date', async
   await expect(row).toContainText('Ativa')
   await expect(row).toContainText('05/10/2026')
   await expect(row).toContainText('250,00')
+})
+
+test('create form keeps invalid recurrence local and explains required active associations', async ({ page }) => {
+  await mockApi(page, { accounts, categories, rules: [] })
+  await signIn(page)
+
+  await page.locator('[data-test="recurrence-new"]').click()
+  await page.locator('[data-test="recurrence-save"]').click()
+
+  await expect(page.locator('[data-test="recurrence-form"]')).toBeVisible()
+  await expect(page.getByText('Selecione uma conta ativa.')).toBeVisible()
+  await expect(page.getByText('Selecione uma categoria compatível.')).toBeVisible()
+  await expect(page.locator('.el-table__row')).toHaveCount(0)
 })
 
 test('owner filters recurrences and clears the criteria back to the full list', async ({ page }) => {
@@ -295,6 +326,31 @@ test('owner filters recurrences and clears the criteria back to the full list', 
   await expect(page.locator('.el-table__row')).toHaveCount(2)
 })
 
+test('combined filters expose criteria, no-match feedback, and next-date discovery', async ({ page }) => {
+  await mockApi(page, {
+    accounts,
+    categories,
+    rules: [
+      rule({ id: 33, account: accounts[0], category: categories[0], description: 'Streaming', next: '2026-09-30' }),
+      rule({ id: 34, account: accounts[1], category: categories[1], description: 'Bônus', frequency: 'yearly' }),
+    ],
+  })
+  await signIn(page)
+
+  await page.locator('[data-test="recurrence-filter-collapse"] .el-collapse-item__header').click()
+  await chooseOption(page, page.locator('[data-test="recurrence-filter-account"]'), 'Conta corrente')
+  await chooseOption(page, page.locator('[data-test="recurrence-filter-category"]'), 'Assinaturas')
+  await page.locator('[data-test="recurrence-filter-apply"]').click()
+  await expect(page.locator('.el-table__row')).toHaveCount(1)
+  await expect(page.locator('[data-test="recurrence-next"]')).toContainText('30/09/2026')
+  await expect(page.locator('[data-test="recurrence-active-criteria"]')).toContainText('Conta: 1')
+  await expect(page.locator('[data-test="recurrence-active-criteria"]')).toContainText('Categoria: 10')
+
+  await chooseOption(page, page.locator('[data-test="recurrence-filter-state"]'), 'Encerrada')
+  await page.locator('[data-test="recurrence-filter-apply"]').click()
+  await expect(page.getByText('Nenhuma recorrência encontrada.')).toBeVisible()
+})
+
 test('owner pauses, resumes, and ends a recurrence from the list', async ({ page }) => {
   await mockApi(page, {
     accounts,
@@ -325,6 +381,30 @@ test('owner pauses, resumes, and ends a recurrence from the list', async ({ page
   await expect(page.getByText('Recorrência encerrada.')).toBeVisible()
   await expect(page.locator('[data-test="recurrence-state"]')).toContainText('Encerrada')
   await expect(page.locator('[data-test="recurrence-end"]')).toHaveCount(0)
+})
+
+test('owner edits future rule details without changing generated occurrence snapshots', async ({ page }) => {
+  await mockApi(page, {
+    accounts,
+    categories,
+    rules: [
+      rule({
+        id: 45,
+        account: accounts[0],
+        category: categories[0],
+        description: 'Academia',
+        occurrences: 1,
+      }),
+    ],
+  })
+  await signIn(page)
+
+  await page.locator('[data-test="recurrence-edit"]').click()
+  await page.locator('[data-test="recurrence-description"]').fill('Academia renovada')
+  await page.locator('[data-test="recurrence-save"]').click()
+
+  await expect(page.getByText('Recorrência atualizada.')).toBeVisible()
+  await expect(page.locator('.el-table__row')).toContainText('Academia renovada')
 })
 
 test('archived association pauses the rule and explains the repair before resuming', async ({ page }) => {
@@ -391,7 +471,86 @@ test('generated occurrence shows its rule in history and links back to it', asyn
   await expect(page).toHaveURL(/recurring-transactions/)
 })
 
-test('recurrence workspace stays usable at 320px, 200% zoom, dark theme, and keyboard-only', async ({
+test('catch-up occurrences stay pending, identify their source, and open as ordinary transactions', async ({ page }) => {
+  const pendingOccurrence = {
+    id: 72,
+    scheduled_date: '2026-09-05',
+    status: 'pending',
+    removed_at: null,
+  }
+  await mockApi(page, {
+    accounts,
+    categories,
+    rules: [
+      {
+        ...rule({ id: 62, account: accounts[0], category: categories[0], description: 'Assinatura', occurrences: 2 }),
+        occurrenceItems: [pendingOccurrence, { ...pendingOccurrence, id: 73, scheduled_date: '2026-10-05' }],
+      },
+    ],
+    transactions: [
+      {
+        movement_kind: 'expense',
+        ...pendingOccurrence,
+        amount_centavos: 25_000,
+        currency_code: 'BRL',
+        transaction_date: '2026-09-05',
+        description: 'Assinatura',
+        notes: null,
+        financial_account: { id: 1, name: 'Conta corrente', status: 'active' },
+        category: { id: 10, name: 'Assinaturas', classification: 'expense', status: 'active' },
+        recurrence_source: { id: 62, scheduled_date: '2026-09-05' },
+      },
+    ],
+  })
+  await signIn(page)
+
+  await page.locator('[data-test="recurrence-open"]').click()
+  await expect(page.locator('[data-test="recurrence-detail-count"]')).toContainText('2')
+  await expect(page.locator('[data-test="recurrence-occurrence-status"]')).toHaveCount(2)
+  await expect(page.locator('[data-test="recurrence-occurrence-status"]').first()).toContainText('Pendente')
+  await page.locator('[data-test="recurrence-occurrence-open"]').first().click()
+  await expect(page).toHaveURL(/transactions/)
+  await expect(page.locator('[data-test="transaction-recurrence-label"]')).toContainText('#62')
+  await expect(page.locator('.el-table__row')).toContainText('Pendente')
+})
+
+test('editing one generated occurrence does not rewrite its recurrence rule', async ({ page }) => {
+  const source = { id: 63, scheduled_date: '2026-10-05' }
+  await mockApi(page, {
+    accounts,
+    categories,
+    rules: [rule({ id: 63, account: accounts[0], category: categories[0], description: 'Internet', amount: 25_000 })],
+    transactions: [
+      {
+        movement_kind: 'expense',
+        id: 74,
+        amount_centavos: 25_000,
+        currency_code: 'BRL',
+        transaction_date: '2026-10-05',
+        status: 'pending',
+        description: 'Internet',
+        notes: null,
+        financial_account: { id: 1, name: 'Conta corrente', status: 'active' },
+        category: { id: 10, name: 'Assinaturas', classification: 'expense', status: 'active' },
+        recurrence_source: source,
+      },
+    ],
+  })
+  await signIn(page)
+
+  await page.goto('/app/transactions')
+  await page.locator('.el-table__row').first().click()
+  await page.locator('[data-test="edit-transaction"]').click()
+  await page.locator('[data-test="transaction-amount"]').fill('275,00')
+  await page.locator('[data-test="save-transaction"]').click()
+  await expect(page.locator('.el-table__row')).toContainText('275,00')
+
+  await page.goto('/app/recurring-transactions')
+  await expect(page.locator('.el-table__row')).toContainText('250,00')
+  await expect(page.locator('[data-test="recurrence-next"]')).toContainText('05/10/2026')
+})
+
+test('recurrence workspace stays usable at 320px, 200% zoom, themes, and keyboard-only', async ({
   page,
 }) => {
   await mockApi(page, {
@@ -405,6 +564,11 @@ test('recurrence workspace stays usable at 320px, 200% zoom, dark theme, and key
   await page.setViewportSize({ width: 320, height: 640 })
   await expect(page.locator('[data-test="recurrence-list"]')).toBeVisible()
   await expect(page.locator('[data-test="recurrence-state"]').first()).toBeVisible()
+
+  await page.emulateMedia({ colorScheme: 'light' })
+  await expect(page.locator('[data-test="recurrence-state"]').first()).toContainText('Ativa')
+  await page.emulateMedia({ colorScheme: 'no-preference' })
+  await expect(page.locator('[data-test="recurrence-list"]')).toBeVisible()
 
   await page.setViewportSize({ width: 1280, height: 800 })
   await page.evaluate(() => {
@@ -421,4 +585,5 @@ test('recurrence workspace stays usable at 320px, 200% zoom, dark theme, and key
   await page.locator('[data-test="recurrence-description"]').focus()
   await page.keyboard.press('Escape')
   await expect(page.locator('[data-test="recurrence-form"]')).toBeHidden()
+  await expect(page.locator('[data-test="recurrence-new"]')).toBeFocused()
 })

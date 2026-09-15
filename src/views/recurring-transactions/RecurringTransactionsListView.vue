@@ -68,7 +68,14 @@ async function applyFilters(value) {
 }
 
 async function clearFilters() {
-  await applyFilters({ per_page: 50 })
+  await applyFilters({
+    per_page: 50,
+    type: undefined,
+    financial_account_id: undefined,
+    category_id: undefined,
+    frequency: undefined,
+    state: undefined,
+  })
 }
 
 async function reload() {

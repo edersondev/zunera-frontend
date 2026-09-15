@@ -99,3 +99,19 @@ const { t } = useI18n()
     </ElButton>
   </div>
 </template>
+
+<style scoped>
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+:deep(.el-table__body-wrapper) {
+  overflow-x: auto;
+}
+
+.load-more {
+  margin-top: 16px;
+}
+</style>

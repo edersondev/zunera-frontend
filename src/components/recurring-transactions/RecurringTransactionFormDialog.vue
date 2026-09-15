@@ -177,3 +177,31 @@ async function submit() {
     </ElForm>
   </ElDialog>
 </template>
+
+<style scoped>
+.form-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 639px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dialog-actions {
+    justify-content: stretch;
+  }
+
+  .dialog-actions :deep(.el-button) {
+    flex: 1;
+  }
+}
+</style>

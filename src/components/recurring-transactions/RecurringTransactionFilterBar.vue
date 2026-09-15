@@ -32,6 +32,7 @@ function clear() {
   Object.keys(form).forEach((key) => {
     if (!['page', 'per_page'].includes(key)) delete form[key]
   })
+  form.page = 1
   emit('clear')
 }
 </script>
@@ -78,3 +79,48 @@ function clear() {
     </ElCollapseItem>
   </ElCollapse>
 </template>
+
+<style scoped>
+.filter-collapse {
+  margin-bottom: 24px;
+}
+
+.filter-collapse-title {
+  align-items: center;
+  display: inline-flex;
+  font-weight: 600;
+  gap: 8px;
+}
+
+.filters {
+  display: grid;
+  gap: 0 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.filter-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 1024px) {
+  .filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 639px) {
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-actions {
+    justify-content: stretch;
+  }
+
+  .filter-actions :deep(.el-button) {
+    flex: 1;
+  }
+}
+</style>

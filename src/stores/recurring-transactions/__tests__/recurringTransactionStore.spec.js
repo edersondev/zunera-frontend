@@ -89,6 +89,23 @@ describe('recurringTransactionStore', () => {
     expect(store.occurrenceMeta.total).toBe(1)
   })
 
+  it('loads the next page and appends it to current items', async () => {
+    const store = useRecurringTransactionStore()
+    await store.fetch()
+    service.listRecurringTransactions.mockResolvedValueOnce({
+      items: [{ id: 5, description: 'Internet' }],
+      meta: { total: 2, current_page: 2, last_page: 2 },
+      links: {},
+    })
+
+    await store.loadMore()
+
+    expect(service.listRecurringTransactions).toHaveBeenLastCalledWith(
+      expect.objectContaining({ page: 2, per_page: 50 }),
+    )
+    expect(store.items).toEqual([rule, { id: 5, description: 'Internet' }])
+  })
+
   it('runs lifecycle actions with durable notices', async () => {
     const store = useRecurringTransactionStore()
 
