@@ -48,14 +48,25 @@ const categoryOptions = computed(() => [
 ])
 const lifecycleError = computed(() => store.error?.message ?? '')
 
-onMounted(() => {
-  const query = { ...route.query, per_page: Number(route.query.per_page ?? 50) }
+onMounted(async () => {
+  const { highlight, ...routeFilters } = route.query
+  const query = { ...routeFilters, per_page: Number(routeFilters.per_page ?? 50) }
 
-  return Promise.all([
-    store.setFilters(query),
-    accounts.fetchAccounts(),
-    categories.fetchCategories(),
-  ]).catch(() => {})
+  try {
+    await Promise.all([
+      store.setFilters(query),
+      accounts.fetchAccounts(),
+      categories.fetchCategories(),
+    ])
+
+    const ruleId = Number(highlight)
+    if (Number.isInteger(ruleId) && ruleId > 0) {
+      await store.select(ruleId)
+      detailOpen.value = true
+    }
+  } catch {
+    /* Feedback comes from the relevant store error state. */
+  }
 })
 
 async function applyFilters(value) {

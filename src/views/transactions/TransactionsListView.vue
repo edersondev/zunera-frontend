@@ -72,18 +72,29 @@ function impactMessage(impact) {
   return `${impact.name}: ${formatCentavos(impact.after)} (${sign}${formatCentavos(Math.abs(impact.delta))})`
 }
 
-onMounted(() => {
+onMounted(async () => {
+  const { highlight, ...routeFilters } = route.query
   const query = {
-    ...route.query,
-    per_page: Number(route.query.per_page ?? 50),
-    view: route.query.view ?? 'active',
+    ...routeFilters,
+    per_page: Number(routeFilters.per_page ?? 50),
+    view: routeFilters.view ?? 'active',
   }
 
-  return Promise.all([
-    store.setFilters(query),
-    accounts.fetchAccounts(),
-    categories.fetchCategories('active'),
-  ]).catch(() => {})
+  try {
+    await Promise.all([
+      store.setFilters(query),
+      accounts.fetchAccounts(),
+      categories.fetchCategories('active'),
+    ])
+
+    const transactionId = Number(highlight)
+    if (Number.isInteger(transactionId) && transactionId > 0) {
+      await store.select(transactionId)
+      detailOpen.value = true
+    }
+  } catch {
+    /* Feedback comes from the relevant store error state. */
+  }
 })
 
 async function save(payload) {

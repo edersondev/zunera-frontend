@@ -469,6 +469,8 @@ test('generated occurrence shows its rule in history and links back to it', asyn
   )
   await page.locator('[data-test="view-recurrence-rule"]').click()
   await expect(page).toHaveURL(/recurring-transactions/)
+  await expect(page.locator('[data-test="recurrence-detail-drawer"]')).toBeVisible()
+  await expect(page.locator('[data-test="recurrence-detail-state"]')).toContainText('Ativa')
 })
 
 test('catch-up occurrences stay pending, identify their source, and open as ordinary transactions', async ({ page }) => {
@@ -511,6 +513,7 @@ test('catch-up occurrences stay pending, identify their source, and open as ordi
   await page.locator('[data-test="recurrence-occurrence-open"]').first().click()
   await expect(page).toHaveURL(/transactions/)
   await expect(page.locator('[data-test="transaction-recurrence-label"]')).toContainText('#62')
+  await expect(page.locator('[data-test="transaction-recurrence-source"]')).toContainText('#62')
   await expect(page.locator('.el-table__row')).toContainText('Pendente')
 })
 
