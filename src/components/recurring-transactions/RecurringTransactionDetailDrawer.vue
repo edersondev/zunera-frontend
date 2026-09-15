@@ -34,6 +34,9 @@ const pausedByArchive = computed(() => props.rule?.paused_reason === 'associatio
         <ElDescriptionsItem :label="t('recurringTransactions.criteria.state')">
           <span data-test="recurrence-detail-state">{{ stateLabel(rule, t) }}</span>
         </ElDescriptionsItem>
+        <ElDescriptionsItem :label="t('transactions.type')">
+          <span data-test="recurrence-detail-type">{{ t(`transactions.${rule.type}`) }}</span>
+        </ElDescriptionsItem>
         <ElDescriptionsItem :label="t('recurringTransactions.frequency')">
           {{ frequencyLabel(rule.frequency, t) }}
         </ElDescriptionsItem>
@@ -42,7 +45,9 @@ const pausedByArchive = computed(() => props.rule?.paused_reason === 'associatio
         </ElDescriptionsItem>
         <ElDescriptionsItem :label="t('recurringTransactions.account')">
           {{ rule.financial_account?.name }}
-          <span v-if="rule.financial_account?.status === 'archived'" class="hint">({{ t('transactions.archived') }})</span>
+          <span v-if="rule.financial_account?.status === 'archived'" class="hint"
+            >({{ t('transactions.archived') }})</span
+          >
         </ElDescriptionsItem>
         <ElDescriptionsItem :label="t('recurringTransactions.category')">
           {{ rule.category?.name }}
@@ -70,11 +75,15 @@ const pausedByArchive = computed(() => props.rule?.paused_reason === 'associatio
         :title="t('recurringTransactions.repairAssociation')"
         data-test="recurrence-detail-repair"
       />
-      <p class="hint" data-test="recurrence-detail-scope">{{ t('recurringTransactions.ruleScope') }}</p>
+      <p class="hint" data-test="recurrence-detail-scope">
+        {{ t('recurringTransactions.ruleScope') }}
+      </p>
 
       <h3>{{ t('recurringTransactions.occurrences') }}</h3>
       <p class="muted">{{ t('recurringTransactions.occurrencesDescription') }}</p>
-      <p v-if="loadingOccurrences" class="hint" data-test="recurrence-occurrences-loading">{{ t('common.loading') }}</p>
+      <p v-if="loadingOccurrences" class="hint" data-test="recurrence-occurrences-loading">
+        {{ t('common.loading') }}
+      </p>
       <p v-else-if="occurrences.length === 0" class="hint" data-test="recurrence-occurrences-empty">
         {{ t('recurringTransactions.emptyOccurrences') }}
       </p>
@@ -84,20 +93,30 @@ const pausedByArchive = computed(() => props.rule?.paused_reason === 'associatio
         </ElTableColumn>
         <ElTableColumn :label="t('recurringTransactions.occurrenceStatus')" width="160">
           <template #default="{ row }">
-            <ElTag :type="row.removed_at ? 'danger' : 'info'" effect="plain" data-test="recurrence-occurrence-status">
+            <ElTag
+              :type="row.removed_at ? 'danger' : 'info'"
+              effect="plain"
+              data-test="recurrence-occurrence-status"
+            >
               {{ occurrenceStatusLabel(row, t) }}
             </ElTag>
           </template>
         </ElTableColumn>
         <ElTableColumn :label="t('recurringTransactions.columns.actions')" width="160">
           <template #default="{ row }">
-            <ElButton size="small" data-test="recurrence-occurrence-open" @click="emit('open-occurrence', row)">
+            <ElButton
+              size="small"
+              data-test="recurrence-occurrence-open"
+              @click="emit('open-occurrence', row)"
+            >
               {{ t('recurringTransactions.openOccurrence') }}
             </ElButton>
           </template>
         </ElTableColumn>
       </ElTable>
-      <p class="hint" data-test="recurrence-occurrence-scope">{{ t('recurringTransactions.oneOccurrenceScope') }}</p>
+      <p class="hint" data-test="recurrence-occurrence-scope">
+        {{ t('recurringTransactions.oneOccurrenceScope') }}
+      </p>
     </template>
   </ElDrawer>
 </template>

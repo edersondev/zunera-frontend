@@ -9,17 +9,24 @@ const stubs = {
     template: '<section v-if="modelValue" role="dialog" :aria-label="title"><slot /></section>',
   },
   ElDescriptions: { template: '<dl><slot /></dl>' },
-  ElDescriptionsItem: { props: ['label'], template: '<div><dt>{{ label }}</dt><dd><slot /></dd></div>' },
+  ElDescriptionsItem: {
+    props: ['label'],
+    template: '<div><dt>{{ label }}</dt><dd><slot /></dd></div>',
+  },
   ElAlert: { props: ['title'], template: '<div class="alert">{{ title }}</div>' },
   ElTable: { props: ['data'], template: '<table :data-rows="data.length"><slot /></table>' },
   ElTableColumn: { template: '<td><slot :row="{}" /></td>' },
   ElTag: { template: '<span class="tag"><slot /></span>' },
-  ElButton: { emits: ['click'], template: '<button type="button" @click="$emit(\'click\')"><slot /></button>' },
+  ElButton: {
+    emits: ['click'],
+    template: '<button type="button" @click="$emit(\'click\')"><slot /></button>',
+  },
 }
 
 const rule = {
   id: 3,
   description: 'Academia',
+  type: 'expense',
   state: 'paused',
   paused_reason: 'association_archived',
   frequency: 'monthly',
@@ -41,7 +48,10 @@ describe('RecurringTransactionDetailDrawer', () => {
 
     expect(wrapper.find('[data-test="recurrence-detail-repair"]').exists()).toBe(true)
     expect(wrapper.find('[data-test="recurrence-detail-count"]').text()).toBe('4')
-    expect(wrapper.find('[data-test="recurrence-detail-next"]').text()).toBe('Sem próxima ocorrência')
+    expect(wrapper.find('[data-test="recurrence-detail-type"]').text()).toBe('Despesa')
+    expect(wrapper.find('[data-test="recurrence-detail-next"]').text()).toBe(
+      'Sem próxima ocorrência',
+    )
     expect(wrapper.find('[data-test="recurrence-detail-state"]').text()).toBe(
       'Pausada por conta ou categoria arquivada',
     )
@@ -50,7 +60,12 @@ describe('RecurringTransactionDetailDrawer', () => {
 
   it('renders the empty occurrence state until something is generated', () => {
     const wrapper = mount(RecurringTransactionDetailDrawer, {
-      props: { modelValue: true, rule: { ...rule, generated_occurrence_count: 0 }, occurrences: [], loadingOccurrences: false },
+      props: {
+        modelValue: true,
+        rule: { ...rule, generated_occurrence_count: 0 },
+        occurrences: [],
+        loadingOccurrences: false,
+      },
       global: { plugins: [i18n], stubs },
     })
 
