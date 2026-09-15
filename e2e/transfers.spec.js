@@ -650,7 +650,7 @@ test('owner corrects, removes, and restores a transfer with an archived associat
   await expect(page.locator('.el-table__row')).toHaveCount(0)
 
   await page.locator('[data-test="back-to-transactions"]').click()
-  await expect(page.getByRole('heading', { name: 'Transações' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Transações', exact: true })).toBeVisible()
   await expect(page.locator('.el-table__row')).toHaveCount(2)
 })
 

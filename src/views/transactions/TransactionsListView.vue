@@ -25,6 +25,7 @@ import {
   formatTransferAmount,
   formatTransferRoute,
 } from '@/utils/transfers/transferFormatters'
+import { sourceLabel } from '@/utils/recurring-transactions/recurringTransactionFormatters'
 
 const store = useTransactionStore()
 const transferStore = useTransferStore()
@@ -71,18 +72,29 @@ function impactMessage(impact) {
   return `${impact.name}: ${formatCentavos(impact.after)} (${sign}${formatCentavos(Math.abs(impact.delta))})`
 }
 
-onMounted(() => {
+onMounted(async () => {
+  const { highlight, ...routeFilters } = route.query
   const query = {
-    ...route.query,
-    per_page: Number(route.query.per_page ?? 50),
-    view: route.query.view ?? 'active',
+    ...routeFilters,
+    per_page: Number(routeFilters.per_page ?? 50),
+    view: routeFilters.view ?? 'active',
   }
 
-  return Promise.all([
-    store.setFilters(query),
-    accounts.fetchAccounts(),
-    categories.fetchCategories('active'),
-  ]).catch(() => {})
+  try {
+    await Promise.all([
+      store.setFilters(query),
+      accounts.fetchAccounts(),
+      categories.fetchCategories('active'),
+    ])
+
+    const transactionId = Number(highlight)
+    if (Number.isInteger(transactionId) && transactionId > 0) {
+      await store.select(transactionId)
+      detailOpen.value = true
+    }
+  } catch {
+    /* Feedback comes from the relevant store error state. */
+  }
 })
 
 async function save(payload) {
@@ -151,6 +163,11 @@ async function removeTransfer() {
 async function openDetail(row) {
   await store.select(row.movement_kind === 'transfer' ? row : row.id)
   detailOpen.value = true
+}
+
+async function openRecurrenceRule(ruleId) {
+  detailOpen.value = false
+  await router.push({ name: 'recurring-transactions', query: { highlight: ruleId } })
 }
 
 function edit(transaction) {
@@ -372,6 +389,15 @@ const clearedFilters = {
               {{ t('transfers.transfer') }}
             </span>
             <span v-else>{{ row.description }}</span>
+            <ElTag
+              v-if="row.movement_kind !== 'transfer' && row.recurrence_source"
+              class="source-tag"
+              effect="plain"
+              size="small"
+              data-test="transaction-recurrence-label"
+            >
+              {{ sourceLabel(row.recurrence_source, t) }}
+            </ElTag>
           </template>
         </ElTableColumn>
         <ElTableColumn :label="t('transactions.columns.date')" min-width="130">
@@ -489,6 +515,7 @@ const clearedFilters = {
       :transaction="store.selected"
       @edit="edit"
       @remove="requestRemove"
+      @view-rule="openRecurrenceRule"
     />
     <TransactionRemoveDialog
       v-model:visible="removeDialog"

@@ -2,16 +2,21 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { formatTransactionAmount, formatTransactionDate } from '@/utils/transactions/transactionFormatters'
+import { sourceLabel } from '@/utils/recurring-transactions/recurringTransactionFormatters'
 import {
   accountLabel,
   formatTransferAmount,
   formatTransferDate,
 } from '@/utils/transfers/transferFormatters'
 const props = defineProps({ modelValue: Boolean, transaction: { type: Object, default: null } })
-const emit = defineEmits(['update:modelValue', 'edit', 'remove'])
+const emit = defineEmits(['update:modelValue', 'edit', 'remove', 'view-rule'])
 const { t } = useI18n()
 const title = computed(() => props.transaction?.description ?? t('transactions.transaction'))
 const isTransfer = computed(() => props.transaction?.movement_kind === 'transfer')
+const recurrenceSource = computed(() =>
+  isTransfer.value ? null : (props.transaction?.recurrence_source ?? null),
+)
+const recurrenceLabel = computed(() => sourceLabel(recurrenceSource.value, t))
 const movementDate = computed(
   () => props.transaction?.movement_date ?? props.transaction?.transaction_date,
 )
@@ -38,9 +43,18 @@ const movementDate = computed(
         transaction.category.name
       }}</ElDescriptionsItem>
       <ElDescriptionsItem :label="t('transactions.status')">{{ t(`transactions.${transaction.status}`) }}</ElDescriptionsItem>
+      <ElDescriptionsItem v-if="recurrenceLabel" :label="t('recurringTransactions.sourceRule')">
+        <span data-test="transaction-recurrence-source">{{ recurrenceLabel }}</span>
+      </ElDescriptionsItem>
       <ElDescriptionsItem :label="t('transactions.notes')">{{ transaction.notes || t('transactions.noNotes') }}</ElDescriptionsItem>
     </ElDescriptions>
+    <p v-if="recurrenceLabel" class="hint" data-test="transaction-recurrence-scope">
+      {{ t('recurringTransactions.oneOccurrenceScope') }}
+    </p>
     <template #footer>
+      <ElButton v-if="recurrenceSource" data-test="view-recurrence-rule" @click="emit('view-rule', recurrenceSource.id)">
+        {{ t('recurringTransactions.viewRule') }}
+      </ElButton>
       <ElButton v-if="!isTransfer" data-test="edit-transaction" @click="emit('edit', transaction)">{{ t('transactions.edit') }}</ElButton>
       <ElButton v-if="!isTransfer" type="danger" data-test="remove-transaction" @click="emit('remove', transaction)">{{ t('transactions.remove') }}</ElButton>
       <ElButton v-else type="info" data-test="close-transfer-detail" @click="emit('update:modelValue', false)">{{ t('transfers.cancel') }}</ElButton>
