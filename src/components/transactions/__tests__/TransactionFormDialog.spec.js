@@ -30,12 +30,13 @@ const stubs = {
     props: ['modelValue'],
     emits: ['update:modelValue'],
     template:
-      '<select :value="modelValue" @change="$emit(\'update:modelValue\', $event.target.value)"><slot /></select>',
+      '<select :value="modelValue" @change="$emit(\'update:modelValue\', Number($event.target.value))"><slot /></select>',
   },
   ElOption: { props: ['label', 'value'], template: '<option :value="value">{{ label }}</option>' },
   ElRadioGroup: {
     props: ['modelValue'],
-    template: '<fieldset :data-value="modelValue"><slot /></fieldset>',
+    emits: ['update:modelValue', 'change'],
+    template: '<fieldset :data-value="modelValue" @change="$emit(\'update:modelValue\', $event.target.value); $emit(\'change\', $event.target.value)"><slot /></fieldset>',
   },
   ElRadio: {
     props: ['value'],
@@ -92,8 +93,9 @@ describe('TransactionFormDialog', () => {
 
     await wrapper.get('[data-test="save-transaction"]').trigger('click')
 
-    const payload = wrapper.emitted('submit')[0][0]
-    expect(payload).toMatchObject({
+    const submission = wrapper.emitted('submit')[0][0]
+    expect(submission.kind).toBe('transaction')
+    expect(submission.payload).toMatchObject({
       type: 'expense',
       status: 'effective',
       description: 'Conta antiga',
@@ -103,9 +105,47 @@ describe('TransactionFormDialog', () => {
       financial_account_id: 9,
       category_id: 7,
     })
-    expect(payload).not.toHaveProperty('id')
-    expect(payload).not.toHaveProperty('financial_account')
-    expect(payload).not.toHaveProperty('removed_at')
+    expect(submission.payload).not.toHaveProperty('id')
+    expect(submission.payload).not.toHaveProperty('financial_account')
+    expect(submission.payload).not.toHaveProperty('removed_at')
+  })
+
+  it('uses transfer-only account fields above notes and emits the transfer payload', async () => {
+    const wrapper = mount(TransactionFormDialog, {
+      props: {
+        modelValue: true,
+        initialType: 'transfer',
+        accounts: [
+          { id: 1, name: 'Conta corrente', status: 'active' },
+          { id: 2, name: 'Poupança', status: 'active' },
+        ],
+        categories: [{ id: 3, name: 'Alimentação', status: 'active', classification: 'expense' }],
+      },
+      global: { plugins: [i18n], stubs },
+    })
+
+    expect(wrapper.get('[data-test="transaction-type"]').text()).toContain('Transferência')
+    expect(wrapper.find('[data-test="transaction-account"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="transaction-category"]').exists()).toBe(false)
+    expect(wrapper.get('[data-prop="source_financial_account_id"]').attributes('data-required')).toBeDefined()
+    expect(wrapper.get('[data-prop="destination_financial_account_id"]').attributes('data-required')).toBeDefined()
+
+    await wrapper.get('[data-test="transaction-transfer-source"]').setValue('1')
+    await wrapper.get('[data-test="transaction-transfer-destination"]').setValue('2')
+    await wrapper.get('[data-test="save-transaction"]').trigger('click')
+
+    expect(wrapper.emitted('submit')[0][0]).toEqual({
+      kind: 'transfer',
+      payload: {
+        source_financial_account_id: 1,
+        destination_financial_account_id: 2,
+        amount_centavos: 0,
+        transfer_date: new Date().toISOString().slice(0, 10),
+        status: 'effective',
+        description: null,
+        notes: null,
+      },
+    })
   })
 
   it('never offers an archived association for a new transaction', () => {

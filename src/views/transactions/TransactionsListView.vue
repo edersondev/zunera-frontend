@@ -39,6 +39,7 @@ const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
 const dialog = shallowRef(false)
+const creationType = shallowRef('expense')
 const transferDialog = shallowRef(false)
 const editingTransfer = shallowRef(null)
 const transferRemoveDialog = shallowRef(false)
@@ -104,9 +105,12 @@ onMounted(async () => {
   }
 })
 
-async function save(payload) {
+async function save({ kind, payload }) {
   try {
-    if (editing.value) await store.update(editing.value.id, payload)
+    if (kind === 'transfer') {
+      await transferStore.create(payload)
+      await store.fetch()
+    } else if (editing.value) await store.update(editing.value.id, payload)
     else await store.create(payload)
     dialog.value = false
     editing.value = null
@@ -227,7 +231,7 @@ async function applyFilters(filters) {
 
 function handleHeaderAction(command) {
   if (command === 'new') {
-    dialog.value = true
+    openCreate('expense')
 
     return
   }
@@ -238,12 +242,23 @@ function handleHeaderAction(command) {
 function handleTransferHeaderAction(command) {
   if (command === 'new') {
     editingTransfer.value = null
-    transferDialog.value = true
+    openCreate('transfer')
 
     return
   }
 
   if (command === 'removed') router.push({ name: 'transfers-removed' })
+}
+
+function openCreate(type) {
+  editing.value = null
+  creationType.value = type
+  dialog.value = true
+}
+
+function updateDialog(visible) {
+  dialog.value = visible
+  if (!visible) editing.value = null
 }
 
 const clearedFilters = {
@@ -535,12 +550,14 @@ const clearedFilters = {
       </ElButton>
     </div>
     <TransactionFormDialog
-      v-model="dialog"
+      :model-value="dialog"
       :transaction="editing"
+      :initial-type="creationType"
       :accounts="accounts.accounts"
       :categories="categories.categories"
-      :saving="store.saving"
-      :errors="store.validationErrors"
+      :saving="store.saving || transferStore.saving"
+      :errors="{ ...store.validationErrors, ...transferStore.validationErrors }"
+      @update:model-value="updateDialog"
       @submit="save"
     />
     <TransferFormDialog

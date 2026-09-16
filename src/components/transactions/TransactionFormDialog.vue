@@ -3,10 +3,16 @@ import { computed, reactive, shallowRef, watch } from 'vue'
 import { Check, Close } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import CurrencyAmountInput from '@/components/common/CurrencyAmountInput.vue'
+import {
+  destinationSideOptions,
+  sideLabel,
+  sourceSideOptions,
+} from '@/utils/transfers/transferOptions'
 
 const props = defineProps({
   modelValue: Boolean,
   transaction: { type: Object, default: null },
+  initialType: { type: String, default: 'expense' },
   accounts: { type: Array, required: true },
   categories: { type: Array, required: true },
   saving: Boolean,
@@ -17,13 +23,25 @@ const { t } = useI18n()
 const formRef = shallowRef(null)
 const form = reactive(blank())
 const title = computed(() => (props.transaction ? t('transactions.edit') : t('transactions.new')))
+const isTransfer = computed(() => form.type === 'transfer')
 const rules = computed(() => ({
-  financial_account_id: [
-    { required: true, message: t('transactions.accountRequired'), trigger: 'change' },
-  ],
-  category_id: [
-    { required: true, message: t('transactions.categoryRequired'), trigger: 'change' },
-  ],
+  ...(isTransfer.value
+    ? {
+        source_financial_account_id: [
+          { required: true, message: t('transfers.sourceRequired'), trigger: 'change' },
+        ],
+        destination_financial_account_id: [
+          { required: true, message: t('transfers.destinationRequired'), trigger: 'change' },
+        ],
+      }
+    : {
+        financial_account_id: [
+          { required: true, message: t('transactions.accountRequired'), trigger: 'change' },
+        ],
+        category_id: [
+          { required: true, message: t('transactions.categoryRequired'), trigger: 'change' },
+        ],
+      }),
 }))
 
 /**
@@ -47,12 +65,23 @@ const categoryChoices = computed(() =>
     props.transaction?.category,
   ),
 )
+const sourceChoices = computed(() => sourceSideOptions(props.accounts, null))
+const destinationChoices = computed(() =>
+  destinationSideOptions(props.accounts, null, form.source_financial_account_id),
+)
+const sidesMustDiffer = computed(
+  () =>
+    form.source_financial_account_id !== null &&
+    form.source_financial_account_id === form.destination_financial_account_id,
+)
 
 function blank() {
   return {
     financial_account_id: null,
     category_id: null,
-    type: 'expense',
+    source_financial_account_id: null,
+    destination_financial_account_id: null,
+    type: props.initialType,
     status: 'effective',
     description: '',
     notes: '',
@@ -62,7 +91,7 @@ function blank() {
 }
 
 watch(
-  () => [props.modelValue, props.transaction],
+  () => [props.modelValue, props.transaction, props.initialType],
   () => {
     if (!props.modelValue) return
     Object.assign(
@@ -81,6 +110,13 @@ watch(
   { immediate: true },
 )
 
+function onTypeChange() {
+  if (isTransfer.value) return
+
+  const category = categoryChoices.value.find((choice) => choice.id === form.category_id)
+  if (!category) form.category_id = null
+}
+
 async function submit() {
   if (props.saving) return
   if (formRef.value?.validate) {
@@ -88,14 +124,33 @@ async function submit() {
     if (!valid) return
   }
 
-  const payload = { ...form, amount_centavos: Number(form.amount_centavos) }
-  if (payload.status === null || payload.status === undefined) {
-    delete payload.status
+  if (isTransfer.value) {
+    if (sidesMustDiffer.value) return
+
+    emit('submit', {
+      kind: 'transfer',
+      payload: {
+        source_financial_account_id: form.source_financial_account_id,
+        destination_financial_account_id: form.destination_financial_account_id,
+        amount_centavos: Number(form.amount_centavos),
+        transfer_date: form.transaction_date,
+        status: form.status ?? undefined,
+        description: form.description === '' ? null : form.description,
+        notes: form.notes === '' ? null : form.notes,
+      },
+    })
+
+    return
   }
+
+  const payload = { ...form, amount_centavos: Number(form.amount_centavos) }
+  if (payload.status === null || payload.status === undefined) delete payload.status
   for (const key of ['id', 'removed_at', 'created_at', 'updated_at', 'currency_code', 'search_text', 'financial_account', 'category']) {
     delete payload[key]
   }
-  emit('submit', payload)
+  delete payload.source_financial_account_id
+  delete payload.destination_financial_account_id
+  emit('submit', { kind: 'transaction', payload })
 }
 
 function setPendingForFutureDate(date) {
@@ -116,9 +171,10 @@ function setPendingForFutureDate(date) {
     <ElForm ref="formRef" :model="form" :rules="rules" label-position="top" data-test="transaction-form" @submit.prevent="submit">
       <div class="form-grid">
         <ElFormItem :label="t('transactions.type')" :error="errors.type?.[0]">
-          <ElRadioGroup v-model="form.type" data-test="transaction-type">
+          <ElRadioGroup v-model="form.type" data-test="transaction-type" @change="onTypeChange">
             <ElRadio value="expense">{{ t('transactions.expense') }}</ElRadio>
             <ElRadio value="income">{{ t('transactions.income') }}</ElRadio>
+            <ElRadio value="transfer">{{ t('transactions.transfer') }}</ElRadio>
           </ElRadioGroup>
         </ElFormItem>
         <ElFormItem :label="t('transactions.status')" :error="errors.status?.[0]">
@@ -145,7 +201,7 @@ function setPendingForFutureDate(date) {
           />
         </ElFormItem>
       </div>
-      <div class="form-grid">
+      <div v-if="!isTransfer" class="form-grid">
         <ElFormItem
           :label="t('transactions.account')"
           prop="financial_account_id"
@@ -177,6 +233,45 @@ function setPendingForFutureDate(date) {
           </ElSelect>
         </ElFormItem>
       </div>
+      <div v-if="isTransfer" class="form-grid">
+        <ElFormItem
+          :label="t('transfers.source')"
+          prop="source_financial_account_id"
+          required
+          :error="errors.source_financial_account_id?.[0]"
+        >
+          <ElSelect v-model="form.source_financial_account_id" data-test="transaction-transfer-source">
+            <ElOption
+              v-for="account in sourceChoices"
+              :key="account.id"
+              :label="sideLabel(account, t)"
+              :value="account.id"
+            />
+          </ElSelect>
+        </ElFormItem>
+        <ElFormItem
+          :label="t('transfers.destination')"
+          prop="destination_financial_account_id"
+          required
+          :error="errors.destination_financial_account_id?.[0]"
+        >
+          <ElSelect v-model="form.destination_financial_account_id" data-test="transaction-transfer-destination">
+            <ElOption
+              v-for="account in destinationChoices"
+              :key="account.id"
+              :label="sideLabel(account, t)"
+              :value="account.id"
+            />
+          </ElSelect>
+        </ElFormItem>
+      </div>
+      <p
+        v-if="isTransfer && sidesMustDiffer"
+        class="hint hint-danger"
+        data-test="transaction-transfer-sides-error"
+      >
+        {{ t('transfers.sidesMustDiffer') }}
+      </p>
       <ElFormItem :label="t('transactions.notes')">
         <ElInput v-model="form.notes" type="textarea" maxlength="1000" data-test="transaction-notes" />
       </ElFormItem>
@@ -210,6 +305,15 @@ function setPendingForFutureDate(date) {
   display: grid;
   gap: 16px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.hint {
+  color: var(--color-text-muted, #666);
+  font-size: 13px;
+  line-height: 20px;
+  margin: -8px 0 16px;
+}
+.hint-danger {
+  color: var(--el-color-danger);
 }
 @media (max-width: 639px) {
   .form-grid {

@@ -101,8 +101,10 @@ function stubs() {
           '<div><button data-test="apply-filter" @click="$emit(\'apply\', { q: \'almoço\', type: \'expense\' })">apply</button><button data-test="clear-filter" @click="$emit(\'clear\')">clear</button></div>',
       },
       TransactionFormDialog: {
-        props: ['modelValue'],
-        template: '<div v-if="modelValue" data-test="form-dialog" />',
+        props: ['modelValue', 'initialType'],
+        emits: ['submit'],
+        template:
+          '<div v-if="modelValue" data-test="form-dialog"><span data-test="form-mode">{{ initialType }}</span><button data-test="submit-unified-form" @click="$emit(\'submit\', initialType === \'transfer\' ? { kind: \'transfer\', payload: { amount_centavos: 1 } } : { kind: \'transaction\', payload: { amount_centavos: 1 } })">submit</button></div>',
       },
       TransferFormDialog: {
         props: ['modelValue', 'transfer', 'accounts', 'saving', 'errors'],
@@ -247,14 +249,15 @@ describe('TransactionsListView', () => {
     const pushCount = routerPush.mock.calls.length
     transferDropdown.vm.$emit('command', 'new')
     await flushPromises()
-    expect(wrapper.get('[data-test="transfer-form-dialog"]').exists()).toBe(true)
+    expect(wrapper.get('[data-test="form-dialog"]').exists()).toBe(true)
+    expect(wrapper.get('[data-test="form-mode"]').text()).toBe('transfer')
     expect(routerPush).toHaveBeenCalledTimes(pushCount)
 
-    await wrapper.get('[data-test="submit-transfer-form"]').trigger('click')
+    await wrapper.get('[data-test="submit-unified-form"]').trigger('click')
     await flushPromises()
     expect(transferStore.create).toHaveBeenCalledWith({ amount_centavos: 1 })
     expect(store.fetch).toHaveBeenCalledTimes(1)
-    expect(wrapper.find('[data-test="transfer-form-dialog"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="form-dialog"]').exists()).toBe(false)
 
     transferDropdown.vm.$emit('command', 'removed')
     expect(routerPush).toHaveBeenCalledWith({ name: 'transfers-removed' })
