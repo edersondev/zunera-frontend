@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
-import ElementPlus from 'element-plus'
+import ElementPlus, { ElTag } from 'element-plus'
 import TransactionsListView from '../TransactionsListView.vue'
 import { i18n } from '@/i18n'
 
@@ -462,6 +462,26 @@ describe('TransactionsListView', () => {
     expect(wrapper.get('[data-test="transfer-history-no-category"]').text()).toBe('—')
     expect(wrapper.get('[data-test="transfer-history-amount"]').text()).toContain('2.500,00')
     expect(wrapper.findAll('.el-table__row')[1].text()).toContain('Mercado')
+  })
+
+  it('uses a refresh icon with an accessible recurrence source label', async () => {
+    store.items = [
+      row(13, 'Internet', {
+        recurrence_source: { id: 61, scheduled_date: '2026-10-05' },
+      }),
+    ]
+    store.meta = { total: 1, current_page: 1, last_page: 1, per_page: 50 }
+    const wrapper = mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+
+    const indicator = wrapper.get('[data-test="transaction-recurrence-label"]')
+    const tag = wrapper.findComponent(ElTag)
+
+    expect(indicator.find('svg').exists()).toBe(true)
+    expect(indicator.attributes('aria-label')).toContain('#61')
+    expect(tag.props('type')).toBe('primary')
+    expect(tag.props('round')).toBe(true)
+    expect(indicator.text()).toBe('')
   })
 
   it('reports income and expense totals that a transfer never changes', async () => {

@@ -461,7 +461,10 @@ test('generated occurrence shows its rule in history and links back to it', asyn
   await signIn(page)
 
   await page.goto('/app/transactions')
-  await expect(page.locator('[data-test="transaction-recurrence-label"]').first()).toContainText('#61')
+  await expect(page.locator('[data-test="transaction-recurrence-label"]').first()).toHaveAttribute(
+    'aria-label',
+    /#61/,
+  )
   await page.locator('.el-table__row').first().click()
   await expect(page.locator('[data-test="transaction-recurrence-source"]')).toContainText('#61')
   await expect(page.locator('[data-test="transaction-recurrence-scope"]')).toContainText(
@@ -512,7 +515,10 @@ test('catch-up occurrences stay pending, identify their source, and open as ordi
   await expect(page.locator('[data-test="recurrence-occurrence-status"]').first()).toContainText('Pendente')
   await page.locator('[data-test="recurrence-occurrence-open"]').first().click()
   await expect(page).toHaveURL(/transactions/)
-  await expect(page.locator('[data-test="transaction-recurrence-label"]')).toContainText('#62')
+  await expect(page.locator('[data-test="transaction-recurrence-label"]')).toHaveAttribute(
+    'aria-label',
+    /#62/,
+  )
   await expect(page.locator('[data-test="transaction-recurrence-source"]')).toContainText('#62')
   await expect(page.locator('.el-table__row')).toContainText('Pendente')
 })

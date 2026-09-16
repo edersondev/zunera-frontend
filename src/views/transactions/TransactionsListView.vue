@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, shallowRef } from 'vue'
-import { ArrowDown, Delete, Money, Plus, Switch } from '@element-plus/icons-vue'
+import { ArrowDown, Delete, Money, Plus, Refresh, Switch } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
@@ -402,15 +402,21 @@ const clearedFilters = {
               {{ t('transfers.transfer') }}
             </span>
             <span v-else>{{ row.description }}</span>
-            <ElTag
+            <ElTooltip
               v-if="row.movement_kind !== 'transfer' && row.recurrence_source"
-              class="source-tag"
-              effect="plain"
-              size="small"
-              data-test="transaction-recurrence-label"
+              :content="sourceLabel(row.recurrence_source, t)"
             >
-              {{ sourceLabel(row.recurrence_source, t) }}
-            </ElTag>
+              <ElTag
+                class="recurrence-source-tag"
+                :aria-label="sourceLabel(row.recurrence_source, t)"
+                data-test="transaction-recurrence-label"
+                round
+                role="img"
+                type="primary"
+              >
+                <ElIcon><Refresh /></ElIcon>
+              </ElTag>
+            </ElTooltip>
           </template>
         </ElTableColumn>
         <ElTableColumn :label="t('transactions.columns.date')" min-width="130">
@@ -572,6 +578,10 @@ h2 {
 }
 .transfer {
   font-variant-numeric: tabular-nums;
+}
+.recurrence-source-tag {
+  margin-left: 6px;
+  vertical-align: middle;
 }
 .more {
   display: flex;
