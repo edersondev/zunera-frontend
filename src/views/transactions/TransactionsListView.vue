@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, shallowRef } from 'vue'
-import { ArrowDown, Delete, Money, Plus, Switch } from '@element-plus/icons-vue'
+import { ArrowDown, Delete, Money, Plus, Refresh, Switch } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
@@ -25,7 +25,11 @@ import {
   formatTransferAmount,
   formatTransferRoute,
 } from '@/utils/transfers/transferFormatters'
-import { sourceLabel } from '@/utils/recurring-transactions/recurringTransactionFormatters'
+import {
+  nextExpectedLabel,
+  sourceLabel,
+  stateLabel,
+} from '@/utils/recurring-transactions/recurringTransactionFormatters'
 
 const store = useTransactionStore()
 const transferStore = useTransferStore()
@@ -57,11 +61,13 @@ const activeCriteria = computed(() =>
   Object.entries(store.filters)
     .filter(
       ([key, value]) =>
-        Object.hasOwn(criteriaLabels.value, key) && value !== undefined && value !== null && value !== '',
+        Object.hasOwn(criteriaLabels.value, key) &&
+        value !== undefined &&
+        value !== null &&
+        value !== '',
     )
     .map(([key, value]) => `${criteriaLabels.value[key]}: ${value}`),
 )
-
 function formatCentavos(value) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value / 100)
 }
@@ -76,6 +82,7 @@ onMounted(async () => {
   const { highlight, ...routeFilters } = route.query
   const query = {
     ...routeFilters,
+    include: 'recurring',
     per_page: Number(routeFilters.per_page ?? 50),
     view: routeFilters.view ?? 'active',
   }
@@ -161,6 +168,12 @@ async function removeTransfer() {
 }
 
 async function openDetail(row) {
+  if (row.movement_kind === 'recurring') {
+    await openRecurrenceRule(row.id)
+
+    return
+  }
+
   await store.select(row.movement_kind === 'transfer' ? row : row.id)
   detailOpen.value = true
 }
@@ -204,7 +217,7 @@ async function remove() {
 async function applyFilters(filters) {
   const query = Object.fromEntries(
     Object.entries(filters).filter(
-      ([, value]) => value !== undefined && value !== null && value !== '',
+      ([key, value]) => key !== 'include' && value !== undefined && value !== null && value !== '',
     ),
   )
   await router.replace({ query })
@@ -234,6 +247,7 @@ function handleTransferHeaderAction(command) {
 }
 
 const clearedFilters = {
+  include: 'recurring',
   view: 'active',
   per_page: 50,
   q: undefined,
@@ -279,7 +293,10 @@ const clearedFilters = {
                 <ElIcon><Plus /></ElIcon>
                 <span>{{ t('transfers.new') }}</span>
               </ElDropdownItem>
-              <ElDropdownItem command="removed" data-test="open-removed-transfers-from-transactions">
+              <ElDropdownItem
+                command="removed"
+                data-test="open-removed-transfers-from-transactions"
+              >
                 <ElIcon><Delete /></ElIcon>
                 <span>{{ t('transfers.removed') }}</span>
               </ElDropdownItem>
@@ -358,10 +375,14 @@ const clearedFilters = {
       data-test="history-totals"
     >
       <ElDescriptionsItem :label="t('transfers.totals.income')">
-        <span data-test="history-total-income">{{ formatCentavos(store.totals.income_centavos) }}</span>
+        <span data-test="history-total-income">{{
+          formatCentavos(store.totals.income_centavos)
+        }}</span>
       </ElDescriptionsItem>
       <ElDescriptionsItem :label="t('transfers.totals.expense')">
-        <span data-test="history-total-expense">{{ formatCentavos(store.totals.expense_centavos) }}</span>
+        <span data-test="history-total-expense">{{
+          formatCentavos(store.totals.expense_centavos)
+        }}</span>
       </ElDescriptionsItem>
       <ElDescriptionsItem :label="t('transfers.totals.result')">
         <span data-test="history-total-result">{{
@@ -379,7 +400,7 @@ const clearedFilters = {
       <ElTable
         v-loading="store.loading"
         :data="store.items"
-        row-key="id"
+        :row-key="(row) => `${row.movement_kind ?? 'transaction'}-${row.id}`"
         data-test="transaction-table"
         @row-click="openDetail"
       >
@@ -388,6 +409,18 @@ const clearedFilters = {
             <span v-if="row.movement_kind === 'transfer'" data-test="transfer-history-label">
               {{ t('transfers.transfer') }}
             </span>
+            <template v-else-if="row.movement_kind === 'recurring'">
+              <span>{{ row.description }}</span>
+              <ElTag
+                class="source-tag ml-2"
+                effect="plain"
+                size="small"
+                :aria-label="t('recurringTransactions.title')"
+                data-test="recurring-history-label"
+              >
+                <ElIcon aria-hidden="true"><Refresh /></ElIcon>
+              </ElTag>
+            </template>
             <span v-else>{{ row.description }}</span>
             <ElTag
               v-if="row.movement_kind !== 'transfer' && row.recurrence_source"
@@ -402,7 +435,11 @@ const clearedFilters = {
         </ElTableColumn>
         <ElTableColumn :label="t('transactions.columns.date')" min-width="130">
           <template #default="{ row }">
-            {{ formatTransactionDate(row.movement_date ?? row.transaction_date) }}
+            {{
+              row.movement_kind === 'recurring'
+                ? nextExpectedLabel(row, t)
+                : formatTransactionDate(row.movement_date ?? row.transaction_date)
+            }}
           </template>
         </ElTableColumn>
         <ElTableColumn :label="t('transactions.columns.account')" min-width="150">
@@ -413,7 +450,9 @@ const clearedFilters = {
             </span>
             <template v-else>
               {{ row.financial_account.name
-              }}<span v-if="row.financial_account.status === 'archived'"> ({{ t('transactions.archived') }})</span>
+              }}<span v-if="row.financial_account.status === 'archived'">
+                ({{ t('transactions.archived') }})</span
+              >
             </template>
           </template>
         </ElTableColumn>
@@ -424,7 +463,9 @@ const clearedFilters = {
             </span>
             <template v-else>
               {{ row.category.name
-              }}<span v-if="row.category.status === 'archived'"> ({{ t('transactions.archived') }})</span>
+              }}<span v-if="row.category.status === 'archived'">
+                ({{ t('transactions.archived') }})</span
+              >
             </template>
           </template>
         </ElTableColumn>
@@ -445,7 +486,14 @@ const clearedFilters = {
         </ElTableColumn>
         <ElTableColumn :label="t('transactions.columns.status')" min-width="110">
           <template #default="{ row }"
-            ><ElTag :type="row.status === 'pending' ? 'warning' : undefined">{{ t(`transactions.${row.status}`) }}</ElTag></template
+            ><ElTag
+              v-if="row.movement_kind === 'recurring'"
+              :type="row.state === 'paused' ? 'warning' : undefined"
+              >{{ stateLabel(row, t) }}</ElTag
+            >
+            <ElTag v-else :type="row.status === 'pending' ? 'warning' : undefined">{{
+              t(`transactions.${row.status}`)
+            }}</ElTag></template
           >
         </ElTableColumn>
         <ElTableColumn width="64" align="center">
@@ -458,6 +506,7 @@ const clearedFilters = {
               @update-status="updateTransferStatus"
               @remove="requestTransferRemove"
             />
+            <span v-else-if="row.movement_kind === 'recurring'" aria-hidden="true">—</span>
             <TransactionRowActions
               v-else
               :transaction="row"
