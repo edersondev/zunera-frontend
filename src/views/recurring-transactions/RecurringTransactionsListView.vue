@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, shallowRef } from 'vue'
-import { Plus, Refresh } from '@element-plus/icons-vue'
+import { Plus } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
@@ -89,14 +89,6 @@ async function clearFilters() {
   })
 }
 
-async function reload() {
-  try {
-    await store.setFilters(store.filters)
-  } catch {
-    /* Feedback comes from the store error state. */
-  }
-}
-
 async function save(payload) {
   try {
     if (editing.value) await store.update(editing.value.id, payload)
@@ -154,13 +146,13 @@ async function openOccurrence(occurrence) {
 
 <template>
   <section class="page" data-test="recurring-transactions-view">
-    <PageHeader :title="t('recurringTransactions.title')" :description="t('recurringTransactions.description')" />
-    <div class="page-actions">
-      <ElButton :icon="Refresh" data-test="recurrence-reload" @click="reload">{{ t('common.loading') }}</ElButton>
-      <ElButton type="primary" :icon="Plus" data-test="recurrence-new" @click="openCreate">
-        {{ t('recurringTransactions.new') }}
-      </ElButton>
-    </div>
+    <PageHeader :title="t('recurringTransactions.title')" :description="t('recurringTransactions.description')">
+      <template #actions>
+        <ElButton type="primary" :icon="Plus" data-test="recurrence-new" @click="openCreate">
+          {{ t('recurringTransactions.new') }}
+        </ElButton>
+      </template>
+    </PageHeader>
 
     <ElAlert v-if="store.notice" type="success" :closable="false" show-icon :title="t(store.notice)" data-test="recurrence-notice" />
     <ElAlert v-if="store.error && !lifecycleOpen" type="error" :closable="false" show-icon :title="store.error.message" data-test="recurrence-error" />
