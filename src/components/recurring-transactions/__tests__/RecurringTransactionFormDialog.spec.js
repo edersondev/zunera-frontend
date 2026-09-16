@@ -9,7 +9,8 @@ const clearValidate = vi.fn()
 const stubs = {
   ElDialog: {
     props: ['modelValue', 'title'],
-    template: '<section v-if="modelValue" role="dialog" :aria-label="title"><slot /></section>',
+    emits: ['closed'],
+    template: '<section v-if="modelValue" role="dialog" :aria-label="title"><button data-test="dialog-closed" @click="$emit(\'closed\')" /><slot /></section>',
   },
   ElForm: {
     props: ['rules'],
@@ -94,8 +95,21 @@ describe('RecurringTransactionFormDialog', () => {
 
   it('clears client validation when the dialog closes', async () => {
     const wrapper = factory()
+    await nextTick()
+    clearValidate.mockClear()
 
-    await wrapper.setProps({ modelValue: false })
+    await wrapper.get('[data-test="dialog-closed"]').trigger('click')
+
+    expect(clearValidate).toHaveBeenCalledOnce()
+  })
+
+  it('clears client validation when the dialog opens again', async () => {
+    const wrapper = factory({ modelValue: false })
+    await nextTick()
+    clearValidate.mockClear()
+
+    await wrapper.setProps({ modelValue: true })
+    await nextTick()
 
     expect(clearValidate).toHaveBeenCalledOnce()
   })

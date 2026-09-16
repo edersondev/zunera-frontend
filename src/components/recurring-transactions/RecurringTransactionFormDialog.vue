@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, shallowRef, watch } from 'vue'
+import { computed, nextTick, reactive, shallowRef, watch } from 'vue'
 import { Check, Close } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import CurrencyAmountInput from '@/components/common/CurrencyAmountInput.vue'
@@ -50,14 +50,14 @@ function blank() {
   }
 }
 
+function clearValidation() {
+  formRef.value?.clearValidate?.()
+}
+
 watch(
   () => [props.modelValue, props.rule],
-  () => {
-    if (!props.modelValue) {
-      formRef.value?.clearValidate?.()
-
-      return
-    }
+  async () => {
+    if (!props.modelValue) return
     const initial = props.rule
       ? {
           type: props.rule.type,
@@ -74,6 +74,9 @@ watch(
 
     Object.assign(form, initial)
     original.value = { ...initial }
+
+    await nextTick()
+    clearValidation()
   },
   { immediate: true },
 )
@@ -122,6 +125,7 @@ async function submit() {
     width="min(92vw, 640px)"
     :close-on-click-modal="!saving"
     @update:model-value="emit('update:modelValue', $event)"
+    @closed="clearValidation"
   >
     <ElForm ref="formRef" :model="form" :rules="rules" label-position="top" data-test="recurrence-form" @submit.prevent="submit">
       <ElFormItem :label="t('recurringTransactions.criteria.type')">
