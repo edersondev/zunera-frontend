@@ -10,7 +10,11 @@ const stubs = {
   },
   ElDescriptions: { template: '<dl><slot /></dl>' },
   ElDescriptionsItem: { props: ['label'], template: '<div><dt>{{ label }}</dt><dd><slot /></dd></div>' },
-  ElButton: { emits: ['click'], template: '<button type="button" @click="$emit(\'click\')"><slot /></button>' },
+  ElButton: {
+    props: ['icon', 'type'],
+    emits: ['click'],
+    template: '<button type="button" :data-type="type" @click="$emit(\'click\')"><component :is="icon" /><slot /></button>',
+  },
 }
 
 function transaction(overrides = {}) {
@@ -71,5 +75,19 @@ describe('TransactionDetailDrawer recurrence source', () => {
     )
 
     expect(wrapper.find('[data-test="transaction-recurrence-source"]').exists()).toBe(false)
+  })
+
+  it('uses the standard cancel style when closing a transfer detail', () => {
+    const wrapper = factory(
+      transaction({
+        movement_kind: 'transfer',
+        source_financial_account: { id: 1, name: 'A', status: 'active' },
+        destination_financial_account: { id: 2, name: 'B', status: 'active' },
+      }),
+    )
+    const cancel = wrapper.get('[data-test="close-transfer-detail"]')
+
+    expect(cancel.attributes('data-type')).toBe('danger')
+    expect(cancel.find('svg').exists()).toBe(true)
   })
 })

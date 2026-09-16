@@ -9,7 +9,11 @@ const stubs = {
     template: '<section v-if="modelValue" role="dialog" :aria-label="title"><slot /><slot name="footer" /></section>',
   },
   ElAlert: { props: ['title'], template: '<div class="alert">{{ title }}</div>' },
-  ElButton: { emits: ['click'], template: '<button type="button" @click="$emit(\'click\')"><slot /></button>' },
+  ElButton: {
+    props: ['icon', 'type', 'disabled'],
+    emits: ['click'],
+    template: '<button type="button" :data-type="type" :disabled="disabled" @click="$emit(\'click\')"><component :is="icon" /><slot /></button>',
+  },
 }
 
 const rule = { id: 3, description: 'Academia', paused_reason: null }
@@ -22,13 +26,29 @@ function factory(props = {}) {
 }
 
 describe('RecurringTransactionLifecycleDialog', () => {
+  it('uses the standard danger cancel action with a close icon', () => {
+    const wrapper = factory({ saving: true })
+    const cancel = wrapper.get('[data-test="recurrence-lifecycle-cancel"]')
+
+    expect(cancel.attributes('data-type')).toBe('danger')
+    expect(cancel.attributes('disabled')).toBeDefined()
+    expect(cancel.find('svg').exists()).toBe(true)
+  })
+
   it('explains that paused dates stay skipped when resuming', () => {
     const wrapper = factory({ action: 'resume' })
 
     expect(wrapper.find('[role="dialog"]').attributes('aria-label')).toBe('Retomar recorrência')
+    expect(wrapper.get('[data-test="recurrence-lifecycle-confirm"] svg').exists()).toBe(true)
     expect(wrapper.find('[data-test="recurrence-lifecycle-description"]').text()).toContain(
       'continuam ignoradas',
     )
+  })
+
+  it('shows a pause icon on the pause confirmation action', () => {
+    const wrapper = factory({ action: 'pause' })
+
+    expect(wrapper.get('[data-test="recurrence-lifecycle-confirm"] svg').exists()).toBe(true)
   })
 
   it('states that ending is permanent and keeps history', () => {

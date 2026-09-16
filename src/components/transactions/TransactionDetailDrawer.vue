@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { Close } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { formatTransactionAmount, formatTransactionDate } from '@/utils/transactions/transactionFormatters'
 import { sourceLabel } from '@/utils/recurring-transactions/recurringTransactionFormatters'
@@ -57,7 +58,15 @@ const movementDate = computed(
       </ElButton>
       <ElButton v-if="!isTransfer" data-test="edit-transaction" @click="emit('edit', transaction)">{{ t('transactions.edit') }}</ElButton>
       <ElButton v-if="!isTransfer" type="danger" data-test="remove-transaction" @click="emit('remove', transaction)">{{ t('transactions.remove') }}</ElButton>
-      <ElButton v-else type="info" data-test="close-transfer-detail" @click="emit('update:modelValue', false)">{{ t('transfers.cancel') }}</ElButton>
+      <ElButton
+        v-else
+        :icon="Close"
+        type="danger"
+        data-test="close-transfer-detail"
+        @click="emit('update:modelValue', false)"
+      >
+        {{ t('transfers.cancel') }}
+      </ElButton>
     </template>
   </ElDrawer>
 </template>

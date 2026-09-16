@@ -37,7 +37,11 @@ const stubs = {
     emits: ['update:modelValue'],
     template: '<input type="date" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
   },
-  ElButton: { emits: ['click'], template: '<button type="button" @click="$emit(\'click\')"><slot /></button>' },
+  ElButton: {
+    props: ['icon', 'type', 'disabled'],
+    emits: ['click'],
+    template: '<button type="button" :data-type="type" :disabled="disabled" @click="$emit(\'click\')"><component :is="icon" /><slot /></button>',
+  },
   ElIcon: { template: '<i><slot /></i>' },
 }
 
@@ -59,6 +63,25 @@ function factory(props = {}) {
 }
 
 describe('RecurringTransactionFormDialog', () => {
+  it('uses the standard danger cancel action with a close icon', () => {
+    const wrapper = factory({ saving: true })
+    const cancel = wrapper.get('[data-test="recurrence-cancel"]')
+
+    expect(cancel.attributes('data-type')).toBe('danger')
+    expect(cancel.attributes('disabled')).toBeDefined()
+    expect(cancel.find('svg').exists()).toBe(true)
+  })
+
+  it('uses the standard save action with a confirmation icon', () => {
+    const wrapper = factory({ saving: true })
+    const save = wrapper.get('[data-test="recurrence-save"]')
+
+    expect(save.text()).toBe('Salvar')
+    expect(save.attributes('data-type')).toBe('primary')
+    expect(save.attributes('disabled')).toBeDefined()
+    expect(save.find('svg').exists()).toBe(true)
+  })
+
   it('offers only active accounts and categories that match the type', async () => {
     const wrapper = factory()
     await nextTick()

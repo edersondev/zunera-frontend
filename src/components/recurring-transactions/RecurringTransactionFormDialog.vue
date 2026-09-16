@@ -1,5 +1,6 @@
 <script setup>
 import { computed, reactive, shallowRef, watch } from 'vue'
+import { Check, Close } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import CurrencyAmountInput from '@/components/common/CurrencyAmountInput.vue'
 import { frequencyLabel, frequencyOptions } from '@/utils/recurring-transactions/recurringTransactionFormatters'
@@ -167,11 +168,24 @@ async function submit() {
         <ElInput v-model="form.notes" type="textarea" maxlength="1000" data-test="recurrence-notes" />
       </ElFormItem>
       <div class="dialog-actions">
-        <ElButton data-test="recurrence-cancel" @click="emit('update:modelValue', false)">
+        <ElButton
+          :icon="Close"
+          type="danger"
+          :disabled="saving"
+          data-test="recurrence-cancel"
+          @click="emit('update:modelValue', false)"
+        >
           {{ t('common.cancel') }}
         </ElButton>
-        <ElButton type="primary" :loading="saving" data-test="recurrence-save" @click="submit">
-          {{ rule ? t('recurringTransactions.saveChanges') : t('recurringTransactions.create') }}
+        <ElButton
+          :icon="Check"
+          type="primary"
+          :loading="saving"
+          :disabled="saving"
+          data-test="recurrence-save"
+          @click="submit"
+        >
+          {{ t('common.save') }}
         </ElButton>
       </div>
     </ElForm>

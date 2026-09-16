@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { CircleClose, Close, VideoPause, VideoPlay } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
@@ -21,6 +22,12 @@ const titles = computed(() => ({
   resume: t('recurringTransactions.resumeTitle'),
   end: t('recurringTransactions.endTitle'),
 }))
+const actionIcon = computed(() => {
+  if (props.action === 'resume') return VideoPlay
+  if (props.action === 'end') return CircleClose
+
+  return VideoPause
+})
 </script>
 
 <template>
@@ -38,10 +45,23 @@ const titles = computed(() => ({
     </p>
     <ElAlert v-if="error" type="error" :closable="false" show-icon :title="error" data-test="recurrence-lifecycle-error" />
     <template #footer>
-      <ElButton data-test="recurrence-lifecycle-cancel" @click="emit('update:modelValue', false)">
+      <ElButton
+        :icon="Close"
+        type="danger"
+        :disabled="saving"
+        data-test="recurrence-lifecycle-cancel"
+        @click="emit('update:modelValue', false)"
+      >
         {{ t('common.cancel') }}
       </ElButton>
-      <ElButton type="primary" :loading="saving" data-test="recurrence-lifecycle-confirm" @click="emit('confirm')">
+      <ElButton
+        :icon="actionIcon"
+        type="primary"
+        :loading="saving"
+        :disabled="saving"
+        data-test="recurrence-lifecycle-confirm"
+        @click="emit('confirm')"
+      >
         {{ action === 'resume' ? t('recurringTransactions.resume') : action === 'end' ? t('recurringTransactions.end') : t('recurringTransactions.pause') }}
       </ElButton>
     </template>
