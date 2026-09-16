@@ -75,6 +75,23 @@ describe('recurringTransactionStore', () => {
     expect(service.createRecurringTransaction.mock.calls[1][1]).toBe(failedKey)
   })
 
+  it('clears form validation errors without removing a success notice', async () => {
+    const store = useRecurringTransactionStore()
+    const failure = Object.assign(new Error('Invalid'), {
+      errors: { description: ['Informe uma descrição.'] },
+    })
+    service.createRecurringTransaction.mockRejectedValueOnce(failure)
+
+    await expect(store.create({ description: '' })).rejects.toThrow('Invalid')
+    store.notice = 'recurringTransactions.created'
+
+    store.clearValidationErrors()
+
+    expect(store.error).toBeNull()
+    expect(store.validationErrors).toEqual({})
+    expect(store.notice).toBe('recurringTransactions.created')
+  })
+
   it('loads the occurrence list with the rule detail', async () => {
     const store = useRecurringTransactionStore()
     service.listRecurringTransactionOccurrences.mockResolvedValueOnce({

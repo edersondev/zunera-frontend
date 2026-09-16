@@ -1,15 +1,21 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { i18n } from '@/i18n'
 import RecurringTransactionFormDialog from '../RecurringTransactionFormDialog.vue'
+
+const clearValidate = vi.fn()
 
 const stubs = {
   ElDialog: {
     props: ['modelValue', 'title'],
     template: '<section v-if="modelValue" role="dialog" :aria-label="title"><slot /></section>',
   },
-  ElForm: { props: ['rules'], template: '<form><slot /></form>' },
+  ElForm: {
+    props: ['rules'],
+    methods: { clearValidate },
+    template: '<form><slot /></form>',
+  },
   ElFormItem: {
     props: ['label', 'error', 'prop', 'required'],
     template: '<label :data-prop="prop"><span>{{ label }}</span><slot /><small v-if="error">{{ error }}</small></label>',
@@ -63,6 +69,10 @@ function factory(props = {}) {
 }
 
 describe('RecurringTransactionFormDialog', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   it('uses the standard danger cancel action with a close icon', () => {
     const wrapper = factory({ saving: true })
     const cancel = wrapper.get('[data-test="recurrence-cancel"]')
@@ -80,6 +90,14 @@ describe('RecurringTransactionFormDialog', () => {
     expect(save.attributes('data-type')).toBe('primary')
     expect(save.attributes('disabled')).toBeDefined()
     expect(save.find('svg').exists()).toBe(true)
+  })
+
+  it('clears client validation when the dialog closes', async () => {
+    const wrapper = factory()
+
+    await wrapper.setProps({ modelValue: false })
+
+    expect(clearValidate).toHaveBeenCalledOnce()
   })
 
   it('offers only active accounts and categories that match the type', async () => {

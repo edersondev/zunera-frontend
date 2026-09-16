@@ -53,7 +53,11 @@ function blank() {
 watch(
   () => [props.modelValue, props.rule],
   () => {
-    if (!props.modelValue) return
+    if (!props.modelValue) {
+      formRef.value?.clearValidate?.()
+
+      return
+    }
     const initial = props.rule
       ? {
           type: props.rule.type,

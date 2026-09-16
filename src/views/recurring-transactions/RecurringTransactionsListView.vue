@@ -93,10 +93,17 @@ async function save(payload) {
   try {
     if (editing.value) await store.update(editing.value.id, payload)
     else await store.create(payload)
-    dialog.value = false
-    editing.value = null
+    updateDialog(false)
   } catch {
     /* Feedback comes from the store error state. */
+  }
+}
+
+function updateDialog(visible) {
+  dialog.value = visible
+  if (!visible) {
+    editing.value = null
+    store.clearValidationErrors()
   }
 }
 
@@ -183,12 +190,13 @@ async function openOccurrence(occurrence) {
     />
 
     <RecurringTransactionFormDialog
-      v-model="dialog"
+      :model-value="dialog"
       :rule="editing"
       :accounts="accountOptions"
       :categories="categoryOptions"
       :saving="store.saving"
       :errors="store.validationErrors"
+      @update:model-value="updateDialog"
       @submit="save"
     />
     <RecurringTransactionLifecycleDialog

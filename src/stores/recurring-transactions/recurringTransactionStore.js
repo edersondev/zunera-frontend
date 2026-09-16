@@ -151,6 +151,11 @@ export const useRecurringTransactionStore = defineStore('recurring-transactions'
     notice.value = null
   }
 
+  function clearValidationErrors() {
+    error.value = null
+    validationErrors.value = {}
+  }
+
   return {
     items,
     meta,
@@ -175,6 +180,7 @@ export const useRecurringTransactionStore = defineStore('recurring-transactions'
     pause,
     resume,
     end,
+    clearValidationErrors,
     clearFeedback,
   }
 })

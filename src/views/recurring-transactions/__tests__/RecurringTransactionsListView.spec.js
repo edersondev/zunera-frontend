@@ -16,6 +16,7 @@ const store = vi.hoisted(() => ({
   notice: null,
   error: null,
   setFilters: vi.fn(),
+  clearValidationErrors: vi.fn(),
   clearFeedback: vi.fn(),
 }))
 const accounts = vi.hoisted(() => ({ accounts: [], archivedAccounts: [], fetchAccounts: vi.fn() }))
@@ -46,7 +47,8 @@ const stubs = {
   RecurringTransactionList: { template: '<div />' },
   RecurringTransactionFormDialog: {
     props: ['modelValue'],
-    template: '<div v-if="modelValue" data-test="recurrence-form-dialog" />',
+    emits: ['update:modelValue'],
+    template: '<div v-if="modelValue" data-test="recurrence-form-dialog"><button data-test="close-recurrence-form" @click="$emit(\'update:modelValue\', false)" /></div>',
   },
   RecurringTransactionLifecycleDialog: { template: '<div />' },
   RecurringTransactionDetailDrawer: { template: '<div />' },
@@ -74,5 +76,16 @@ describe('RecurringTransactionsListView', () => {
 
     expect(store.clearFeedback).toHaveBeenCalledOnce()
     expect(wrapper.get('[data-test="recurrence-form-dialog"]').exists()).toBe(true)
+  })
+
+  it('clears form validation errors when the recurring form closes', async () => {
+    const wrapper = mount(RecurringTransactionsListView, { global: { plugins: [i18n], stubs } })
+    await flushPromises()
+
+    await wrapper.get('[data-test="recurrence-new"]').trigger('click')
+    await wrapper.get('[data-test="close-recurrence-form"]').trigger('click')
+
+    expect(store.clearValidationErrors).toHaveBeenCalledOnce()
+    expect(wrapper.find('[data-test="recurrence-form-dialog"]').exists()).toBe(false)
   })
 })
