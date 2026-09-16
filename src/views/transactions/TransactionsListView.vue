@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, shallowRef } from 'vue'
-import { ArrowDown, Delete, Money, Plus, Refresh, Switch } from '@element-plus/icons-vue'
+import { ArrowDown, Delete, Money, Plus, Switch } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
@@ -26,9 +26,7 @@ import {
   formatTransferRoute,
 } from '@/utils/transfers/transferFormatters'
 import {
-  nextExpectedLabel,
   sourceLabel,
-  stateLabel,
 } from '@/utils/recurring-transactions/recurringTransactionFormatters'
 
 const store = useTransactionStore()
@@ -83,7 +81,6 @@ onMounted(async () => {
   const { highlight, ...routeFilters } = route.query
   const query = {
     ...routeFilters,
-    include: 'recurring',
     per_page: Number(routeFilters.per_page ?? 50),
     view: routeFilters.view ?? 'active',
   }
@@ -172,19 +169,8 @@ async function removeTransfer() {
 }
 
 async function openDetail(row) {
-  if (row.movement_kind === 'recurring') {
-    await openRecurrenceRule(row.id)
-
-    return
-  }
-
   await store.select(row.movement_kind === 'transfer' ? row : row.id)
   detailOpen.value = true
-}
-
-async function openRecurrenceRule(ruleId) {
-  detailOpen.value = false
-  await router.push({ name: 'recurring-transactions', query: { highlight: ruleId } })
 }
 
 function edit(transaction) {
@@ -262,7 +248,7 @@ function updateDialog(visible) {
 }
 
 const clearedFilters = {
-  include: 'recurring',
+  include: undefined,
   view: 'active',
   per_page: 50,
   q: undefined,
@@ -424,18 +410,6 @@ const clearedFilters = {
             <span v-if="row.movement_kind === 'transfer'" data-test="transfer-history-label">
               {{ t('transfers.transfer') }}
             </span>
-            <template v-else-if="row.movement_kind === 'recurring'">
-              <span>{{ row.description }}</span>
-              <ElTag
-                class="source-tag ml-2"
-                effect="plain"
-                size="small"
-                :aria-label="t('recurringTransactions.title')"
-                data-test="recurring-history-label"
-              >
-                <ElIcon aria-hidden="true"><Refresh /></ElIcon>
-              </ElTag>
-            </template>
             <span v-else>{{ row.description }}</span>
             <ElTag
               v-if="row.movement_kind !== 'transfer' && row.recurrence_source"
@@ -450,11 +424,7 @@ const clearedFilters = {
         </ElTableColumn>
         <ElTableColumn :label="t('transactions.columns.date')" min-width="130">
           <template #default="{ row }">
-            {{
-              row.movement_kind === 'recurring'
-                ? nextExpectedLabel(row, t)
-                : formatTransactionDate(row.movement_date ?? row.transaction_date)
-            }}
+            {{ formatTransactionDate(row.movement_date ?? row.transaction_date) }}
           </template>
         </ElTableColumn>
         <ElTableColumn :label="t('transactions.columns.account')" min-width="150">
@@ -500,16 +470,11 @@ const clearedFilters = {
           </template>
         </ElTableColumn>
         <ElTableColumn :label="t('transactions.columns.status')" min-width="110">
-          <template #default="{ row }"
-            ><ElTag
-              v-if="row.movement_kind === 'recurring'"
-              :type="row.state === 'paused' ? 'warning' : undefined"
-              >{{ stateLabel(row, t) }}</ElTag
-            >
-            <ElTag v-else :type="row.status === 'pending' ? 'warning' : undefined">{{
+          <template #default="{ row }">
+            <ElTag :type="row.status === 'pending' ? 'warning' : undefined">{{
               t(`transactions.${row.status}`)
-            }}</ElTag></template
-          >
+            }}</ElTag>
+          </template>
         </ElTableColumn>
         <ElTableColumn width="64" align="center">
           <template #default="{ row }">
