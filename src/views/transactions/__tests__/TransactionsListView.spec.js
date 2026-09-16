@@ -185,7 +185,12 @@ describe('TransactionsListView', () => {
     const wrapper = mount(TransactionsListView, { global: stubs() })
     await flushPromises()
 
-    expect(store.setFilters).toHaveBeenCalledWith({ q: 'almoço', per_page: 25, view: 'active' })
+    expect(store.setFilters).toHaveBeenCalledWith({
+      q: 'almoço',
+      include: 'recurring',
+      per_page: 25,
+      view: 'active',
+    })
     expect(accounts.fetchAccounts).toHaveBeenCalled()
     expect(categories.fetchCategories).toHaveBeenCalledWith('active')
     expect(wrapper.get('[data-test="transaction-count"]').text()).toBe('3 transações')
@@ -272,6 +277,29 @@ describe('TransactionsListView', () => {
     expect(store.select).toHaveBeenCalledWith(2)
     expect(wrapper.get('[data-test="detail-drawer"]').text()).toContain('Hoje')
     expect(wrapper.get('[data-test="detail-drawer"]').text()).toContain('Alimentação')
+  })
+
+  it('renders recurring rules returned by financial history in descending relevant-date order', async () => {
+    store.items = [{
+      id: 8,
+      type: 'expense',
+      movement_kind: 'recurring',
+      description: 'Academia',
+      amount_centavos: 15_000,
+      frequency: 'monthly',
+      state: 'active',
+      next_expected_occurrence: '2026-10-05',
+      financial_account: { id: 1, name: 'Conta principal', status: 'active' },
+      category: { id: 2, name: 'Alimentação', status: 'active' },
+    }, row(2, 'Almoço')]
+    const wrapper = mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+
+    const rows = wrapper.findAll('.el-table__row').map((node) => node.text())
+    expect(rows).toHaveLength(2)
+    expect(rows[0]).toContain('Academia')
+    expect(wrapper.get('[data-test="recurring-history-label"] svg').exists()).toBe(true)
+    expect(rows[1]).toContain('Almoço')
   })
 
   it('labels archived associations in the history rows', async () => {
