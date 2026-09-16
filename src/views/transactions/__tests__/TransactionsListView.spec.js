@@ -26,6 +26,7 @@ const store = vi.hoisted(() => ({
   remove: vi.fn(),
   restore: vi.fn(),
   clearNotice: vi.fn(),
+  clearValidationErrors: vi.fn(),
 }))
 const transferStore = vi.hoisted(() => ({
   saving: false,
@@ -37,6 +38,7 @@ const transferStore = vi.hoisted(() => ({
   update: vi.fn(),
   remove: vi.fn(),
   select: vi.fn(),
+  clearValidationErrors: vi.fn(),
 }))
 const accounts = vi.hoisted(() => ({
   accounts: [{ id: 1, name: 'Conta principal', status: 'active', current_balance_centavos: 1_000 }],
@@ -101,16 +103,10 @@ function stubs() {
           '<div><button data-test="apply-filter" @click="$emit(\'apply\', { q: \'almoço\', type: \'expense\' })">apply</button><button data-test="clear-filter" @click="$emit(\'clear\')">clear</button></div>',
       },
       TransactionFormDialog: {
-        props: ['modelValue', 'initialType'],
-        emits: ['submit'],
+        props: ['modelValue', 'initialType', 'transfer'],
+        emits: ['submit', 'update:modelValue'],
         template:
-          '<div v-if="modelValue" data-test="form-dialog"><span data-test="form-mode">{{ initialType }}</span><button data-test="submit-unified-form" @click="$emit(\'submit\', initialType === \'transfer\' ? { kind: \'transfer\', payload: { amount_centavos: 1 } } : { kind: \'transaction\', payload: { amount_centavos: 1 } })">submit</button></div>',
-      },
-      TransferFormDialog: {
-        props: ['modelValue', 'transfer', 'accounts', 'saving', 'errors'],
-        emits: ['submit'],
-        template:
-          '<div v-if="modelValue" data-test="transfer-form-dialog"><span data-test="transfer-form-editing">{{ transfer?.id ?? "new" }}</span><button data-test="submit-transfer-form" @click="$emit(\'submit\', { amount_centavos: 1 })">submit</button></div>',
+          '<div v-if="modelValue" data-test="form-dialog"><span data-test="form-mode">{{ initialType }}</span><span data-test="form-transfer-editing">{{ transfer?.id ?? "new" }}</span><button data-test="close-unified-form" @click="$emit(\'update:modelValue\', false)">close</button><button data-test="submit-unified-form" @click="$emit(\'submit\', initialType === \'transfer\' ? { kind: \'transfer\', payload: { amount_centavos: 1 } } : { kind: \'transaction\', payload: { amount_centavos: 1 } })">submit</button></div>',
       },
       TransactionDetailDrawer: {
         props: ['modelValue', 'transaction'],
@@ -262,6 +258,19 @@ describe('TransactionsListView', () => {
     expect(routerPush).toHaveBeenCalledWith({ name: 'transfers-removed' })
   })
 
+  it('clears form validation errors when the new transaction dialog closes', async () => {
+    const wrapper = mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+    const [transactionDropdown] = wrapper.findAllComponents({ name: 'ElDropdown' })
+
+    transactionDropdown.vm.$emit('command', 'new')
+    await flushPromises()
+    await wrapper.get('[data-test="close-unified-form"]').trigger('click')
+
+    expect(store.clearValidationErrors).toHaveBeenCalledOnce()
+    expect(transferStore.clearValidationErrors).toHaveBeenCalledOnce()
+  })
+
   it('renders the newest-first order returned by the API and opens a detail view', async () => {
     store.items = [row(2, 'Hoje'), row(1, 'Ontem')]
     store.meta = { total: 2, current_page: 1, last_page: 1, per_page: 50 }
@@ -334,9 +343,10 @@ describe('TransactionsListView', () => {
     await wrapper.get('[data-test="transfer-action-edit"]').trigger('click')
     await flushPromises()
     expect(transferStore.select).toHaveBeenCalledWith(9)
-    expect(wrapper.get('[data-test="transfer-form-editing"]').text()).toBe('9')
+    expect(wrapper.get('[data-test="form-mode"]').text()).toBe('transfer')
+    expect(wrapper.get('[data-test="form-transfer-editing"]').text()).toBe('9')
 
-    await wrapper.get('[data-test="submit-transfer-form"]').trigger('click')
+    await wrapper.get('[data-test="submit-unified-form"]').trigger('click')
     await flushPromises()
     expect(transferStore.update).toHaveBeenCalledWith(9, { amount_centavos: 1 })
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import TransactionFormDialog from '../TransactionFormDialog.vue'
 import { i18n } from '@/i18n'
@@ -9,7 +9,11 @@ const stubs = {
     template:
       '<section v-if="modelValue" role="dialog" :aria-label="title"><slot /><footer><slot name="footer" /></footer></section>',
   },
-  ElForm: { props: ['rules'], template: '<form><slot /></form>' },
+  ElForm: {
+    props: ['rules'],
+    methods: { clearValidate() {} },
+    template: '<form><slot /></form>',
+  },
   ElFormItem: {
     props: ['label', 'error', 'prop', 'required'],
     template: '<label :data-prop="prop" :data-required="required"><span>{{ label }}</span><slot /><small v-if="error">{{ error }}</small></label>',
@@ -34,9 +38,9 @@ const stubs = {
   },
   ElOption: { props: ['label', 'value'], template: '<option :value="value">{{ label }}</option>' },
   ElRadioGroup: {
-    props: ['modelValue'],
+    props: ['modelValue', 'disabled'],
     emits: ['update:modelValue', 'change'],
-    template: '<fieldset :data-value="modelValue" @change="$emit(\'update:modelValue\', $event.target.value); $emit(\'change\', $event.target.value)"><slot /></fieldset>',
+    template: '<fieldset :data-value="modelValue" :disabled="disabled" @change="$emit(\'update:modelValue\', $event.target.value); $emit(\'change\', $event.target.value)"><slot /></fieldset>',
   },
   ElRadio: {
     props: ['value'],
@@ -67,6 +71,17 @@ const archivedTransaction = {
   category: { id: 7, name: 'Contas antigas', status: 'archived', classification: 'expense' },
 }
 
+const existingTransfer = {
+  id: 8,
+  source_financial_account: { id: 1, name: 'Conta corrente', status: 'active' },
+  destination_financial_account: { id: 2, name: 'Poupança', status: 'active' },
+  amount_centavos: 5000,
+  transfer_date: '2026-09-15',
+  status: 'pending',
+  description: 'Reserva',
+  notes: 'Mensal',
+}
+
 describe('TransactionFormDialog', () => {
   it('prefills every editable field and keeps an archived association selectable', async () => {
     const wrapper = mount(TransactionFormDialog, {
@@ -86,6 +101,7 @@ describe('TransactionFormDialog', () => {
       'Contas antigas (arquivada)',
     )
     expect(wrapper.get('[data-test="transaction-status"]').attributes('data-value')).toBe('effective')
+    expect(wrapper.get('[data-test="transaction-type"]').attributes('disabled')).toBeDefined()
     expect(wrapper.get('[data-test="transaction-type"]').text()).toContain('Despesa')
     expect(wrapper.get('[data-test="transaction-type"]').text()).toContain('Receita')
     expect(wrapper.get('[data-test="transaction-amount"]').element.value).toBe('1999')
@@ -125,6 +141,7 @@ describe('TransactionFormDialog', () => {
     })
 
     expect(wrapper.get('[data-test="transaction-type"]').text()).toContain('Transferência')
+    expect(wrapper.get('[data-test="transaction-type"]').attributes('disabled')).toBeUndefined()
     expect(wrapper.find('[data-test="transaction-account"]').exists()).toBe(false)
     expect(wrapper.find('[data-test="transaction-category"]').exists()).toBe(false)
     expect(wrapper.get('[data-prop="source_financial_account_id"]').attributes('data-required')).toBeDefined()
@@ -144,6 +161,44 @@ describe('TransactionFormDialog', () => {
         status: 'effective',
         description: null,
         notes: null,
+      },
+    })
+  })
+
+  it('prefills an existing transfer in the edit transaction form', async () => {
+    const wrapper = mount(TransactionFormDialog, {
+      props: {
+        modelValue: true,
+        transfer: existingTransfer,
+        accounts: [
+          existingTransfer.source_financial_account,
+          existingTransfer.destination_financial_account,
+        ],
+        categories: [],
+      },
+      global: { plugins: [i18n], stubs },
+    })
+
+    expect(wrapper.get('[role="dialog"]').attributes('aria-label')).toBe('Editar transação')
+    expect(wrapper.get('[data-test="transaction-type"]').attributes('data-value')).toBe('transfer')
+    expect(wrapper.get('[data-test="transaction-type"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('[data-test="transaction-transfer-source"]').element.value).toBe('1')
+    expect(wrapper.get('[data-test="transaction-transfer-destination"]').element.value).toBe('2')
+    expect(wrapper.get('[data-test="transaction-amount"]').element.value).toBe('5000')
+    expect(wrapper.get('[data-test="transaction-date"]').element.value).toBe('2026-09-15')
+
+    await wrapper.get('[data-test="save-transaction"]').trigger('click')
+
+    expect(wrapper.emitted('submit')[0][0]).toEqual({
+      kind: 'transfer',
+      payload: {
+        source_financial_account_id: 1,
+        destination_financial_account_id: 2,
+        amount_centavos: 5000,
+        transfer_date: '2026-09-15',
+        status: 'pending',
+        description: 'Reserva',
+        notes: 'Mensal',
       },
     })
   })
@@ -213,6 +268,22 @@ describe('TransactionFormDialog', () => {
 
     await cancel.trigger('click')
     expect(wrapper.emitted('update:modelValue')).toContainEqual([false])
+  })
+
+  it('clears validation and values when the dialog closes', async () => {
+    const wrapper = mount(TransactionFormDialog, {
+      props: { modelValue: true, accounts: [], categories: [] },
+      global: { plugins: [i18n], stubs },
+    })
+    const form = wrapper.findComponent(stubs.ElForm)
+    const clearValidate = vi.spyOn(form.vm, 'clearValidate')
+
+    await wrapper.get('[data-test="transaction-description"]').setValue('Rascunho')
+    await wrapper.setProps({ modelValue: false })
+    await wrapper.setProps({ modelValue: true })
+
+    expect(clearValidate).toHaveBeenCalledOnce()
+    expect(wrapper.get('[data-test="transaction-description"]').element.value).toBe('')
   })
 
   it('uses an icon on the save action', () => {

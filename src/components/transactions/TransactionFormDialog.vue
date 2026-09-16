@@ -12,6 +12,7 @@ import {
 const props = defineProps({
   modelValue: Boolean,
   transaction: { type: Object, default: null },
+  transfer: { type: Object, default: null },
   initialType: { type: String, default: 'expense' },
   accounts: { type: Array, required: true },
   categories: { type: Array, required: true },
@@ -22,7 +23,8 @@ const emit = defineEmits(['update:modelValue', 'submit'])
 const { t } = useI18n()
 const formRef = shallowRef(null)
 const form = reactive(blank())
-const title = computed(() => (props.transaction ? t('transactions.edit') : t('transactions.new')))
+const isEditing = computed(() => Boolean(props.transaction || props.transfer))
+const title = computed(() => (isEditing.value ? t('transactions.edit') : t('transactions.new')))
 const isTransfer = computed(() => form.type === 'transfer')
 const rules = computed(() => ({
   ...(isTransfer.value
@@ -65,9 +67,9 @@ const categoryChoices = computed(() =>
     props.transaction?.category,
   ),
 )
-const sourceChoices = computed(() => sourceSideOptions(props.accounts, null))
+const sourceChoices = computed(() => sourceSideOptions(props.accounts, props.transfer))
 const destinationChoices = computed(() =>
-  destinationSideOptions(props.accounts, null, form.source_financial_account_id),
+  destinationSideOptions(props.accounts, props.transfer, form.source_financial_account_id),
 )
 const sidesMustDiffer = computed(
   () =>
@@ -91,9 +93,15 @@ function blank() {
 }
 
 watch(
-  () => [props.modelValue, props.transaction, props.initialType],
+  () => [props.modelValue, props.transaction, props.transfer, props.initialType],
   () => {
-    if (!props.modelValue) return
+    if (!props.modelValue) {
+      Object.assign(form, blank())
+      formRef.value?.clearValidate?.()
+
+      return
+    }
+
     Object.assign(
       form,
       props.transaction
@@ -104,7 +112,19 @@ watch(
             status: props.transaction.status,
             transaction_date: props.transaction.transaction_date,
           }
-        : blank(),
+        : props.transfer
+          ? {
+              ...blank(),
+              type: 'transfer',
+              source_financial_account_id: props.transfer.source_financial_account.id,
+              destination_financial_account_id: props.transfer.destination_financial_account.id,
+              amount_centavos: props.transfer.amount_centavos,
+              transaction_date: props.transfer.transfer_date,
+              status: props.transfer.status,
+              description: props.transfer.description ?? '',
+              notes: props.transfer.notes ?? '',
+            }
+          : blank(),
     )
   },
   { immediate: true },
@@ -154,7 +174,7 @@ async function submit() {
 }
 
 function setPendingForFutureDate(date) {
-  if (!props.transaction && date > new Date().toISOString().slice(0, 10)) {
+  if (!props.transaction && !props.transfer && date > new Date().toISOString().slice(0, 10)) {
     form.status = 'pending'
   }
 }
@@ -171,7 +191,12 @@ function setPendingForFutureDate(date) {
     <ElForm ref="formRef" :model="form" :rules="rules" label-position="top" data-test="transaction-form" @submit.prevent="submit">
       <div class="form-grid">
         <ElFormItem :label="t('transactions.type')" :error="errors.type?.[0]">
-          <ElRadioGroup v-model="form.type" data-test="transaction-type" @change="onTypeChange">
+          <ElRadioGroup
+            v-model="form.type"
+            :disabled="isEditing"
+            data-test="transaction-type"
+            @change="onTypeChange"
+          >
             <ElRadio value="expense">{{ t('transactions.expense') }}</ElRadio>
             <ElRadio value="income">{{ t('transactions.income') }}</ElRadio>
             <ElRadio value="transfer">{{ t('transactions.transfer') }}</ElRadio>

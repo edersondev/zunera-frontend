@@ -152,6 +152,10 @@ export const useTransactionStore = defineStore('transactions', () => {
     lastBalanceImpact.value = []
   }
 
+  function clearValidationErrors() {
+    validationErrors.value = {}
+  }
+
   return {
     items,
     meta,
@@ -174,5 +178,6 @@ export const useTransactionStore = defineStore('transactions', () => {
     remove,
     restore,
     clearNotice,
+    clearValidationErrors,
   }
 })

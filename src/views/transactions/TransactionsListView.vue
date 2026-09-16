@@ -5,7 +5,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import TransactionFormDialog from '@/components/transactions/TransactionFormDialog.vue'
-import TransferFormDialog from '@/components/transfers/TransferFormDialog.vue'
 import TransferLifecycleConfirmDialog from '@/components/transfers/TransferLifecycleConfirmDialog.vue'
 import TransactionFilterBar from '@/components/transactions/TransactionFilterBar.vue'
 import TransactionDetailDrawer from '@/components/transactions/TransactionDetailDrawer.vue'
@@ -38,7 +37,6 @@ const router = useRouter()
 const { t } = useI18n()
 const dialog = shallowRef(false)
 const creationType = shallowRef('expense')
-const transferDialog = shallowRef(false)
 const editingTransfer = shallowRef(null)
 const transferRemoveDialog = shallowRef(false)
 const removingTransfer = shallowRef(null)
@@ -105,41 +103,28 @@ onMounted(async () => {
 async function save({ kind, payload }) {
   try {
     if (kind === 'transfer') {
-      await transferStore.create(payload)
+      if (editingTransfer.value) await transferStore.update(editingTransfer.value.id, payload)
+      else await transferStore.create(payload)
       await store.fetch()
     } else if (editing.value) await store.update(editing.value.id, payload)
     else await store.create(payload)
     dialog.value = false
     editing.value = null
-  } catch {
-    /* Feedback comes from the store error state. */
-  }
-}
-
-async function saveTransfer(payload) {
-  try {
-    if (editingTransfer.value) await transferStore.update(editingTransfer.value.id, payload)
-    else await transferStore.create(payload)
-    await store.fetch()
-    transferDialog.value = false
     editingTransfer.value = null
   } catch {
-    /* Feedback comes from the transfer store error state. */
+    /* Feedback comes from the store error state. */
   }
 }
 
 async function editTransfer(transfer) {
   try {
     editingTransfer.value = await transferStore.select(transfer.id)
-    transferDialog.value = true
+    editing.value = null
+    creationType.value = 'transfer'
+    dialog.value = true
   } catch {
     /* Feedback comes from the transfer store error state. */
   }
-}
-
-function updateTransferDialog(visible) {
-  transferDialog.value = visible
-  if (!visible) editingTransfer.value = null
 }
 
 async function updateTransferStatus(transfer, status) {
@@ -238,13 +223,19 @@ function handleTransferHeaderAction(command) {
 
 function openCreate(type) {
   editing.value = null
+  editingTransfer.value = null
   creationType.value = type
   dialog.value = true
 }
 
 function updateDialog(visible) {
   dialog.value = visible
-  if (!visible) editing.value = null
+  if (!visible) {
+    editing.value = null
+    editingTransfer.value = null
+    store.clearValidationErrors()
+    transferStore.clearValidationErrors()
+  }
 }
 
 const clearedFilters = {
@@ -486,7 +477,6 @@ const clearedFilters = {
               @update-status="updateTransferStatus"
               @remove="requestTransferRemove"
             />
-            <span v-else-if="row.movement_kind === 'recurring'" aria-hidden="true">—</span>
             <TransactionRowActions
               v-else
               :transaction="row"
@@ -517,6 +507,7 @@ const clearedFilters = {
     <TransactionFormDialog
       :model-value="dialog"
       :transaction="editing"
+      :transfer="editingTransfer"
       :initial-type="creationType"
       :accounts="accounts.accounts"
       :categories="categories.categories"
@@ -524,15 +515,6 @@ const clearedFilters = {
       :errors="{ ...store.validationErrors, ...transferStore.validationErrors }"
       @update:model-value="updateDialog"
       @submit="save"
-    />
-    <TransferFormDialog
-      :model-value="transferDialog"
-      :transfer="editingTransfer"
-      :accounts="accounts.accounts"
-      :saving="transferStore.saving"
-      :errors="transferStore.validationErrors"
-      @update:model-value="updateTransferDialog"
-      @submit="saveTransfer"
     />
     <TransferLifecycleConfirmDialog
       v-model:visible="transferRemoveDialog"
@@ -546,7 +528,6 @@ const clearedFilters = {
       :transaction="store.selected"
       @edit="edit"
       @remove="requestRemove"
-      @view-rule="openRecurrenceRule"
     />
     <TransactionRemoveDialog
       v-model:visible="removeDialog"
