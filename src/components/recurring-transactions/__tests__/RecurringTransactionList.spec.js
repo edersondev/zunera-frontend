@@ -42,15 +42,42 @@ describe('RecurringTransactionList', () => {
     expect(wrapper.text()).toContain('Nenhuma recorrência encontrada.')
   })
 
-  it('communicates type, state, next date, and amount without relying on color', async () => {
+  it('shows description, account, category, and signed amount in separate columns', async () => {
     const wrapper = await factory([rule()])
 
     const text = wrapper.text()
     expect(text).toContain('Aluguel')
-    expect(wrapper.find('[data-test="recurrence-type"]').text()).toContain('Despesa')
+    expect(wrapper.find('[data-test="recurrence-account"]').text()).toBe('Conta')
+    expect(wrapper.find('[data-test="recurrence-category"]').text()).toBe('Moradia')
     expect(text).toContain('Ativa')
     expect(text).toMatch(/05\/10\/2026/)
-    expect(text).toContain('1.200,00')
+    const amount = wrapper.find('[data-test="recurrence-amount"]')
+
+    expect(amount.text()).toContain('− R$')
+    expect(amount.text()).toContain('1.200,00')
+    expect(amount.text()).not.toContain('Despesa')
+    expect(amount.classes()).toContain('expense')
+
+    expect(wrapper.findAll('thead th').map((header) => header.text().trim())).toEqual([
+      'Descrição',
+      'Conta',
+      'Categoria',
+      'Frequência',
+      'Próxima',
+      'Situação',
+      'Valor',
+      '',
+    ])
+  })
+
+  it('uses a plus sign for income amounts', async () => {
+    const wrapper = await factory([rule({ type: 'income', amount_centavos: 3000 })])
+    const amount = wrapper.find('[data-test="recurrence-amount"]')
+
+    expect(amount.text()).toContain('+ R$')
+    expect(amount.text()).toContain('30,00')
+    expect(amount.text()).not.toContain('Receita')
+    expect(amount.classes()).toContain('income')
   })
 
   it('explains an archived association without a titled actions column', async () => {

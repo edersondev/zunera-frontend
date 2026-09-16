@@ -26,15 +26,19 @@ const { t } = useI18n()
       row-key="id"
       @row-click="emit('open', $event)"
     >
-      <ElTableColumn :label="t('recurringTransactions.columns.description')" min-width="220">
+      <ElTableColumn :label="t('recurringTransactions.columns.description')" min-width="180">
         <template #default="{ row }">
-          <div class="cell-stack">
-            <strong>{{ row.description }}</strong>
-            <span class="muted">{{ row.financial_account?.name }} · {{ row.category?.name }}</span>
-            <ElTag effect="plain" size="small" data-test="recurrence-type">
-              {{ t(`transactions.${row.type}`) }}
-            </ElTag>
-          </div>
+          <strong>{{ row.description }}</strong>
+        </template>
+      </ElTableColumn>
+      <ElTableColumn :label="t('recurringTransactions.account')" min-width="150">
+        <template #default="{ row }">
+          <span data-test="recurrence-account">{{ row.financial_account?.name }}</span>
+        </template>
+      </ElTableColumn>
+      <ElTableColumn :label="t('recurringTransactions.category')" min-width="150">
+        <template #default="{ row }">
+          <span data-test="recurrence-category">{{ row.category?.name }}</span>
         </template>
       </ElTableColumn>
       <ElTableColumn :label="t('recurringTransactions.columns.frequency')" width="120">
@@ -69,9 +73,14 @@ const { t } = useI18n()
           </span>
         </template>
       </ElTableColumn>
-      <ElTableColumn :label="t('recurringTransactions.columns.amount')" width="140">
+      <ElTableColumn :label="t('recurringTransactions.columns.amount')" min-width="180">
         <template #default="{ row }">
-          <span data-test="recurrence-amount">{{ formatRecurrenceAmount(row) }}</span>
+          <span
+            :class="row.type === 'income' ? 'income' : 'expense'"
+            data-test="recurrence-amount"
+          >
+            {{ row.type === 'income' ? '+' : '−' }} {{ formatRecurrenceAmount(row) }}
+          </span>
         </template>
       </ElTableColumn>
       <ElTableColumn width="64" align="center">
@@ -106,5 +115,15 @@ const { t } = useI18n()
 
 .load-more {
   margin-top: 16px;
+}
+
+.income {
+  color: var(--color-financial-positive);
+  font-variant-numeric: tabular-nums;
+}
+
+.expense {
+  color: var(--color-financial-negative);
+  font-variant-numeric: tabular-nums;
 }
 </style>
