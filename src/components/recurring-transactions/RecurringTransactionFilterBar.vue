@@ -1,6 +1,6 @@
 <script setup>
 import { computed, reactive, shallowRef, watch } from 'vue'
-import { Filter } from '@element-plus/icons-vue'
+import { Filter, RefreshLeft } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { frequencyOptions, stateOptions } from '@/utils/recurring-transactions/recurringTransactionFormatters'
 
@@ -70,11 +70,17 @@ function clear() {
               <ElOption v-for="option in stateOptions(t)" :key="option.value" :label="option.label" :value="option.value" />
             </ElSelect>
           </ElFormItem>
-          <div class="filter-actions">
-            <ElButton data-test="recurrence-filter-clear" @click="clear">{{ t('recurringTransactions.clear') }}</ElButton>
-            <ElButton type="primary" data-test="recurrence-filter-apply" @click="apply">{{ t('common.save') }}</ElButton>
-          </div>
         </ElForm>
+        <template #footer>
+          <div class="filter-actions">
+            <ElButton :icon="RefreshLeft" data-test="recurrence-filter-clear" @click="clear">
+              {{ t('recurringTransactions.clear') }}
+            </ElButton>
+            <ElButton :icon="Filter" type="primary" data-test="recurrence-filter-apply" @click="apply">
+              {{ t('common.save') }}
+            </ElButton>
+          </div>
+        </template>
       </ElCard>
     </ElCollapseItem>
   </ElCollapse>
