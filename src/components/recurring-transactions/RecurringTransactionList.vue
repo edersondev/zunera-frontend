@@ -6,11 +6,13 @@ import {
   nextExpectedLabel,
   stateLabel,
 } from '@/utils/recurring-transactions/recurringTransactionFormatters'
+import RecurringTransactionRowActions from './RecurringTransactionRowActions.vue'
 
 defineProps({
   rules: { type: Array, required: true },
   loading: Boolean,
   hasMore: Boolean,
+  saving: Boolean,
 })
 const emit = defineEmits(['open', 'edit', 'pause', 'resume', 'end', 'load-more'])
 const { t } = useI18n()
@@ -72,40 +74,16 @@ const { t } = useI18n()
           <span data-test="recurrence-amount">{{ formatRecurrenceAmount(row) }}</span>
         </template>
       </ElTableColumn>
-      <ElTableColumn :label="t('recurringTransactions.columns.actions')" width="280">
+      <ElTableColumn width="64" align="center">
         <template #default="{ row }">
-          <div class="row-actions">
-            <ElButton size="small" data-test="recurrence-open" @click.stop="emit('open', row)">
-              {{ t('recurringTransactions.occurrences') }}
-            </ElButton>
-            <ElButton size="small" data-test="recurrence-edit" @click.stop="emit('edit', row)">
-              {{ t('transactions.editAction') }}
-            </ElButton>
-            <ElButton
-              v-if="row.state === 'active'"
-              size="small"
-              data-test="recurrence-pause"
-              @click.stop="emit('pause', row)"
-            >
-              {{ t('recurringTransactions.pause') }}
-            </ElButton>
-            <ElButton
-              v-if="row.state === 'paused'"
-              size="small"
-              data-test="recurrence-resume"
-              @click.stop="emit('resume', row)"
-            >
-              {{ t('recurringTransactions.resume') }}
-            </ElButton>
-            <ElButton
-              v-if="row.state !== 'ended'"
-              size="small"
-              data-test="recurrence-end"
-              @click.stop="emit('end', row)"
-            >
-              {{ t('recurringTransactions.end') }}
-            </ElButton>
-          </div>
+          <RecurringTransactionRowActions
+            :rule="row"
+            :saving="saving"
+            @edit="emit('edit', $event)"
+            @pause="emit('pause', $event)"
+            @resume="emit('resume', $event)"
+            @end="emit('end', $event)"
+          />
         </template>
       </ElTableColumn>
     </ElTable>
@@ -122,12 +100,6 @@ const { t } = useI18n()
 </template>
 
 <style scoped>
-.row-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
 :deep(.el-table__body-wrapper) {
   overflow-x: auto;
 }

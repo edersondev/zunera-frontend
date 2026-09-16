@@ -53,7 +53,7 @@ describe('RecurringTransactionList', () => {
     expect(text).toContain('1.200,00')
   })
 
-  it('explains an archived association and exposes lifecycle actions', async () => {
+  it('explains an archived association without a titled actions column', async () => {
     const paused = await factory([
       rule({
         state: 'paused',
@@ -66,8 +66,8 @@ describe('RecurringTransactionList', () => {
     const text = paused.text()
     expect(text).toContain('Pausada por conta ou categoria arquivada')
     expect(text).toContain('Reassocie uma conta e categoria ativas antes de retomar.')
-    expect(text).toContain('Retomar')
     expect(text).toContain('Encerrada')
+    expect(text).not.toContain('Ações')
   })
 
   it('emits load-more only when another page exists', async () => {

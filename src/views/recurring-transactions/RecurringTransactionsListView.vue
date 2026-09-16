@@ -173,6 +173,7 @@ async function openOccurrence(occurrence) {
       :rules="store.items"
       :loading="store.loading"
       :has-more="store.hasMore"
+      :saving="store.saving"
       @open="openDetail"
       @edit="openEdit"
       @pause="(rule) => confirmLifecycle('pause', rule)"
