@@ -137,4 +137,19 @@ describe('transferStore', () => {
     expect(store.items.map((item) => item.id)).toEqual([1, 4])
     expect(store.hasMore).toBe(false)
   })
+
+  it('clears persisted feedback and balance impacts', () => {
+    const store = useTransferStore()
+    store.error = { message: 'Falha' }
+    store.validationErrors = { amount_centavos: ['Inválido'] }
+    store.notice = { message: 'Aviso' }
+    store.lastBalanceImpact = [{ id: 1 }]
+
+    store.clearFeedback()
+
+    expect(store.error).toBeNull()
+    expect(store.validationErrors).toEqual({})
+    expect(store.notice).toBeNull()
+    expect(store.lastBalanceImpact).toEqual([])
+  })
 })

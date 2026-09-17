@@ -121,4 +121,19 @@ describe('transactionStore', () => {
     expect(service.restoreTransaction).not.toHaveBeenCalled()
     expect(service.listFinancialHistory).toHaveBeenCalledTimes(1)
   })
+
+  it('clears persisted feedback and balance impacts', () => {
+    const store = useTransactionStore()
+    store.error = { message: 'Falha' }
+    store.validationErrors = { amount_centavos: ['Inválido'] }
+    store.notice = { message: 'Aviso' }
+    store.lastBalanceImpact = [{ id: 1 }]
+
+    store.clearFeedback()
+
+    expect(store.error).toBeNull()
+    expect(store.validationErrors).toEqual({})
+    expect(store.notice).toBeNull()
+    expect(store.lastBalanceImpact).toEqual([])
+  })
 })

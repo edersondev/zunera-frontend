@@ -135,6 +135,12 @@ export const useTransferStore = defineStore('transfers', () => {
     lastBalanceImpact.value = []
   }
 
+  function clearFeedback() {
+    error.value = null
+    validationErrors.value = {}
+    clearNotice()
+  }
+
   function clearValidationErrors() {
     validationErrors.value = {}
   }
@@ -160,6 +166,7 @@ export const useTransferStore = defineStore('transfers', () => {
     remove,
     restore,
     clearNotice,
+    clearFeedback,
     clearValidationErrors,
   }
 })

@@ -26,6 +26,7 @@ const store = vi.hoisted(() => ({
   remove: vi.fn(),
   restore: vi.fn(),
   clearNotice: vi.fn(),
+  clearFeedback: vi.fn(),
   clearValidationErrors: vi.fn(),
 }))
 const transferStore = vi.hoisted(() => ({
@@ -38,6 +39,7 @@ const transferStore = vi.hoisted(() => ({
   update: vi.fn(),
   remove: vi.fn(),
   select: vi.fn(),
+  clearFeedback: vi.fn(),
   clearValidationErrors: vi.fn(),
 }))
 const accounts = vi.hoisted(() => ({
@@ -196,7 +198,15 @@ describe('TransactionsListView', () => {
     expect(wrapper.get('.el-table__row').text()).toContain('Almoço')
   })
 
-  it('groups transaction and transfer actions in ordered primary dropdowns', async () => {
+  it('clears stale feedback left by removed movements before showing active history', async () => {
+    mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+
+    expect(store.clearFeedback).toHaveBeenCalledOnce()
+    expect(transferStore.clearFeedback).toHaveBeenCalledOnce()
+  })
+
+  it('keeps only transaction actions in the header dropdown', async () => {
     const wrapper = mount(TransactionsListView, { global: stubs() })
     await flushPromises()
 
@@ -211,30 +221,11 @@ describe('TransactionsListView', () => {
     expect(wrapper.get('[data-test="open-removed-transactions"]').text()).toContain('Transações removidas')
     expect(wrapper.get('[data-test="open-removed-transactions"] svg').exists()).toBe(true)
 
-    const transferTrigger = wrapper.get('[data-test="transfers-header-menu"]')
-    expect(transferTrigger.classes()).toContain('el-button--primary')
-    expect(transferTrigger.text()).toContain('Transferências')
-    expect(transferTrigger.find('svg').exists()).toBe(true)
-    expect(
-      wrapper
-        .findAll(
-          '[data-test="new-transaction"], [data-test="open-removed-transactions"], [data-test="new-transfer-from-transactions"], [data-test="open-removed-transfers-from-transactions"]',
-        )
-        .map((button) => button.attributes('data-test')),
-    ).toEqual([
-      'new-transaction',
-      'open-removed-transactions',
-      'new-transfer-from-transactions',
-      'open-removed-transfers-from-transactions',
-    ])
-    expect(wrapper.get('[data-test="new-transfer-from-transactions"]').text()).toContain(
-      'Nova transferência',
-    )
-    expect(wrapper.get('[data-test="open-removed-transfers-from-transactions"]').text()).toContain(
-      'Transferências removidas',
-    )
+    expect(wrapper.find('[data-test="transfers-header-menu"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="new-transfer-from-transactions"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="open-removed-transfers-from-transactions"]').exists()).toBe(false)
 
-    const [transactionDropdown, transferDropdown] = wrapper.findAllComponents({ name: 'ElDropdown' })
+    const [transactionDropdown] = wrapper.findAllComponents({ name: 'ElDropdown' })
     transactionDropdown.vm.$emit('command', 'new')
     await flushPromises()
     expect(wrapper.get('[data-test="form-dialog"]').exists()).toBe(true)
@@ -242,21 +233,6 @@ describe('TransactionsListView', () => {
     transactionDropdown.vm.$emit('command', 'removed')
     expect(routerPush).toHaveBeenCalledWith({ name: 'transactions-removed' })
 
-    const pushCount = routerPush.mock.calls.length
-    transferDropdown.vm.$emit('command', 'new')
-    await flushPromises()
-    expect(wrapper.get('[data-test="form-dialog"]').exists()).toBe(true)
-    expect(wrapper.get('[data-test="form-mode"]').text()).toBe('transfer')
-    expect(routerPush).toHaveBeenCalledTimes(pushCount)
-
-    await wrapper.get('[data-test="submit-unified-form"]').trigger('click')
-    await flushPromises()
-    expect(transferStore.create).toHaveBeenCalledWith({ amount_centavos: 1 })
-    expect(store.fetch).toHaveBeenCalledTimes(1)
-    expect(wrapper.find('[data-test="form-dialog"]').exists()).toBe(false)
-
-    transferDropdown.vm.$emit('command', 'removed')
-    expect(routerPush).toHaveBeenCalledWith({ name: 'transfers-removed' })
   })
 
   it('clears form validation errors when the new transaction dialog closes', async () => {

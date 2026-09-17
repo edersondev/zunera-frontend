@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, shallowRef } from 'vue'
-import { ArrowDown, Delete, Money, Plus, Refresh, Switch } from '@element-plus/icons-vue'
+import { ArrowDown, Delete, Money, Plus, Refresh } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
@@ -76,6 +76,9 @@ function impactMessage(impact) {
 }
 
 onMounted(async () => {
+  store.clearFeedback()
+  transferStore.clearFeedback()
+
   const { highlight, ...routeFilters } = route.query
   const query = {
     ...routeFilters,
@@ -215,17 +218,6 @@ function handleHeaderAction(command) {
   if (command === 'removed') router.push({ name: 'transactions-removed' })
 }
 
-function handleTransferHeaderAction(command) {
-  if (command === 'new') {
-    editingTransfer.value = null
-    openCreate('transfer')
-
-    return
-  }
-
-  if (command === 'removed') router.push({ name: 'transfers-removed' })
-}
-
 function openCreate(type) {
   editing.value = null
   editingTransfer.value = null
@@ -275,27 +267,6 @@ const clearedFilters = {
               <ElDropdownItem command="removed" data-test="open-removed-transactions">
                 <ElIcon><Delete /></ElIcon>
                 <span>{{ t('transactions.removed') }}</span>
-              </ElDropdownItem>
-            </ElDropdownMenu>
-          </template>
-        </ElDropdown>
-        <ElDropdown class="ml-4" trigger="click" @command="handleTransferHeaderAction">
-          <ElButton type="primary" :icon="Switch" data-test="transfers-header-menu">
-            {{ t('transfers.title') }}
-            <ElIcon class="transactions-menu-chevron"><ArrowDown /></ElIcon>
-          </ElButton>
-          <template #dropdown>
-            <ElDropdownMenu>
-              <ElDropdownItem command="new" data-test="new-transfer-from-transactions">
-                <ElIcon><Plus /></ElIcon>
-                <span>{{ t('transfers.new') }}</span>
-              </ElDropdownItem>
-              <ElDropdownItem
-                command="removed"
-                data-test="open-removed-transfers-from-transactions"
-              >
-                <ElIcon><Delete /></ElIcon>
-                <span>{{ t('transfers.removed') }}</span>
               </ElDropdownItem>
             </ElDropdownMenu>
           </template>
