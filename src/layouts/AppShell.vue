@@ -1,6 +1,6 @@
 <script setup>
 import { computed, shallowRef } from 'vue'
-import { Calendar, CollectionTag, House, Money, Wallet } from '@element-plus/icons-vue'
+import { Calendar, CollectionTag, Delete, House, Money, Setting, Wallet } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppNavigation from '@/components/navigation/AppNavigation.vue'
@@ -14,11 +14,36 @@ const navigationOpen = shallowRef(false)
 const { t } = useI18n()
 
 const navigationItems = computed(() => [
-  { routeName: 'protected-home', label: t('app.home'), icon: House },
-  { routeName: 'financial-accounts', label: t('app.financialAccounts'), icon: Wallet },
-  { routeName: 'categories', label: t('app.categories'), icon: CollectionTag },
-  { routeName: 'transactions', label: t('app.transactions'), icon: Money },
-  { routeName: 'recurring-transactions', label: t('recurringTransactions.nav'), icon: Calendar },
+  { id: 'protected-home', routeName: 'protected-home', label: t('app.home'), icon: House },
+  {
+    id: 'settings',
+    label: t('app.settings'),
+    icon: Setting,
+    children: [
+      {
+        routeName: 'financial-accounts',
+        activeRouteNames: ['financial-accounts', 'financial-accounts-archived'],
+        label: t('app.financialAccounts'),
+        icon: Wallet,
+      },
+      {
+        routeName: 'categories',
+        activeRouteNames: ['categories', 'categories-archived'],
+        label: t('app.categories'),
+        icon: CollectionTag,
+      },
+    ],
+  },
+  {
+    id: 'cash-flow',
+    label: t('app.cashFlow'),
+    icon: Money,
+    children: [
+      { routeName: 'transactions', label: t('app.transactions'), icon: Money },
+      { routeName: 'recurring-transactions', label: t('recurringTransactions.nav'), icon: Calendar },
+      { routeName: 'transactions-removed', label: t('app.removedTransactions'), icon: Delete },
+    ],
+  },
 ])
 
 async function navigate(routeName) {
