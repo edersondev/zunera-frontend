@@ -436,9 +436,12 @@ const clearedFilters = {
             >
               {{ formatTransferAmount(row) }} · {{ formatTransferRoute(row, t) }}
             </span>
-            <span v-else :class="row.type === 'income' ? 'income' : 'expense'">
-              {{ formatTransactionAmount(row) }} ·
-              {{ row.type === 'income' ? t('transactions.income') : t('transactions.expense') }}
+            <span
+              v-else
+              :class="row.type === 'income' ? 'income' : 'expense'"
+              data-test="transaction-history-amount"
+            >
+              {{ formatTransactionAmount(row) }}
             </span>
           </template>
         </ElTableColumn>

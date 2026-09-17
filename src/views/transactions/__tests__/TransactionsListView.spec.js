@@ -462,6 +462,20 @@ describe('TransactionsListView', () => {
     expect(wrapper.findAll('.el-table__row')[1].text()).toContain('Mercado')
   })
 
+  it('shows transaction amounts without repeating their income or expense type', async () => {
+    store.items = [row(7, 'Salário', { type: 'income' }), row(8, 'Mercado')]
+    store.meta = { total: 2, current_page: 1, last_page: 1, per_page: 50 }
+    const wrapper = mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+
+    const amounts = wrapper.findAll('[data-test="transaction-history-amount"]')
+
+    expect(amounts).toHaveLength(2)
+    expect(amounts[0].text()).toContain('+')
+    expect(amounts[1].text()).toContain('−')
+    expect(amounts.map((amount) => amount.text()).join(' ')).not.toMatch(/Receita|Despesa/)
+  })
+
   it('uses a refresh icon with an accessible recurrence source label', async () => {
     store.items = [
       row(13, 'Internet', {
