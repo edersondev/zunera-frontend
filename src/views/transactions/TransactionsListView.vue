@@ -158,6 +158,11 @@ async function openDetail(row) {
   detailOpen.value = true
 }
 
+async function viewRecurrenceRule(ruleId) {
+  detailOpen.value = false
+  await router.push({ name: 'recurring-transactions', query: { highlight: ruleId } })
+}
+
 function edit(transaction) {
   detailOpen.value = false
   editing.value = transaction
@@ -534,6 +539,7 @@ const clearedFilters = {
       :transaction="store.selected"
       @edit="edit"
       @remove="requestRemove"
+      @view-rule="viewRecurrenceRule"
     />
     <TransactionRemoveDialog
       v-model:visible="removeDialog"

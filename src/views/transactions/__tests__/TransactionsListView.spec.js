@@ -110,8 +110,9 @@ function stubs() {
       },
       TransactionDetailDrawer: {
         props: ['modelValue', 'transaction'],
+        emits: ['view-rule'],
         template:
-          '<aside v-if="modelValue" data-test="detail-drawer">{{ transaction?.description }} — {{ transaction?.category?.name }} — {{ transaction?.status }}</aside>',
+          '<aside v-if="modelValue" data-test="detail-drawer">{{ transaction?.description }} — {{ transaction?.category?.name }} — {{ transaction?.status }}<button v-if="transaction?.recurrence_source" data-test="view-recurrence-rule" @click="$emit(\'view-rule\', transaction.recurrence_source.id)" /></aside>',
       },
       TransactionRemoveDialog: {
         props: ['visible', 'transaction', 'loading'],
@@ -288,6 +289,27 @@ describe('TransactionsListView', () => {
     expect(store.select).toHaveBeenCalledWith(2)
     expect(wrapper.get('[data-test="detail-drawer"]').text()).toContain('Hoje')
     expect(wrapper.get('[data-test="detail-drawer"]').text()).toContain('Alimentação')
+  })
+
+  it('opens the source recurring transaction from a generated transaction', async () => {
+    store.items = [
+      row(61, 'Internet', {
+        recurrence_source: { id: 7, scheduled_date: '2026-10-05' },
+      }),
+    ]
+    const wrapper = mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+
+    await wrapper.get('.el-table__row').trigger('click')
+    await flushPromises()
+    await wrapper.get('[data-test="view-recurrence-rule"]').trigger('click')
+    await flushPromises()
+
+    expect(routerPush).toHaveBeenCalledWith({
+      name: 'recurring-transactions',
+      query: { highlight: 7 },
+    })
+    expect(wrapper.find('[data-test="detail-drawer"]').exists()).toBe(false)
   })
 
   it('labels archived associations in the history rows', async () => {
