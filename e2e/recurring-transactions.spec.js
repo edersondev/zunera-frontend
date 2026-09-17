@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test'
 
+import { pinLocale } from './support/locale.js'
+
+test.beforeEach(async ({ page }) => {
+  await pinLocale(page, 'pt-BR')
+})
+
 const headers = {
   'Access-Control-Allow-Origin': 'http://localhost:4173',
   'Access-Control-Allow-Credentials': 'true',
@@ -244,6 +250,12 @@ async function signIn(page) {
   await expect(page.locator('[data-test="recurring-transactions-view"]')).toBeVisible()
 }
 
+/** Row actions live behind the row-actions dropdown, so open it before choosing. */
+async function chooseRecurrenceAction(page, action) {
+  await page.locator('[data-test="recurrence-row-actions"]').first().click()
+  await page.locator(`.el-dropdown-menu:visible [data-test="${action}"]`).click()
+}
+
 /** Element Plus keeps every previously opened dropdown mounted, so scope to the open listbox. */
 async function chooseOption(page, select, name) {
   await select.click()
@@ -359,7 +371,7 @@ test('owner pauses, resumes, and ends a recurrence from the list', async ({ page
   })
   await signIn(page)
 
-  await page.locator('[data-test="recurrence-pause"]').click()
+  await chooseRecurrenceAction(page, 'recurrence-action-pause')
   await expect(page.locator('[data-test="recurrence-lifecycle-description"]')).toContainText(
     'Datas futuras deixam de gerar ocorrências',
   )
@@ -368,7 +380,7 @@ test('owner pauses, resumes, and ends a recurrence from the list', async ({ page
   await expect(page.locator('[data-test="recurrence-state"]')).toContainText('Pausada por você')
   await expect(page.locator('[data-test="recurrence-next"]')).toContainText('Sem próxima ocorrência')
 
-  await page.locator('[data-test="recurrence-resume"]').click()
+  await chooseRecurrenceAction(page, 'recurrence-action-resume')
   await expect(page.locator('[data-test="recurrence-lifecycle-description"]')).toContainText(
     'continuam ignoradas',
   )
@@ -376,11 +388,11 @@ test('owner pauses, resumes, and ends a recurrence from the list', async ({ page
   await expect(page.getByText('Recorrência retomada.')).toBeVisible()
   await expect(page.locator('[data-test="recurrence-state"]')).toContainText('Ativa')
 
-  await page.locator('[data-test="recurrence-end"]').click()
+  await chooseRecurrenceAction(page, 'recurrence-action-end')
   await page.locator('[data-test="recurrence-lifecycle-confirm"]').click()
   await expect(page.getByText('Recorrência encerrada.')).toBeVisible()
   await expect(page.locator('[data-test="recurrence-state"]')).toContainText('Encerrada')
-  await expect(page.locator('[data-test="recurrence-end"]')).toHaveCount(0)
+  await expect(page.locator('[data-test="recurrence-action-end"]')).toHaveCount(0)
 })
 
 test('owner edits future rule details without changing generated occurrence snapshots', async ({ page }) => {
@@ -399,7 +411,7 @@ test('owner edits future rule details without changing generated occurrence snap
   })
   await signIn(page)
 
-  await page.locator('[data-test="recurrence-edit"]').click()
+  await chooseRecurrenceAction(page, 'recurrence-action-edit')
   await page.locator('[data-test="recurrence-description"]').fill('Academia renovada')
   await page.locator('[data-test="recurrence-save"]').click()
 
@@ -428,9 +440,9 @@ test('archived association pauses the rule and explains the repair before resumi
     'Pausada por conta ou categoria arquivada',
   )
   await expect(page.locator('[data-test="recurrence-repair-hint"]')).toBeVisible()
-  await expect(page.locator('[data-test="recurrence-pause"]')).toHaveCount(0)
+  await expect(page.locator('[data-test="recurrence-action-pause"]')).toHaveCount(0)
 
-  await page.locator('[data-test="recurrence-resume"]').click()
+  await chooseRecurrenceAction(page, 'recurrence-action-resume')
   await expect(page.locator('[data-test="recurrence-lifecycle-repair"]')).toBeVisible()
   await page.locator('[data-test="recurrence-lifecycle-cancel"]').click()
   await expect(page.locator('[data-test="recurrence-lifecycle-description"]')).toBeHidden()
@@ -509,7 +521,7 @@ test('catch-up occurrences stay pending, identify their source, and open as ordi
   })
   await signIn(page)
 
-  await page.locator('[data-test="recurrence-open"]').click()
+  await page.locator('.el-table__row').first().click()
   await expect(page.locator('[data-test="recurrence-detail-count"]')).toContainText('2')
   await expect(page.locator('[data-test="recurrence-occurrence-status"]')).toHaveCount(2)
   await expect(page.locator('[data-test="recurrence-occurrence-status"]').first()).toContainText('Pendente')

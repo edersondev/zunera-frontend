@@ -1,5 +1,11 @@
 import { test, expect } from '@playwright/test'
 
+import { pinLocale } from './support/locale.js'
+
+test.beforeEach(async ({ page }) => {
+  await pinLocale(page, 'en')
+})
+
 test('sign-in view retains auth choices', async ({ page }) => {
   await page.goto('/login')
 

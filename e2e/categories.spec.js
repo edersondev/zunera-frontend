@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test'
 
+import { pinLocale } from './support/locale.js'
+
+test.beforeEach(async ({ page }) => {
+  await pinLocale(page, 'en')
+})
+
 test('authenticated user browses defaults and creates a personal category', async ({ page }) => {
   const categories = [category(1, 'Food', 'system'), category(2, 'Salary', 'system', 'income')]
   await mockApi(page, categories)
@@ -23,10 +29,10 @@ test('category lifecycle remains keyboard reachable at compact width', async ({ 
   await page.goto('/app/categories')
   await page.getByRole('link', { name: 'Skip to main content' }).focus()
   await expect(page.getByRole('link', { name: 'Skip to main content' })).toBeFocused()
-  await page.getByRole('button', { name: 'Archive' }).click()
+  await page.getByRole('button', { name: 'Archive', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Archive category' })
   await expect(dialog.getByText('past history stays intact')).toBeVisible()
-  await dialog.getByRole('button', { name: 'Archive category' }).click()
+  await dialog.getByRole('button', { name: 'Archive', exact: true }).click()
   await expect(page.getByText('Category archived.')).toBeVisible()
   await page.goto('/app/categories/archived')
   await expect(page.getByText('Pet care', { exact: true })).toBeVisible()

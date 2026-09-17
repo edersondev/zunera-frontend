@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test'
 
+import { pinLocale } from './support/locale.js'
+
+test.beforeEach(async ({ page }) => {
+  await pinLocale(page, 'pt-BR')
+})
+
 const headers = {
   'Access-Control-Allow-Origin': 'http://localhost:4173',
   'Access-Control-Allow-Credentials': 'true',
@@ -533,9 +539,7 @@ test('future transfer stays pending without reserving funds and refuses to becom
     amount: 50_000,
     date: future,
   })
-  await expect(dialog.locator('[data-test="transfer-pending-notice"]')).toContainText(
-    'não reservam saldo',
-  )
+  await expect(dialog.getByRole('radio', { name: 'Pendente' })).toBeChecked()
   await dialog.getByRole('button', { name: 'Salvar' }).click()
 
   const row = page.locator('.el-table__row').first()
@@ -732,22 +736,24 @@ test('mixed history labels a transfer beside income and expense without changing
   await expect(page.locator('.el-table__row')).toHaveCount(3)
 })
 
-test('transactions header opens transfer creation and removed-transfer shortcuts', async ({ page }) => {
+test('transactions header opens creation and removed history shortcuts', async ({ page }) => {
   const current = account({ id: 1, name: 'Conta corrente', balance: 500_000 })
   const savings = account({ id: 2, name: 'Poupança', balance: 100_000 })
   await mockApi(page, { accounts: [current, savings] })
   await page.goto('/app/transactions')
 
-  await chooseTransactionsHeaderAction(page, 'Transferências', 'Nova transferência')
+  await chooseTransactionsHeaderAction(page, 'Transação', 'Nova transação')
   const dialog = page.getByRole('dialog', { name: 'Nova transação' })
   await expect(dialog).toBeVisible()
+  await expect(dialog.getByRole('radio', { name: 'Transferência' })).toBeVisible()
   await expect(page).toHaveURL(/\/app\/transactions$/)
   await page.keyboard.press('Escape')
   await expect(dialog).toBeHidden()
 
   await page.goto('/app/transactions')
-  await chooseTransactionsHeaderAction(page, 'Transferências', 'Transferências removidas')
-  await expect(page.getByRole('heading', { name: 'Transferências removidas' })).toBeVisible()
+  await chooseTransactionsHeaderAction(page, 'Transação', 'Transações removidas')
+  await expect(page).toHaveURL(/\/app\/transactions\/removed/)
+  await expect(page.getByRole('heading', { name: 'Transações removidas' })).toBeVisible()
 })
 
 test('transactions history manages transfer rows without leaving the page', async ({ page }) => {
@@ -770,7 +776,7 @@ test('transactions history manages transfer rows without leaving the page', asyn
   const row = page.locator('.el-table__row').first()
   await row.locator('[data-test="transfer-row-actions"]').click()
   await chooseRowAction(page, 'Editar')
-  const dialog = page.getByRole('dialog', { name: 'Editar transferência' })
+  const dialog = page.getByRole('dialog', { name: 'Editar transação' })
   await dialog.getByLabel('Descrição').fill('Reserva revisada')
   await dialog.getByRole('button', { name: 'Salvar' }).click()
   await expect(dialog).toBeHidden()

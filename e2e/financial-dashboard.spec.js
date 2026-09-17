@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test'
 
+import { pinLocale } from './support/locale.js'
+
 const ACCOUNT = { id: 7, name: 'Conta corrente', type: 'checking', status: 'active' }
 const SAVINGS = { id: 8, name: 'Poupança', type: 'savings', status: 'active' }
 const EXPENSE_CATEGORY = {
@@ -20,7 +22,7 @@ function money(amountCentavos) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => window.localStorage.setItem('zunera.locale', 'pt-BR'))
+  await pinLocale(page, 'pt-BR')
 })
 
 test('current month opens with the current balance and realized period result', async ({

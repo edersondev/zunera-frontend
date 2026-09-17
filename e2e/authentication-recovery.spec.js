@@ -1,5 +1,11 @@
 import { test, expect } from '@playwright/test'
 
+import { pinLocale } from './support/locale.js'
+
+test.beforeEach(async ({ page }) => {
+  await pinLocale(page, 'en')
+})
+
 test('recovery and reset views expose stable recovery paths', async ({ page }) => {
   await page.goto('/forgot-password')
   await expect(page.getByRole('heading', { name: 'Recover password' })).toBeVisible()
