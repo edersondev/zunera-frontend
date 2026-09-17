@@ -14,7 +14,7 @@ const navigationOpen = shallowRef(false)
 const { t } = useI18n()
 
 const navigationItems = computed(() => [
-  { id: 'protected-home', routeName: 'protected-home', label: t('app.home'), icon: House },
+  { id: 'dashboard', routeName: 'dashboard', label: t('dashboard.title'), icon: House },
   {
     id: 'settings',
     label: t('app.settings'),

@@ -35,7 +35,7 @@ function handleAccountCommand(command) {
         :aria-label="t('app.openNavigation')"
         @click="emit('open-navigation')"
       />
-      <RouterLink class="brand" :to="{ name: 'protected-home' }">Zunera</RouterLink>
+      <RouterLink class="brand" :to="{ name: 'dashboard' }">Zunera</RouterLink>
     </div>
 
     <div class="header-end">

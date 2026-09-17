@@ -59,7 +59,7 @@ async function submit() {
 
   try {
     await sessionStore.register({ ...form })
-    await router.push({ name: 'protected-home' })
+    await router.push({ name: 'dashboard' })
   } catch (error) {
     serverError.value = error
   }

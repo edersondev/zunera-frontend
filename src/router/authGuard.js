@@ -13,7 +13,7 @@ export async function authGuard(to) {
   }
 
   if (to.meta.guestOnly && sessionStore.isAuthenticated) {
-    return { name: 'protected-home' }
+    return { name: 'dashboard' }
   }
 
   return true
