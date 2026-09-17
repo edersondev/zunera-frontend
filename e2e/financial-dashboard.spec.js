@@ -370,7 +370,7 @@ async function mockDashboard(page, { distributionFailures = 0 } = {}) {
             state: 'expected',
           },
         ],
-        meta: { from: '2026-09-18', to: '2026-10-17' },
+        meta: { from: '2026-09-17', to: '2026-10-16' },
       },
       headers: apiHeaders(),
     })

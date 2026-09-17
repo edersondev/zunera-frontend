@@ -32,7 +32,7 @@ describe('UpcomingActivityCard', () => {
 
     expect(rows).toHaveLength(2)
     expect(wrapper.get('[data-test="dashboard-upcoming-horizon"]').text()).toContain(
-      '18 de set. de 2026',
+      '17 de set. de 2026',
     )
     expect(rows[0].get('[data-test="dashboard-upcoming-source"]').text()).toBe('Transação pendente')
     expect(rows[0].get('[data-test="dashboard-upcoming-amount"]').text()).toContain('215,00')
@@ -50,7 +50,7 @@ describe('UpcomingActivityCard', () => {
 
   it('explains an empty horizon and recovers independently from failure', async () => {
     const empty = mountCard({
-      upcoming: { items: [], meta: { from: '2026-09-18', to: '2026-10-17' } },
+      upcoming: { items: [], meta: { from: '2026-09-17', to: '2026-10-16' } },
     })
     expect(empty.get('[data-test="dashboard-upcoming-empty"]').text()).toBe(
       'Nenhuma atividade esperada nos próximos 30 dias.',

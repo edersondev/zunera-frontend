@@ -132,7 +132,7 @@ export function dashboardRecentActivityFixture() {
 
 export function dashboardUpcomingActivityFixture() {
   return {
-    meta: { from: '2026-09-18', to: '2026-10-17' },
+    meta: { from: '2026-09-17', to: '2026-10-16' },
     items: [
       {
         source_kind: 'pending_transaction',
