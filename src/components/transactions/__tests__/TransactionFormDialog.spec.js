@@ -6,8 +6,9 @@ import { i18n } from '@/i18n'
 const stubs = {
   ElDialog: {
     props: ['modelValue', 'title'],
+    emits: ['closed'],
     template:
-      '<section v-if="modelValue" role="dialog" :aria-label="title"><slot /><footer><slot name="footer" /></footer></section>',
+      '<section v-if="modelValue" role="dialog" :aria-label="title"><slot /><footer><slot name="footer" /></footer><button data-test="dialog-closed" @click="$emit(\'closed\')" /></section>',
   },
   ElForm: {
     props: ['rules'],
@@ -270,17 +271,16 @@ describe('TransactionFormDialog', () => {
     expect(wrapper.emitted('update:modelValue')).toContainEqual([false])
   })
 
-  it('clears validation and values when the dialog closes', async () => {
+  it('clears validation after the dialog close transition and resets its values', async () => {
     const wrapper = mount(TransactionFormDialog, {
       props: { modelValue: true, accounts: [], categories: [] },
       global: { plugins: [i18n], stubs },
     })
-    const form = wrapper.findComponent(stubs.ElForm)
-    const clearValidate = vi.spyOn(form.vm, 'clearValidate')
-
     await wrapper.get('[data-test="transaction-description"]').setValue('Rascunho')
     await wrapper.setProps({ modelValue: false })
     await wrapper.setProps({ modelValue: true })
+    const clearValidate = vi.spyOn(wrapper.findComponent(stubs.ElForm).vm, 'clearValidate')
+    await wrapper.get('[data-test="dialog-closed"]').trigger('click')
 
     expect(clearValidate).toHaveBeenCalledOnce()
     expect(wrapper.get('[data-test="transaction-description"]').element.value).toBe('')

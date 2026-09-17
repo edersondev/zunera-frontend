@@ -92,12 +92,15 @@ function blank() {
   }
 }
 
+function clearValidation() {
+  formRef.value?.clearValidate?.()
+}
+
 watch(
   () => [props.modelValue, props.transaction, props.transfer, props.initialType],
   () => {
     if (!props.modelValue) {
       Object.assign(form, blank())
-      formRef.value?.clearValidate?.()
 
       return
     }
@@ -187,6 +190,7 @@ function setPendingForFutureDate(date) {
     width="min(92vw, 640px)"
     :close-on-click-modal="!saving"
     @update:model-value="emit('update:modelValue', $event)"
+    @closed="clearValidation"
   >
     <ElForm ref="formRef" :model="form" :rules="rules" label-position="top" data-test="transaction-form" @submit.prevent="submit">
       <div class="form-grid">

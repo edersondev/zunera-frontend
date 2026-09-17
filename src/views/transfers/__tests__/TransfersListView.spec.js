@@ -25,6 +25,7 @@ const store = vi.hoisted(() => ({
   remove: vi.fn(),
   restore: vi.fn(),
   clearNotice: vi.fn(),
+  clearValidationErrors: vi.fn(),
 }))
 const transactionStore = vi.hoisted(() => ({
   saving: false,
@@ -32,6 +33,7 @@ const transactionStore = vi.hoisted(() => ({
   validationErrors: {},
   notice: null,
   create: vi.fn(),
+  clearValidationErrors: vi.fn(),
 }))
 const accounts = vi.hoisted(() => ({
   accounts: [{ id: 1, name: 'Conta corrente', status: 'active', current_balance_centavos: 500_000 }],
@@ -87,9 +89,9 @@ function stubs() {
       },
       TransactionFormDialog: {
         props: ['modelValue', 'initialType'],
-        emits: ['submit'],
+        emits: ['submit', 'update:modelValue'],
         template:
-          '<div v-if="modelValue" data-test="unified-form-dialog"><span data-test="unified-form-mode">{{ initialType }}</span><button data-test="submit-unified-form" @click="$emit(\'submit\', { kind: \'transfer\', payload: { amount_centavos: 1 } })">submit</button></div>',
+          '<div v-if="modelValue" data-test="unified-form-dialog"><span data-test="unified-form-mode">{{ initialType }}</span><button data-test="submit-unified-form" @click="$emit(\'submit\', { kind: \'transfer\', payload: { amount_centavos: 1 } })">submit</button><button data-test="close-unified-form" @click="$emit(\'update:modelValue\', false)">close</button></div>',
       },
       TransferFormDialog: {
         props: ['modelValue', 'transfer'],
@@ -131,6 +133,8 @@ describe('TransfersListView', () => {
     store.hasMore = false
     store.saving = false
     transactionStore.saving = false
+    store.clearValidationErrors.mockClear()
+    transactionStore.clearValidationErrors.mockClear()
     transactionStore.error = null
     transactionStore.notice = null
     transactionStore.validationErrors = {}
@@ -214,6 +218,20 @@ describe('TransfersListView', () => {
     await wrapper.get('[data-test="submit-unified-form"]').trigger('click')
     await flushPromises()
     expect(store.create).toHaveBeenCalledWith({ amount_centavos: 1 })
+  })
+
+  it('clears server validation errors when the unified creation dialog closes', async () => {
+    const wrapper = mount(TransfersListView, { global: stubs() })
+    await flushPromises()
+
+    await wrapper.get('[data-test="new-transfer"]').trigger('click')
+    store.clearValidationErrors.mockClear()
+    transactionStore.clearValidationErrors.mockClear()
+    await wrapper.get('[data-test="close-unified-form"]').trigger('click')
+
+    expect(store.clearValidationErrors).toHaveBeenCalled()
+    expect(transactionStore.clearValidationErrors).toHaveBeenCalled()
+    expect(wrapper.find('[data-test="unified-form-dialog"]').exists()).toBe(false)
   })
 
   it('edits through the form dialog, toggles status directly, and removes through confirmation', async () => {

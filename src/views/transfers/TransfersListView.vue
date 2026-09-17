@@ -104,7 +104,17 @@ async function saveCreation({ kind, payload }) {
 }
 
 function openCreate() {
+  store.clearValidationErrors()
+  transactionStore.clearValidationErrors()
   creationDialog.value = true
+}
+
+function updateCreationDialog(visible) {
+  creationDialog.value = visible
+  if (!visible) {
+    store.clearValidationErrors()
+    transactionStore.clearValidationErrors()
+  }
 }
 
 async function openDetail(row) {
@@ -316,12 +326,13 @@ const clearedFilters = {
       @submit="save"
     />
     <TransactionFormDialog
-      v-model="creationDialog"
+      :model-value="creationDialog"
       initial-type="transfer"
       :accounts="accounts.accounts"
       :categories="categories.categories"
       :saving="store.saving || transactionStore.saving"
       :errors="{ ...store.validationErrors, ...transactionStore.validationErrors }"
+      @update:model-value="updateCreationDialog"
       @submit="saveCreation"
     />
     <TransferDetailDrawer
