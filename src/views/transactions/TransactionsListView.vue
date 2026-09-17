@@ -1,11 +1,10 @@
 <script setup>
 import { computed, onMounted, shallowRef } from 'vue'
-import { ArrowDown, Delete, Money, Plus, Switch } from '@element-plus/icons-vue'
+import { ArrowDown, Delete, Money, Plus, Refresh, Switch } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import TransactionFormDialog from '@/components/transactions/TransactionFormDialog.vue'
-import TransferFormDialog from '@/components/transfers/TransferFormDialog.vue'
 import TransferLifecycleConfirmDialog from '@/components/transfers/TransferLifecycleConfirmDialog.vue'
 import TransactionFilterBar from '@/components/transactions/TransactionFilterBar.vue'
 import TransactionDetailDrawer from '@/components/transactions/TransactionDetailDrawer.vue'
@@ -25,6 +24,9 @@ import {
   formatTransferAmount,
   formatTransferRoute,
 } from '@/utils/transfers/transferFormatters'
+import {
+  sourceLabel,
+} from '@/utils/recurring-transactions/recurringTransactionFormatters'
 
 const store = useTransactionStore()
 const transferStore = useTransferStore()
@@ -34,7 +36,7 @@ const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
 const dialog = shallowRef(false)
-const transferDialog = shallowRef(false)
+const creationType = shallowRef('expense')
 const editingTransfer = shallowRef(null)
 const transferRemoveDialog = shallowRef(false)
 const removingTransfer = shallowRef(null)
@@ -56,11 +58,13 @@ const activeCriteria = computed(() =>
   Object.entries(store.filters)
     .filter(
       ([key, value]) =>
-        Object.hasOwn(criteriaLabels.value, key) && value !== undefined && value !== null && value !== '',
+        Object.hasOwn(criteriaLabels.value, key) &&
+        value !== undefined &&
+        value !== null &&
+        value !== '',
     )
     .map(([key, value]) => `${criteriaLabels.value[key]}: ${value}`),
 )
-
 function formatCentavos(value) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value / 100)
 }
@@ -71,55 +75,56 @@ function impactMessage(impact) {
   return `${impact.name}: ${formatCentavos(impact.after)} (${sign}${formatCentavos(Math.abs(impact.delta))})`
 }
 
-onMounted(() => {
+onMounted(async () => {
+  const { highlight, ...routeFilters } = route.query
   const query = {
-    ...route.query,
-    per_page: Number(route.query.per_page ?? 50),
-    view: route.query.view ?? 'active',
+    ...routeFilters,
+    per_page: Number(routeFilters.per_page ?? 50),
+    view: routeFilters.view ?? 'active',
   }
 
-  return Promise.all([
-    store.setFilters(query),
-    accounts.fetchAccounts(),
-    categories.fetchCategories('active'),
-  ]).catch(() => {})
+  try {
+    await Promise.all([
+      store.setFilters(query),
+      accounts.fetchAccounts(),
+      categories.fetchCategories('active'),
+    ])
+
+    const transactionId = Number(highlight)
+    if (Number.isInteger(transactionId) && transactionId > 0) {
+      await store.select(transactionId)
+      detailOpen.value = true
+    }
+  } catch {
+    /* Feedback comes from the relevant store error state. */
+  }
 })
 
-async function save(payload) {
+async function save({ kind, payload }) {
   try {
-    if (editing.value) await store.update(editing.value.id, payload)
+    if (kind === 'transfer') {
+      if (editingTransfer.value) await transferStore.update(editingTransfer.value.id, payload)
+      else await transferStore.create(payload)
+      await store.fetch()
+    } else if (editing.value) await store.update(editing.value.id, payload)
     else await store.create(payload)
     dialog.value = false
     editing.value = null
-  } catch {
-    /* Feedback comes from the store error state. */
-  }
-}
-
-async function saveTransfer(payload) {
-  try {
-    if (editingTransfer.value) await transferStore.update(editingTransfer.value.id, payload)
-    else await transferStore.create(payload)
-    await store.fetch()
-    transferDialog.value = false
     editingTransfer.value = null
   } catch {
-    /* Feedback comes from the transfer store error state. */
+    /* Feedback comes from the store error state. */
   }
 }
 
 async function editTransfer(transfer) {
   try {
     editingTransfer.value = await transferStore.select(transfer.id)
-    transferDialog.value = true
+    editing.value = null
+    creationType.value = 'transfer'
+    dialog.value = true
   } catch {
     /* Feedback comes from the transfer store error state. */
   }
-}
-
-function updateTransferDialog(visible) {
-  transferDialog.value = visible
-  if (!visible) editingTransfer.value = null
 }
 
 async function updateTransferStatus(transfer, status) {
@@ -151,6 +156,11 @@ async function removeTransfer() {
 async function openDetail(row) {
   await store.select(row.movement_kind === 'transfer' ? row : row.id)
   detailOpen.value = true
+}
+
+async function viewRecurrenceRule(ruleId) {
+  detailOpen.value = false
+  await router.push({ name: 'recurring-transactions', query: { highlight: ruleId } })
 }
 
 function edit(transaction) {
@@ -187,7 +197,7 @@ async function remove() {
 async function applyFilters(filters) {
   const query = Object.fromEntries(
     Object.entries(filters).filter(
-      ([, value]) => value !== undefined && value !== null && value !== '',
+      ([key, value]) => key !== 'include' && value !== undefined && value !== null && value !== '',
     ),
   )
   await router.replace({ query })
@@ -197,7 +207,7 @@ async function applyFilters(filters) {
 
 function handleHeaderAction(command) {
   if (command === 'new') {
-    dialog.value = true
+    openCreate('expense')
 
     return
   }
@@ -208,7 +218,7 @@ function handleHeaderAction(command) {
 function handleTransferHeaderAction(command) {
   if (command === 'new') {
     editingTransfer.value = null
-    transferDialog.value = true
+    openCreate('transfer')
 
     return
   }
@@ -216,7 +226,25 @@ function handleTransferHeaderAction(command) {
   if (command === 'removed') router.push({ name: 'transfers-removed' })
 }
 
+function openCreate(type) {
+  editing.value = null
+  editingTransfer.value = null
+  creationType.value = type
+  dialog.value = true
+}
+
+function updateDialog(visible) {
+  dialog.value = visible
+  if (!visible) {
+    editing.value = null
+    editingTransfer.value = null
+    store.clearValidationErrors()
+    transferStore.clearValidationErrors()
+  }
+}
+
 const clearedFilters = {
+  include: undefined,
   view: 'active',
   per_page: 50,
   q: undefined,
@@ -262,7 +290,10 @@ const clearedFilters = {
                 <ElIcon><Plus /></ElIcon>
                 <span>{{ t('transfers.new') }}</span>
               </ElDropdownItem>
-              <ElDropdownItem command="removed" data-test="open-removed-transfers-from-transactions">
+              <ElDropdownItem
+                command="removed"
+                data-test="open-removed-transfers-from-transactions"
+              >
                 <ElIcon><Delete /></ElIcon>
                 <span>{{ t('transfers.removed') }}</span>
               </ElDropdownItem>
@@ -341,10 +372,14 @@ const clearedFilters = {
       data-test="history-totals"
     >
       <ElDescriptionsItem :label="t('transfers.totals.income')">
-        <span data-test="history-total-income">{{ formatCentavos(store.totals.income_centavos) }}</span>
+        <span data-test="history-total-income">{{
+          formatCentavos(store.totals.income_centavos)
+        }}</span>
       </ElDescriptionsItem>
       <ElDescriptionsItem :label="t('transfers.totals.expense')">
-        <span data-test="history-total-expense">{{ formatCentavos(store.totals.expense_centavos) }}</span>
+        <span data-test="history-total-expense">{{
+          formatCentavos(store.totals.expense_centavos)
+        }}</span>
       </ElDescriptionsItem>
       <ElDescriptionsItem :label="t('transfers.totals.result')">
         <span data-test="history-total-result">{{
@@ -362,7 +397,7 @@ const clearedFilters = {
       <ElTable
         v-loading="store.loading"
         :data="store.items"
-        row-key="id"
+        :row-key="(row) => `${row.movement_kind ?? 'transaction'}-${row.id}`"
         data-test="transaction-table"
         @row-click="openDetail"
       >
@@ -372,6 +407,21 @@ const clearedFilters = {
               {{ t('transfers.transfer') }}
             </span>
             <span v-else>{{ row.description }}</span>
+            <ElTooltip
+              v-if="row.movement_kind !== 'transfer' && row.recurrence_source"
+              :content="sourceLabel(row.recurrence_source, t)"
+            >
+              <ElTag
+                class="recurrence-source-tag"
+                :aria-label="sourceLabel(row.recurrence_source, t)"
+                data-test="transaction-recurrence-label"
+                round
+                role="img"
+                type="primary"
+              >
+                <ElIcon><Refresh /></ElIcon>
+              </ElTag>
+            </ElTooltip>
           </template>
         </ElTableColumn>
         <ElTableColumn :label="t('transactions.columns.date')" min-width="130">
@@ -387,7 +437,9 @@ const clearedFilters = {
             </span>
             <template v-else>
               {{ row.financial_account.name
-              }}<span v-if="row.financial_account.status === 'archived'"> ({{ t('transactions.archived') }})</span>
+              }}<span v-if="row.financial_account.status === 'archived'">
+                ({{ t('transactions.archived') }})</span
+              >
             </template>
           </template>
         </ElTableColumn>
@@ -398,7 +450,9 @@ const clearedFilters = {
             </span>
             <template v-else>
               {{ row.category.name
-              }}<span v-if="row.category.status === 'archived'"> ({{ t('transactions.archived') }})</span>
+              }}<span v-if="row.category.status === 'archived'">
+                ({{ t('transactions.archived') }})</span
+              >
             </template>
           </template>
         </ElTableColumn>
@@ -418,9 +472,11 @@ const clearedFilters = {
           </template>
         </ElTableColumn>
         <ElTableColumn :label="t('transactions.columns.status')" min-width="110">
-          <template #default="{ row }"
-            ><ElTag :type="row.status === 'pending' ? 'warning' : undefined">{{ t(`transactions.${row.status}`) }}</ElTag></template
-          >
+          <template #default="{ row }">
+            <ElTag :type="row.status === 'pending' ? 'warning' : undefined">{{
+              t(`transactions.${row.status}`)
+            }}</ElTag>
+          </template>
         </ElTableColumn>
         <ElTableColumn width="64" align="center">
           <template #default="{ row }">
@@ -460,22 +516,16 @@ const clearedFilters = {
       </ElButton>
     </div>
     <TransactionFormDialog
-      v-model="dialog"
+      :model-value="dialog"
       :transaction="editing"
+      :transfer="editingTransfer"
+      :initial-type="creationType"
       :accounts="accounts.accounts"
       :categories="categories.categories"
-      :saving="store.saving"
-      :errors="store.validationErrors"
+      :saving="store.saving || transferStore.saving"
+      :errors="{ ...store.validationErrors, ...transferStore.validationErrors }"
+      @update:model-value="updateDialog"
       @submit="save"
-    />
-    <TransferFormDialog
-      :model-value="transferDialog"
-      :transfer="editingTransfer"
-      :accounts="accounts.accounts"
-      :saving="transferStore.saving"
-      :errors="transferStore.validationErrors"
-      @update:model-value="updateTransferDialog"
-      @submit="saveTransfer"
     />
     <TransferLifecycleConfirmDialog
       v-model:visible="transferRemoveDialog"
@@ -489,6 +539,7 @@ const clearedFilters = {
       :transaction="store.selected"
       @edit="edit"
       @remove="requestRemove"
+      @view-rule="viewRecurrenceRule"
     />
     <TransactionRemoveDialog
       v-model:visible="removeDialog"
@@ -533,6 +584,10 @@ h2 {
 }
 .transfer {
   font-variant-numeric: tabular-nums;
+}
+.recurrence-source-tag {
+  margin-left: 6px;
+  vertical-align: middle;
 }
 .more {
   display: flex;

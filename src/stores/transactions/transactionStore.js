@@ -37,7 +37,7 @@ export const useTransactionStore = defineStore('transactions', () => {
    * transfer entries stay discriminated with both account sides.
    */
   function normalizeEntry(entry) {
-    if (entry?.movement_kind === 'transfer') return entry
+    if (entry?.movement_kind === 'transfer' || entry?.movement_kind === 'recurring') return entry
 
     return { ...entry, type: entry.movement_kind, transaction_date: entry.movement_date }
   }
@@ -152,6 +152,10 @@ export const useTransactionStore = defineStore('transactions', () => {
     lastBalanceImpact.value = []
   }
 
+  function clearValidationErrors() {
+    validationErrors.value = {}
+  }
+
   return {
     items,
     meta,
@@ -174,5 +178,6 @@ export const useTransactionStore = defineStore('transactions', () => {
     remove,
     restore,
     clearNotice,
+    clearValidationErrors,
   }
 })

@@ -52,7 +52,7 @@ const description = computed(() => {
   >
     <p v-if="description" class="dialog-description">{{ description }}</p>
     <template #footer>
-      <ElButton :icon="Close" type="danger" @click="emit('update:visible', false)">
+      <ElButton :icon="Close" type="danger" :disabled="props.loading" @click="emit('update:visible', false)">
         {{ t('common.cancel') }}
       </ElButton>
       <ElButton

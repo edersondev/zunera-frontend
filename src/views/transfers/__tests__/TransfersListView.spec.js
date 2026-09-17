@@ -25,17 +25,32 @@ const store = vi.hoisted(() => ({
   remove: vi.fn(),
   restore: vi.fn(),
   clearNotice: vi.fn(),
+  clearValidationErrors: vi.fn(),
+}))
+const transactionStore = vi.hoisted(() => ({
+  saving: false,
+  error: null,
+  validationErrors: {},
+  notice: null,
+  create: vi.fn(),
+  clearValidationErrors: vi.fn(),
 }))
 const accounts = vi.hoisted(() => ({
   accounts: [{ id: 1, name: 'Conta corrente', status: 'active', current_balance_centavos: 500_000 }],
   fetchAccounts: vi.fn(),
   fetchSummary: vi.fn(),
 }))
+const categories = vi.hoisted(() => ({
+  categories: [{ id: 3, name: 'Alimentação', classification: 'expense', status: 'active' }],
+  fetchCategories: vi.fn(),
+}))
 const route = vi.hoisted(() => ({ query: {} }))
 const routerReplace = vi.hoisted(() => vi.fn())
 const routerPush = vi.hoisted(() => vi.fn())
 
 vi.mock('@/stores/transfers/transferStore', () => ({ useTransferStore: () => store }))
+vi.mock('@/stores/transactions/transactionStore', () => ({ useTransactionStore: () => transactionStore }))
+vi.mock('@/stores/categories/categoryStore', () => ({ useCategoryStore: () => categories }))
 vi.mock('@/stores/financial-accounts/financialAccountStore', () => ({
   useFinancialAccountStore: () => accounts,
 }))
@@ -71,6 +86,12 @@ function stubs() {
         emits: ['apply', 'clear'],
         template:
           '<div><button data-test="apply-filter" @click="$emit(\'apply\', { q: \'reserva\', status: \'pending\' })">apply</button><button data-test="clear-filter" @click="$emit(\'clear\')">clear</button></div>',
+      },
+      TransactionFormDialog: {
+        props: ['modelValue', 'initialType'],
+        emits: ['submit', 'update:modelValue'],
+        template:
+          '<div v-if="modelValue" data-test="unified-form-dialog"><span data-test="unified-form-mode">{{ initialType }}</span><button data-test="submit-unified-form" @click="$emit(\'submit\', { kind: \'transfer\', payload: { amount_centavos: 1 } })">submit</button><button data-test="close-unified-form" @click="$emit(\'update:modelValue\', false)">close</button></div>',
       },
       TransferFormDialog: {
         props: ['modelValue', 'transfer'],
@@ -111,6 +132,13 @@ describe('TransfersListView', () => {
     store.lastBalanceImpact = []
     store.hasMore = false
     store.saving = false
+    transactionStore.saving = false
+    store.clearValidationErrors.mockClear()
+    transactionStore.clearValidationErrors.mockClear()
+    transactionStore.error = null
+    transactionStore.notice = null
+    transactionStore.validationErrors = {}
+    transactionStore.create.mockResolvedValue({ id: 1 })
     store.meta = { total: 0, current_page: 1, last_page: 1, per_page: 50 }
     store.filters = { view: 'active', per_page: 50 }
     store.setFilters.mockImplementation(async (value) => {
@@ -184,6 +212,26 @@ describe('TransfersListView', () => {
 
     await wrapper.get('[data-test="open-removed-transfers"]').trigger('click')
     expect(routerPush).toHaveBeenCalledWith({ name: 'transfers-removed' })
+
+    await wrapper.get('[data-test="new-transfer"]').trigger('click')
+    expect(wrapper.get('[data-test="unified-form-mode"]').text()).toBe('transfer')
+    await wrapper.get('[data-test="submit-unified-form"]').trigger('click')
+    await flushPromises()
+    expect(store.create).toHaveBeenCalledWith({ amount_centavos: 1 })
+  })
+
+  it('clears server validation errors when the unified creation dialog closes', async () => {
+    const wrapper = mount(TransfersListView, { global: stubs() })
+    await flushPromises()
+
+    await wrapper.get('[data-test="new-transfer"]').trigger('click')
+    store.clearValidationErrors.mockClear()
+    transactionStore.clearValidationErrors.mockClear()
+    await wrapper.get('[data-test="close-unified-form"]').trigger('click')
+
+    expect(store.clearValidationErrors).toHaveBeenCalled()
+    expect(transactionStore.clearValidationErrors).toHaveBeenCalled()
+    expect(wrapper.find('[data-test="unified-form-dialog"]').exists()).toBe(false)
   })
 
   it('edits through the form dialog, toggles status directly, and removes through confirmation', async () => {

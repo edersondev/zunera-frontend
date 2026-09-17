@@ -44,7 +44,7 @@ describe('transactionStore', () => {
     expect(service.createTransaction.mock.calls[1][1]).toBe(firstKey)
   })
 
-  it('normalizes income and expense history entries while keeping transfers discriminated', async () => {
+  it('normalizes transactions while keeping transfer and recurring entries discriminated', async () => {
     service.listFinancialHistory.mockResolvedValue({
       items: [
         {
@@ -66,8 +66,15 @@ describe('transactionStore', () => {
           destination_financial_account: { id: 4, name: 'Poupança', status: 'active' },
           category: null,
         },
+        {
+          movement_kind: 'recurring',
+          id: 4,
+          type: 'expense',
+          movement_date: '2026-10-05',
+          next_expected_occurrence: '2026-10-05',
+        },
       ],
-      meta: { total: 2, current_page: 1, last_page: 1, totals: { income_centavos: 500 } },
+      meta: { total: 3, current_page: 1, last_page: 1, totals: { income_centavos: 500 } },
       links: {},
     })
     const store = useTransactionStore()
@@ -77,6 +84,11 @@ describe('transactionStore', () => {
     expect(store.items[0]).toMatchObject({ type: 'income', transaction_date: '2026-09-13' })
     expect(store.items[1]).toMatchObject({ movement_kind: 'transfer' })
     expect(store.items[1].type).toBeUndefined()
+    expect(store.items[2]).toMatchObject({
+      movement_kind: 'recurring',
+      type: 'expense',
+      next_expected_occurrence: '2026-10-05',
+    })
     expect(store.totals).toEqual({ income_centavos: 500 })
   })
 

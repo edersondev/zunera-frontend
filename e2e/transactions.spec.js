@@ -275,8 +275,7 @@ function fulfillHistory(route, state) {
 
 async function fillTransactionForm(dialog, page, { type, description, amount, account, category, notes }) {
   if (type) {
-    await dialog.locator('[data-test="transaction-type"]').click()
-    await page.getByRole('option', { name: type, exact: true }).click()
+    await dialog.getByText(type, { exact: true }).click()
   }
   if (description) await dialog.getByLabel('Descrição').fill(description)
   if (amount) await dialog.getByLabel('Valor (centavos)').fill(String(amount))

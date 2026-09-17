@@ -4,11 +4,14 @@ import { Delete, Plus, Refresh } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import TransactionFormDialog from '@/components/transactions/TransactionFormDialog.vue'
 import TransferFormDialog from '@/components/transfers/TransferFormDialog.vue'
 import TransferFilterBar from '@/components/transfers/TransferFilterBar.vue'
 import TransferDetailDrawer from '@/components/transfers/TransferDetailDrawer.vue'
 import TransferLifecycleConfirmDialog from '@/components/transfers/TransferLifecycleConfirmDialog.vue'
 import TransferRowActions from '@/components/transfers/TransferRowActions.vue'
+import { useCategoryStore } from '@/stores/categories/categoryStore'
+import { useTransactionStore } from '@/stores/transactions/transactionStore'
 import { useTransferStore } from '@/stores/transfers/transferStore'
 import { useFinancialAccountStore } from '@/stores/financial-accounts/financialAccountStore'
 import {
@@ -19,11 +22,14 @@ import {
 } from '@/utils/transfers/transferFormatters'
 
 const store = useTransferStore()
+const transactionStore = useTransactionStore()
 const accounts = useFinancialAccountStore()
+const categories = useCategoryStore()
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
 const dialog = shallowRef(false)
+const creationDialog = shallowRef(false)
 const detailOpen = shallowRef(false)
 const editing = shallowRef(null)
 const confirmDialog = shallowRef(false)
@@ -61,7 +67,11 @@ onMounted(() => {
     view: route.query.view ?? 'active',
   }
 
-  return Promise.all([store.setFilters(query), accounts.fetchAccounts()]).catch(() => {})
+  return Promise.all([
+    store.setFilters(query),
+    accounts.fetchAccounts(),
+    categories.fetchCategories('active'),
+  ]).catch(() => {})
 })
 
 async function reload() {
@@ -80,6 +90,30 @@ async function save(payload) {
     editing.value = null
   } catch {
     /* Feedback comes from the store error state. */
+  }
+}
+
+async function saveCreation({ kind, payload }) {
+  try {
+    if (kind === 'transfer') await store.create(payload)
+    else await transactionStore.create(payload)
+    creationDialog.value = false
+  } catch {
+    /* Feedback comes from the relevant store error state. */
+  }
+}
+
+function openCreate() {
+  store.clearValidationErrors()
+  transactionStore.clearValidationErrors()
+  creationDialog.value = true
+}
+
+function updateCreationDialog(visible) {
+  creationDialog.value = visible
+  if (!visible) {
+    store.clearValidationErrors()
+    transactionStore.clearValidationErrors()
   }
 }
 
@@ -146,7 +180,7 @@ const clearedFilters = {
   <div>
     <PageHeader :title="t('transfers.title')" :description="t('transfers.description')">
       <template #actions>
-        <ElButton type="primary" :icon="Plus" data-test="new-transfer" @click="dialog = true">
+        <ElButton type="primary" :icon="Plus" data-test="new-transfer" @click="openCreate">
           {{ t('transfers.new') }}
         </ElButton>
         <ElButton
@@ -172,12 +206,28 @@ const clearedFilters = {
       </ElButton>
     </ElAlert>
     <ElAlert
+      v-if="transactionStore.error"
+      type="error"
+      show-icon
+      :title="transactionStore.error.message"
+      class="feedback"
+      data-test="transaction-error"
+    />
+    <ElAlert
       v-if="store.notice"
       type="warning"
       show-icon
       :title="store.notice.message"
       class="feedback"
       data-test="transfer-notice"
+    />
+    <ElAlert
+      v-if="transactionStore.notice"
+      type="warning"
+      show-icon
+      :title="transactionStore.notice.message"
+      class="feedback"
+      data-test="transaction-notice"
     />
     <ElAlert
       v-for="impact in store.lastBalanceImpact ?? []"
@@ -274,6 +324,16 @@ const clearedFilters = {
       :saving="store.saving"
       :errors="store.validationErrors"
       @submit="save"
+    />
+    <TransactionFormDialog
+      :model-value="creationDialog"
+      initial-type="transfer"
+      :accounts="accounts.accounts"
+      :categories="categories.categories"
+      :saving="store.saving || transactionStore.saving"
+      :errors="{ ...store.validationErrors, ...transactionStore.validationErrors }"
+      @update:model-value="updateCreationDialog"
+      @submit="saveCreation"
     />
     <TransferDetailDrawer
       v-model="detailOpen"

@@ -93,6 +93,12 @@ const router = createRouter({
           component: () => import('@/views/transfers/RemovedTransfersView.vue'),
           meta: { requiresAuth: true, titleKey: 'app.removedTransfers' },
         },
+        {
+          path: 'recurring-transactions',
+          name: 'recurring-transactions',
+          component: () => import('@/views/recurring-transactions/RecurringTransactionsListView.vue'),
+          meta: { requiresAuth: true, titleKey: 'recurringTransactions.title' },
+        },
       ],
     },
   ],

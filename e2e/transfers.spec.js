@@ -445,10 +445,18 @@ async function openFilters(page, collapseTestId = 'transfer-filter-collapse') {
 
 async function fillTransferForm(dialog, page, { source, destination, amount, date, status }) {
   if (source) {
-    await chooseOption(page, dialog.locator('[data-test="transfer-source"]'), source)
+    await chooseOption(
+      page,
+      dialog.locator('[data-test="transaction-transfer-source"], [data-test="transfer-source"]').first(),
+      source,
+    )
   }
   if (destination) {
-    await chooseOption(page, dialog.locator('[data-test="transfer-destination"]'), destination)
+    await chooseOption(
+      page,
+      dialog.locator('[data-test="transaction-transfer-destination"], [data-test="transfer-destination"]').first(),
+      destination,
+    )
   }
   if (amount) await dialog.getByLabel('Valor').fill(String(amount))
   if (date) {
@@ -485,7 +493,7 @@ test('owner records an effective transfer and both balances move once', async ({
 
   await expect(page.getByText('Nenhuma transferência encontrada.')).toBeVisible()
   await page.getByRole('button', { name: 'Nova transferência' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Nova transferência' })
+  const dialog = page.getByRole('dialog', { name: 'Nova transação' })
   await fillTransferForm(dialog, page, {
     source: 'Conta corrente',
     destination: 'Poupança',
@@ -517,7 +525,7 @@ test('future transfer stays pending without reserving funds and refuses to becom
   await signIn(page)
 
   await page.getByRole('button', { name: 'Nova transferência' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Nova transferência' })
+  const dialog = page.getByRole('dialog', { name: 'Nova transação' })
   const future = new Date(Date.now() + 5 * 86_400_000).toISOString().slice(0, 10)
   await fillTransferForm(dialog, page, {
     source: 'Conta corrente',
@@ -650,7 +658,7 @@ test('owner corrects, removes, and restores a transfer with an archived associat
   await expect(page.locator('.el-table__row')).toHaveCount(0)
 
   await page.locator('[data-test="back-to-transactions"]').click()
-  await expect(page.getByRole('heading', { name: 'Transações' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Transações', exact: true })).toBeVisible()
   await expect(page.locator('.el-table__row')).toHaveCount(2)
 })
 
@@ -731,7 +739,7 @@ test('transactions header opens transfer creation and removed-transfer shortcuts
   await page.goto('/app/transactions')
 
   await chooseTransactionsHeaderAction(page, 'Transferências', 'Nova transferência')
-  const dialog = page.getByRole('dialog', { name: 'Nova transferência' })
+  const dialog = page.getByRole('dialog', { name: 'Nova transação' })
   await expect(dialog).toBeVisible()
   await expect(page).toHaveURL(/\/app\/transactions$/)
   await page.keyboard.press('Escape')
@@ -812,7 +820,7 @@ test('transfer workspace stays usable at 320px, 200% zoom, dark theme, and keybo
   const trigger = page.getByRole('button', { name: 'Nova transferência' })
   await trigger.focus()
   await page.keyboard.press('Enter')
-  const dialog = page.getByRole('dialog', { name: 'Nova transferência' })
+  const dialog = page.getByRole('dialog', { name: 'Nova transação' })
   await expect(dialog).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(dialog).toBeHidden()
