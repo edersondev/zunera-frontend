@@ -8,6 +8,7 @@ import {
   restoreTransaction,
   updateTransaction,
 } from '@/services/transactionService'
+import { restoreTransfer } from '@/services/transferService'
 import { useFinancialAccountStore } from '@/stores/financial-accounts/financialAccountStore'
 
 export const useTransactionStore = defineStore('transactions', () => {
@@ -146,6 +147,11 @@ export const useTransactionStore = defineStore('transactions', () => {
   const update = (id, payload) => mutate(`update:${id}`, payload, (idempotencyKey) => updateTransaction(id, payload, idempotencyKey))
   const remove = (id) => mutate(`remove:${id}`, {}, (idempotencyKey) => removeTransaction(id, idempotencyKey))
   const restore = (id, payload) => mutate(`restore:${id}`, payload, (idempotencyKey) => restoreTransaction(id, payload, idempotencyKey))
+  const restoreHistoryEntry = (entry, payload = {}) => {
+    const restoreMovement = entry?.movement_kind === 'transfer' ? restoreTransfer : restoreTransaction
+
+    return mutate(`restore:${entry.id}`, payload, (idempotencyKey) => restoreMovement(entry.id, payload, idempotencyKey))
+  }
 
   function clearNotice() {
     notice.value = null
@@ -177,6 +183,7 @@ export const useTransactionStore = defineStore('transactions', () => {
     update,
     remove,
     restore,
+    restoreHistoryEntry,
     clearNotice,
     clearValidationErrors,
   }

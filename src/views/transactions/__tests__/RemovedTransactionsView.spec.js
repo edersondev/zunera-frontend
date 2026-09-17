@@ -10,6 +10,7 @@ const store = vi.hoisted(() => ({
   error: null,
   setFilters: vi.fn(),
   restore: vi.fn(),
+  restoreHistoryEntry: vi.fn(),
 }))
 const routerPush = vi.hoisted(() => vi.fn())
 
@@ -98,14 +99,14 @@ describe('RemovedTransactionsView', () => {
         transaction_date: '2026-09-01',
       },
     ]
-    store.restore.mockResolvedValue({ id: 4 })
+    store.restoreHistoryEntry.mockResolvedValue({ id: 4 })
     const wrapper = mount(RemovedTransactionsView, { global: stubs() })
     await flushPromises()
 
     await wrapper.get('[data-test="restore-transaction"]').trigger('click')
     await flushPromises()
 
-    expect(store.restore).toHaveBeenCalledWith(4, {})
+    expect(store.restoreHistoryEntry).toHaveBeenCalledWith(expect.objectContaining({ id: 4 }), {})
     expect(wrapper.get('[data-test="removed-feedback"]').text()).toContain(
       'Transação restaurada.',
     )
@@ -121,13 +122,35 @@ describe('RemovedTransactionsView', () => {
         transaction_date: '2026-09-01',
       },
     ]
-    store.restore.mockRejectedValue(new Error('Restore rejected.'))
+    store.restoreHistoryEntry.mockRejectedValue(new Error('Restore rejected.'))
     const wrapper = mount(RemovedTransactionsView, { global: stubs() })
     await flushPromises()
 
     await wrapper.get('[data-test="restore-transaction"]').trigger('click')
     await flushPromises()
     expect(wrapper.get('[data-test="removed-feedback"]').text()).toContain('Restore rejected.')
+  })
+
+  it('restores a removed transfer with its transfer lifecycle action', async () => {
+    store.items = [
+      {
+        id: 9,
+        movement_kind: 'transfer',
+        amount_centavos: 500,
+        movement_date: '2026-09-01',
+        source_financial_account: { name: 'Conta corrente', status: 'active' },
+        destination_financial_account: { name: 'Reserva', status: 'active' },
+      },
+    ]
+    store.restoreHistoryEntry.mockResolvedValue({ id: 9 })
+    const wrapper = mount(RemovedTransactionsView, { global: stubs() })
+    await flushPromises()
+
+    await wrapper.get('[data-test="restore-transfer"]').trigger('click')
+    await flushPromises()
+
+    expect(store.restoreHistoryEntry).toHaveBeenCalledWith(expect.objectContaining({ id: 9, movement_kind: 'transfer' }), {})
+    expect(wrapper.get('[data-test="removed-feedback"]').text()).toContain('Transferência restaurada.')
   })
 
   it('shows the empty state when no transaction was removed', async () => {

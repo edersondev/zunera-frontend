@@ -4,11 +4,15 @@ import { createPinia, setActivePinia } from 'pinia'
 vi.mock('@/services/transactionService', () => ({
   createTransaction: vi.fn(), getTransaction: vi.fn(), listFinancialHistory: vi.fn(), removeTransaction: vi.fn(), restoreTransaction: vi.fn(), updateTransaction: vi.fn(),
 }))
+vi.mock('@/services/transferService', () => ({
+  restoreTransfer: vi.fn(),
+}))
 vi.mock('@/stores/financial-accounts/financialAccountStore', () => ({
   useFinancialAccountStore: () => ({ fetchAccounts: vi.fn().mockResolvedValue(), fetchSummary: vi.fn().mockResolvedValue() }),
 }))
 
 const service = await import('@/services/transactionService')
+const transferService = await import('@/services/transferService')
 const { useTransactionStore } = await import('../transactionStore')
 
 describe('transactionStore', () => {
@@ -105,5 +109,16 @@ describe('transactionStore', () => {
     const store = useTransactionStore()
     await store.create({}); await store.update(1, {}); await store.remove(1); await store.restore(1, {})
     expect(service.listFinancialHistory).toHaveBeenCalledTimes(4)
+  })
+
+  it('restores a transfer history entry through the transfer lifecycle endpoint', async () => {
+    transferService.restoreTransfer.mockResolvedValue({ transfer: { id: 3 } })
+    const store = useTransactionStore()
+
+    await store.restoreHistoryEntry({ id: 3, movement_kind: 'transfer' })
+
+    expect(transferService.restoreTransfer).toHaveBeenCalledWith(3, {}, expect.any(String))
+    expect(service.restoreTransaction).not.toHaveBeenCalled()
+    expect(service.listFinancialHistory).toHaveBeenCalledTimes(1)
   })
 })

@@ -6,6 +6,7 @@ import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import { useTransactionStore } from '@/stores/transactions/transactionStore'
 import { formatTransactionAmount, formatTransactionDate } from '@/utils/transactions/transactionFormatters'
+import { formatTransferAmount, formatTransferLabel } from '@/utils/transfers/transferFormatters'
 
 const store = useTransactionStore()
 const router = useRouter()
@@ -14,12 +15,24 @@ const feedback = shallowRef(null)
 
 onMounted(() => store.setFilters({ view: 'removed' }).catch(() => {}))
 
-async function restore(id) {
+function isTransfer(entry) {
+  return entry.movement_kind === 'transfer'
+}
+
+function movementLabel(entry) {
+  return isTransfer(entry) ? formatTransferLabel(entry, t) : entry.description
+}
+
+function movementAmount(entry) {
+  return isTransfer(entry) ? formatTransferAmount(entry) : formatTransactionAmount(entry)
+}
+
+async function restore(entry) {
   try {
-    await store.restore(id, {})
-    feedback.value = t('transactions.restoreSuccess')
+    await store.restoreHistoryEntry(entry, {})
+    feedback.value = isTransfer(entry) ? t('transfers.restored') : t('transactions.restoreSuccess')
   } catch (error) {
-    feedback.value = error?.message ?? t('transactions.restoreFailed')
+    feedback.value = error?.message ?? (isTransfer(entry) ? t('transfers.restoreFailed') : t('transactions.restoreFailed'))
   }
 }
 </script>
@@ -36,16 +49,20 @@ async function restore(id) {
     <ElAlert v-if="store.error" type="error" show-icon :title="store.error.message" class="feedback" data-test="removed-error" />
     <ElAlert v-if="feedback" type="success" show-icon :title="feedback" class="feedback" data-test="removed-feedback" />
     <ElTable v-loading="store.loading" :data="store.items" data-test="removed-table">
-      <ElTableColumn prop="description" :label="t('transactions.columns.description')" />
+      <ElTableColumn :label="t('transactions.columns.description')">
+        <template #default="{ row }">{{ movementLabel(row) }}</template>
+      </ElTableColumn>
       <ElTableColumn :label="t('transactions.columns.amount')">
-        <template #default="{ row }">{{ formatTransactionAmount(row) }}</template>
+        <template #default="{ row }">{{ movementAmount(row) }}</template>
       </ElTableColumn>
       <ElTableColumn :label="t('transactions.columns.date')">
         <template #default="{ row }">{{ formatTransactionDate(row.movement_date ?? row.transaction_date) }}</template>
       </ElTableColumn>
       <ElTableColumn label="">
         <template #default="{ row }">
-          <ElButton data-test="restore-transaction" @click="restore(row.id)">{{ t('transactions.restore') }}</ElButton>
+          <ElButton :data-test="isTransfer(row) ? 'restore-transfer' : 'restore-transaction'" @click="restore(row)">
+            {{ t('transactions.restore') }}
+          </ElButton>
         </template>
       </ElTableColumn>
     </ElTable>
