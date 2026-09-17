@@ -45,7 +45,15 @@ const movementDate = computed(
       }}</ElDescriptionsItem>
       <ElDescriptionsItem :label="t('transactions.status')">{{ t(`transactions.${transaction.status}`) }}</ElDescriptionsItem>
       <ElDescriptionsItem v-if="recurrenceLabel" :label="t('recurringTransactions.sourceRule')">
-        <span data-test="transaction-recurrence-source">{{ recurrenceLabel }}</span>
+        <span data-test="transaction-recurrence-source">
+          <ElLink
+            data-test="view-recurrence-rule"
+            type="primary"
+            @click="emit('view-rule', recurrenceSource.id)"
+          >
+            {{ recurrenceLabel }}
+          </ElLink>
+        </span>
       </ElDescriptionsItem>
       <ElDescriptionsItem :label="t('transactions.notes')">{{ transaction.notes || t('transactions.noNotes') }}</ElDescriptionsItem>
     </ElDescriptions>
@@ -53,9 +61,6 @@ const movementDate = computed(
       {{ t('recurringTransactions.oneOccurrenceScope') }}
     </p>
     <template #footer>
-      <ElButton v-if="recurrenceSource" data-test="view-recurrence-rule" @click="emit('view-rule', recurrenceSource.id)">
-        {{ t('recurringTransactions.viewRule') }}
-      </ElButton>
       <ElButton v-if="!isTransfer" data-test="edit-transaction" @click="emit('edit', transaction)">{{ t('transactions.edit') }}</ElButton>
       <ElButton v-if="!isTransfer" type="danger" data-test="remove-transaction" @click="emit('remove', transaction)">{{ t('transactions.remove') }}</ElButton>
       <ElButton

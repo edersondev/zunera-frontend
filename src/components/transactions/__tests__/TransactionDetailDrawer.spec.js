@@ -15,6 +15,11 @@ const stubs = {
     emits: ['click'],
     template: '<button type="button" :data-type="type" @click="$emit(\'click\')"><component :is="icon" /><slot /></button>',
   },
+  ElLink: {
+    props: ['type'],
+    emits: ['click'],
+    template: '<a href="#" :data-type="type" @click.prevent="$emit(\'click\')"><slot /></a>',
+  },
 }
 
 function transaction(overrides = {}) {
@@ -56,6 +61,7 @@ describe('TransactionDetailDrawer recurrence source', () => {
     const source = wrapper.find('[data-test="transaction-recurrence-source"]')
     expect(source.text()).toContain('#7')
     expect(source.text()).toContain('14/09/2026')
+    expect(wrapper.get('[data-test="view-recurrence-rule"]').attributes('data-type')).toBe('primary')
     expect(wrapper.find('[data-test="transaction-recurrence-scope"]').text()).toBe(
       'Você está editando apenas esta ocorrência.',
     )
