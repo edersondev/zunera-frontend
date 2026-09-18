@@ -95,6 +95,7 @@ onMounted(() => {
 
     <div class="dashboard-grid">
       <FinancialSummaryCards
+        class="dashboard-summary-card"
         :summary="summary"
         :loading="summaryLoading"
         :error="summaryError"
@@ -103,6 +104,7 @@ onMounted(() => {
       />
 
       <AccountsOverviewCard
+        class="dashboard-accounts-card"
         :accounts="accounts"
         :loading="accountsLoading"
         :error="accountsError"
@@ -112,6 +114,7 @@ onMounted(() => {
       />
 
       <ExpenseDistributionCard
+        class="dashboard-distribution-card"
         :distribution="distribution"
         :loading="distributionLoading"
         :error="distributionError"
@@ -120,6 +123,7 @@ onMounted(() => {
       />
 
       <FinancialEvolutionCard
+        class="dashboard-evolution-card"
         :evolution="evolution"
         :loading="evolutionLoading"
         :error="evolutionError"
@@ -127,15 +131,8 @@ onMounted(() => {
         @retry="store.fetchEvolution()"
       />
 
-      <RecentActivityCard
-        :items="recentActivity"
-        :loading="recentActivityLoading"
-        :error="recentActivityError"
-        :locale="activeLocale"
-        @retry="store.fetchRecentActivity()"
-      />
-
       <UpcomingActivityCard
+        class="dashboard-upcoming-card"
         :upcoming="upcomingActivity"
         :loading="upcomingActivityLoading"
         :error="upcomingActivityError"
@@ -143,6 +140,14 @@ onMounted(() => {
         @retry="store.fetchUpcomingActivity()"
       />
     </div>
+
+    <RecentActivityCard
+      :items="recentActivity"
+      :loading="recentActivityLoading"
+      :error="recentActivityError"
+      :locale="activeLocale"
+      @retry="store.fetchRecentActivity()"
+    />
   </div>
 </template>
 
@@ -157,6 +162,36 @@ onMounted(() => {
   grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
   gap: 24px;
   align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    grid-template-areas:
+      'summary accounts'
+      'distribution distribution'
+      'evolution upcoming';
+  }
+
+  .dashboard-summary-card {
+    grid-area: summary;
+  }
+
+  .dashboard-accounts-card {
+    grid-area: accounts;
+  }
+
+  .dashboard-distribution-card {
+    grid-area: distribution;
+  }
+
+  .dashboard-evolution-card {
+    grid-area: evolution;
+  }
+
+  .dashboard-upcoming-card {
+    grid-area: upcoming;
+  }
 }
 
 @media (max-width: 639px) {

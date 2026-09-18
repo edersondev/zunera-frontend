@@ -84,53 +84,62 @@ function result(interval) {
       {{ t('dashboard.evolution.empty') }}
     </p>
 
-    <table v-else class="evolution-table">
-      <caption class="visually-hidden">
-        {{
-          t('dashboard.evolution.table')
-        }}
-      </caption>
-      <thead>
-        <tr>
-          <th scope="col">{{ t('dashboard.evolution.interval') }}</th>
-          <th scope="col">{{ t('dashboard.evolution.income') }}</th>
-          <th scope="col">{{ t('dashboard.evolution.expenses') }}</th>
-          <th scope="col">{{ t('dashboard.evolution.result') }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          v-for="interval in intervals"
-          :key="`${interval.from}-${interval.to}`"
-          data-test="dashboard-evolution-row"
-        >
-          <th scope="row" class="interval-cell">
-            <span>{{ interval.label }}</span>
-            <ElTag
-              v-if="interval.is_partial"
-              size="small"
-              type="warning"
-              data-test="dashboard-evolution-partial"
-            >
-              {{ t('dashboard.evolution.partial') }}
-            </ElTag>
-          </th>
-          <td class="amount-cell financial-positive" data-test="dashboard-evolution-income">
-            {{ income(interval) }}
-          </td>
-          <td class="amount-cell financial-negative" data-test="dashboard-evolution-expenses">
-            {{ expenses(interval) }}
-          </td>
-          <td
-            class="amount-cell"
-            :class="`result-${interval.result?.amount_centavos >= 0 ? 'positive' : 'negative'}`"
-            data-test="dashboard-evolution-result"
+    <div
+      v-else
+      class="evolution-table-scroll"
+      role="region"
+      :aria-label="t('dashboard.evolution.title')"
+      tabindex="0"
+      data-test="dashboard-evolution-table-scroll"
+    >
+      <table class="evolution-table">
+        <caption class="visually-hidden">
+          {{
+            t('dashboard.evolution.table')
+          }}
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">{{ t('dashboard.evolution.interval') }}</th>
+            <th scope="col">{{ t('dashboard.evolution.income') }}</th>
+            <th scope="col">{{ t('dashboard.evolution.expenses') }}</th>
+            <th scope="col">{{ t('dashboard.evolution.result') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="interval in intervals"
+            :key="`${interval.from}-${interval.to}`"
+            data-test="dashboard-evolution-row"
           >
-            {{ result(interval) }}
-          </td>
-        </tr>
-      </tbody>
-    </table>
+            <th scope="row" class="interval-cell">
+              <span>{{ interval.label }}</span>
+              <ElTag
+                v-if="interval.is_partial"
+                size="small"
+                type="warning"
+                data-test="dashboard-evolution-partial"
+              >
+                {{ t('dashboard.evolution.partial') }}
+              </ElTag>
+            </th>
+            <td class="amount-cell financial-positive" data-test="dashboard-evolution-income">
+              {{ income(interval) }}
+            </td>
+            <td class="amount-cell financial-negative" data-test="dashboard-evolution-expenses">
+              {{ expenses(interval) }}
+            </td>
+            <td
+              class="amount-cell"
+              :class="`result-${interval.result?.amount_centavos >= 0 ? 'positive' : 'negative'}`"
+              data-test="dashboard-evolution-result"
+            >
+              {{ result(interval) }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </section>
 </template>
 
@@ -169,10 +178,16 @@ function result(interval) {
 
 .evolution-table {
   width: 100%;
+  min-width: 560px;
   border-collapse: collapse;
   color: var(--color-text);
   font-size: 14px;
   line-height: 20px;
+}
+
+.evolution-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .evolution-table th,

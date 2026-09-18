@@ -73,46 +73,55 @@ function sourceLabel(item) {
       {{ t('dashboard.upcoming.empty') }}
     </p>
 
-    <table v-else class="upcoming-table">
-      <caption class="visually-hidden">
-        {{
-          t('dashboard.upcoming.title')
-        }}
-      </caption>
-      <thead>
-        <tr>
-          <th scope="col">{{ t('dashboard.upcoming.date') }}</th>
-          <th scope="col">{{ t('dashboard.upcoming.expected') }}</th>
-          <th scope="col">{{ t('dashboard.upcoming.account') }}</th>
-          <th scope="col">{{ t('dashboard.upcoming.category') }}</th>
-          <th scope="col">{{ t('dashboard.upcoming.amount') }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          v-for="item in items"
-          :key="`${item.source_kind}-${item.expected_date}-${item.description}`"
-          data-test="dashboard-upcoming-row"
-        >
-          <td data-test="dashboard-upcoming-date">
-            {{ formatDashboardDate(item.expected_date, locale) }}
-          </td>
-          <td>
-            <span class="source-kind" data-test="dashboard-upcoming-source">{{
-              sourceLabel(item)
-            }}</span>
-            <span data-test="dashboard-upcoming-description">{{ item.description }}</span>
-          </td>
-          <td>{{ item.account?.name ?? '—' }}</td>
-          <td>{{ item.category?.name ?? '—' }}</td>
-          <td class="amount-cell" data-test="dashboard-upcoming-amount">
-            {{
-              formatDashboardMovementAmount(item.amount?.amount_centavos ?? 0, item.type, locale)
-            }}
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div
+      v-else
+      class="upcoming-table-scroll"
+      role="region"
+      :aria-label="t('dashboard.upcoming.title')"
+      tabindex="0"
+      data-test="dashboard-upcoming-table-scroll"
+    >
+      <table class="upcoming-table">
+        <caption class="visually-hidden">
+          {{
+            t('dashboard.upcoming.title')
+          }}
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">{{ t('dashboard.upcoming.date') }}</th>
+            <th scope="col">{{ t('dashboard.upcoming.expected') }}</th>
+            <th scope="col">{{ t('dashboard.upcoming.account') }}</th>
+            <th scope="col">{{ t('dashboard.upcoming.category') }}</th>
+            <th scope="col">{{ t('dashboard.upcoming.amount') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="item in items"
+            :key="`${item.source_kind}-${item.expected_date}-${item.description}`"
+            data-test="dashboard-upcoming-row"
+          >
+            <td data-test="dashboard-upcoming-date">
+              {{ formatDashboardDate(item.expected_date, locale) }}
+            </td>
+            <td>
+              <span class="source-kind" data-test="dashboard-upcoming-source">{{
+                sourceLabel(item)
+              }}</span>
+              <span data-test="dashboard-upcoming-description">{{ item.description }}</span>
+            </td>
+            <td>{{ item.account?.name ?? '—' }}</td>
+            <td>{{ item.category?.name ?? '—' }}</td>
+            <td class="amount-cell" data-test="dashboard-upcoming-amount">
+              {{
+                formatDashboardMovementAmount(item.amount?.amount_centavos ?? 0, item.type, locale)
+              }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
     <p v-if="!error" class="card-note" data-test="dashboard-upcoming-note">
       {{ t('dashboard.upcoming.note') }}
@@ -156,10 +165,16 @@ function sourceLabel(item) {
 
 .upcoming-table {
   width: 100%;
+  min-width: 640px;
   border-collapse: collapse;
   color: var(--color-text);
   font-size: 14px;
   line-height: 20px;
+}
+
+.upcoming-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .upcoming-table th,

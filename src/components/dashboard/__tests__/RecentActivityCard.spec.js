@@ -53,6 +53,9 @@ describe('RecentActivityCard', () => {
       'warning',
     )
     expect(rows[2].get('[data-test="dashboard-recent-recurrence"]').text()).toBe('Recorrência #5')
+    expect(
+      wrapper.get('[data-test="dashboard-recent-table-scroll"]').get('.recent-table').exists(),
+    ).toBe(true)
   })
 
   it('states the ten item scope and links to full financial history', () => {

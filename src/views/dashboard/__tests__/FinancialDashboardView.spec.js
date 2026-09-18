@@ -127,6 +127,19 @@ describe('FinancialDashboardView', () => {
     expect(wrapper.get('[data-test="dashboard-accounts-total"]').text()).toContain('5.000,00')
     expect(wrapper.findAll('[data-test="dashboard-recent-row"]').length).toBeGreaterThan(0)
     expect(wrapper.findAll('[data-test="dashboard-upcoming-row"]').length).toBeGreaterThan(0)
+
+    const recentCard = wrapper.get('[data-test="dashboard-recent-row"]').element.closest('section')
+    const evolutionCard = wrapper
+      .get('[data-test="dashboard-evolution-row"]')
+      .element.closest('section')
+    const upcomingCard = wrapper
+      .get('[data-test="dashboard-upcoming-row"]')
+      .element.closest('section')
+
+    expect(recentCard?.previousElementSibling?.classList.contains('dashboard-grid')).toBe(true)
+    expect(wrapper.find('.dashboard-grid [data-test="dashboard-recent-row"]').exists()).toBe(false)
+    expect(evolutionCard?.classList.contains('dashboard-evolution-card')).toBe(true)
+    expect(upcomingCard?.classList.contains('dashboard-upcoming-card')).toBe(true)
   })
 
   it('keeps reliable sections usable when one section fails and retries only that section', async () => {

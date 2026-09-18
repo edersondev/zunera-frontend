@@ -36,6 +36,12 @@ describe('FinancialEvolutionCard', () => {
 
     const rows = wrapper.findAll('[data-test="dashboard-evolution-row"]')
     expect(rows).toHaveLength(2)
+    expect(
+      wrapper
+        .get('[data-test="dashboard-evolution-table-scroll"]')
+        .get('.evolution-table')
+        .exists(),
+    ).toBe(true)
     expect(rows[0].get('[data-test="dashboard-evolution-income"]').text()).toContain('3.200,00')
     expect(rows[0].get('[data-test="dashboard-evolution-result"]').text()).toContain('3.200,00')
     expect(rows[1].get('[data-test="dashboard-evolution-expenses"]').text()).toContain('1.200,00')

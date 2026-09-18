@@ -94,55 +94,66 @@ function amountLabel(movement) {
       {{ t('dashboard.recent.empty') }}
     </p>
 
-    <table v-else class="recent-table">
-      <caption class="visually-hidden">
-        {{
-          t('dashboard.recent.title')
-        }}
-      </caption>
-      <thead>
-        <tr>
-          <th scope="col">{{ t('dashboard.recent.date') }}</th>
-          <th scope="col">{{ t('dashboard.recent.description') }}</th>
-          <th scope="col">{{ t('dashboard.recent.category') }}</th>
-          <th scope="col">{{ t('dashboard.recent.account') }}</th>
-          <th scope="col">{{ t('dashboard.recent.amount') }}</th>
-          <th scope="col">{{ t('dashboard.recent.status') }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          v-for="movement in movements"
-          :key="`${movement.movement_kind}-${movement.id}`"
-          data-test="dashboard-recent-row"
-        >
-          <td data-test="dashboard-recent-date">
-            {{ formatDashboardDate(movement.movement_date, locale) }}
-          </td>
-          <td>
-            <span class="movement-kind">{{ movementKindLabel(movement.movement_kind) }}</span>
-            <span data-test="dashboard-recent-description">{{ movement.description || '—' }}</span>
-            <span
-              v-if="movement.recurrence_source"
-              class="recurrence-source"
-              data-test="dashboard-recent-recurrence"
-            >
-              {{ t('dashboard.recent.recurrenceSource', { id: movement.recurrence_source.id }) }}
-            </span>
-          </td>
-          <td data-test="dashboard-recent-category">{{ categoryLabel(movement) }}</td>
-          <td data-test="dashboard-recent-account">{{ accountLabel(movement) }}</td>
-          <td class="amount-cell" data-test="dashboard-recent-amount">
-            {{ amountLabel(movement) }}
-          </td>
-          <td data-test="dashboard-recent-status">
-            <ElTag :type="movement.status === 'pending' ? 'warning' : 'info'" size="small">
-              {{ statusLabel(movement.status) }}
-            </ElTag>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div
+      v-else
+      class="recent-table-scroll"
+      role="region"
+      :aria-label="t('dashboard.recent.title')"
+      tabindex="0"
+      data-test="dashboard-recent-table-scroll"
+    >
+      <table class="recent-table">
+        <caption class="visually-hidden">
+          {{
+            t('dashboard.recent.title')
+          }}
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">{{ t('dashboard.recent.date') }}</th>
+            <th scope="col">{{ t('dashboard.recent.description') }}</th>
+            <th scope="col">{{ t('dashboard.recent.category') }}</th>
+            <th scope="col">{{ t('dashboard.recent.account') }}</th>
+            <th scope="col">{{ t('dashboard.recent.amount') }}</th>
+            <th scope="col">{{ t('dashboard.recent.status') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="movement in movements"
+            :key="`${movement.movement_kind}-${movement.id}`"
+            data-test="dashboard-recent-row"
+          >
+            <td data-test="dashboard-recent-date">
+              {{ formatDashboardDate(movement.movement_date, locale) }}
+            </td>
+            <td>
+              <span class="movement-kind">{{ movementKindLabel(movement.movement_kind) }}</span>
+              <span data-test="dashboard-recent-description">{{
+                movement.description || '—'
+              }}</span>
+              <span
+                v-if="movement.recurrence_source"
+                class="recurrence-source"
+                data-test="dashboard-recent-recurrence"
+              >
+                {{ t('dashboard.recent.recurrenceSource', { id: movement.recurrence_source.id }) }}
+              </span>
+            </td>
+            <td data-test="dashboard-recent-category">{{ categoryLabel(movement) }}</td>
+            <td data-test="dashboard-recent-account">{{ accountLabel(movement) }}</td>
+            <td class="amount-cell" data-test="dashboard-recent-amount">
+              {{ amountLabel(movement) }}
+            </td>
+            <td data-test="dashboard-recent-status">
+              <ElTag :type="movement.status === 'pending' ? 'warning' : 'info'" size="small">
+                {{ statusLabel(movement.status) }}
+              </ElTag>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
     <RouterLink
       class="history-link"
@@ -189,10 +200,16 @@ function amountLabel(movement) {
 
 .recent-table {
   width: 100%;
+  min-width: 720px;
   border-collapse: collapse;
   color: var(--color-text);
   font-size: 14px;
   line-height: 20px;
+}
+
+.recent-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .recent-table th,

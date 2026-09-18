@@ -38,6 +38,9 @@ describe('UpcomingActivityCard', () => {
     expect(rows[0].get('[data-test="dashboard-upcoming-amount"]').text()).toContain('215,00')
     expect(rows[1].get('[data-test="dashboard-upcoming-source"]').text()).toBe('Recorrência')
     expect(rows[1].get('[data-test="dashboard-upcoming-amount"]').text()).toContain('2.500,00')
+    expect(
+      wrapper.get('[data-test="dashboard-upcoming-table-scroll"]').get('.upcoming-table').exists(),
+    ).toBe(true)
   })
 
   it('never lets expected values read as realized results', () => {
