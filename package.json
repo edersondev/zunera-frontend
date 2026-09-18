@@ -16,13 +16,15 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
+    "apexcharts": "^7.4.0",
     "axios": "^1.19.0",
     "element-plus": "^2.14.5",
     "maska": "^3.2.1",
     "pinia": "^4.0.2",
     "vue": "^3.5.40",
     "vue-i18n": "^11.4.8",
-    "vue-router": "^5.2.0"
+    "vue-router": "^5.2.0",
+    "vue3-apexcharts": "^1.11.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

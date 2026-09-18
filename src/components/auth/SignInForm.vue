@@ -46,7 +46,7 @@ async function submit() {
   try {
     await sessionStore.login({ ...form })
     form.password = ''
-    await router.push(route.query.redirect?.toString() || { name: 'protected-home' })
+    await router.push(route.query.redirect?.toString() || { name: 'dashboard' })
   } catch (error) {
     form.password = ''
     serverError.value = error

@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test'
 
+import { pinLocale } from './support/locale.js'
+
+test.beforeEach(async ({ page }) => {
+  await pinLocale(page, 'en')
+})
+
 test('authenticated user creates and sees an active account', async ({ page }) => {
   let createPayload = null
   await mockApi(page, {
@@ -35,16 +41,16 @@ test('authenticated user creates and sees an active account', async ({ page }) =
   await createDialog.getByLabel('Financial institution (optional)').fill('Nubank')
   const openingBalance = createDialog.getByLabel('Opening balance')
   await openingBalance.pressSequentially('2032')
-  await expect(openingBalance).toHaveValue('20,32')
+  await expect(openingBalance).toHaveValue('20.32')
   await createDialog.getByRole('button', { name: 'Create account' }).click()
 
   await expect(page.getByText('Financial account created.')).toBeVisible()
   await expect(page.locator('.feedback')).toHaveCSS('background-color', 'rgb(21, 58, 39)')
   await expect(page.getByRole('button', { name: 'Conta principal' })).toBeVisible()
-  await expect(page.getByText('R$ 20,32').first()).toBeVisible()
+  await expect(page.getByText('R$20.32').first()).toBeVisible()
   expect(createPayload.initial_balance_centavos).toBe(2_032)
 
-  await page.getByRole('button', { name: 'Archive' }).click()
+  await page.getByRole('button', { name: 'Archive', exact: true }).click()
   const archiveDialog = page.getByRole('dialog', { name: 'Archive account' })
   const archiveButton = archiveDialog.getByRole('button', { name: 'Archive account' })
   await expect(archiveButton).toHaveCSS('background-color', 'rgb(251, 191, 36)')
@@ -79,7 +85,7 @@ test('owner archives and restores an account with isolated state', async ({ page
   await mockApi(page, { accounts: [active, archived], archived, activeAccount: active })
 
   await page.goto('/app/financial-accounts')
-  await page.getByRole('button', { name: 'Archive' }).click()
+  await page.getByRole('button', { name: 'Archive', exact: true }).click()
 
   const dialog = page.getByRole('dialog')
   await expect(dialog.getByText('Conta corrente')).toBeVisible()

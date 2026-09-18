@@ -41,9 +41,9 @@ const router = createRouter({
       children: [
         {
           path: '',
-          name: 'protected-home',
-          component: () => import('@/views/ProtectedHomeView.vue'),
-          meta: { requiresAuth: true, titleKey: 'app.accountReady' },
+          name: 'dashboard',
+          component: () => import('@/views/dashboard/FinancialDashboardView.vue'),
+          meta: { requiresAuth: true, titleKey: 'dashboard.title' },
         },
         {
           path: 'financial-accounts',

@@ -1,9 +1,24 @@
 import { expect, test } from '@playwright/test'
 
+import { pinLocale } from './support/locale.js'
+
+test.beforeEach(async ({ page }) => {
+  await pinLocale(page, 'pt-BR')
+})
+
 const headers = {
   'Access-Control-Allow-Origin': 'http://localhost:4173',
   'Access-Control-Allow-Credentials': 'true',
   'Content-Type': 'application/json',
+}
+
+/** The filter form lives inside a collapsed panel, so open it before interacting. */
+async function openTransactionFilters(page) {
+  const header = page.locator('[data-test="transaction-filter-collapse"] .el-collapse-item__header')
+
+  if (!(await page.getByLabel('Buscar').isVisible().catch(() => false))) {
+    await header.click()
+  }
 }
 
 function transaction({
@@ -291,7 +306,7 @@ async function fillTransactionForm(dialog, page, { type, description, amount, ac
 }
 
 async function chooseTransactionHeaderAction(page, name) {
-  await page.getByRole('button', { name: 'Transação' }).click()
+  await page.getByRole('button', { name: 'Transação', exact: true }).click()
   await page.locator('.el-dropdown-menu:visible').getByRole('menuitem', { name, exact: true }).click()
 }
 
@@ -317,7 +332,7 @@ test('signed-in user records income and expense and sees the balance impact', as
   await dialog.getByRole('button', { name: 'Salvar' }).click()
 
   await expect(page.getByText('Salário setembro')).toBeVisible()
-  await expect(page.locator('.income')).toContainText('Receita')
+  await expect(page.locator('.income')).toHaveText('+ R$ 250,00')
   await expect(page.locator('[data-test="balance-impact"]')).toContainText('R$ 350,00')
 
   await chooseTransactionHeaderAction(page, 'Nova transação')
@@ -330,7 +345,7 @@ test('signed-in user records income and expense and sees the balance impact', as
   await dialog.getByRole('button', { name: 'Salvar' }).click()
 
   await expect(page.getByText('Almoço')).toBeVisible()
-  await expect(page.locator('.expense')).toContainText('Despesa')
+  await expect(page.locator('.expense')).toHaveText('− R$ 35,00')
   await expect(page.locator('[data-test="balance-impact"]')).toContainText('R$ 315,00')
 })
 
@@ -366,13 +381,14 @@ test('history is newest first with details, empty state, and no foreign transact
   const drawer = page.locator('.el-drawer:visible')
   await expect(drawer).toBeVisible()
   await expect(drawer).toContainText('Nota do dia')
-  await expect(drawer).toContainText('pending')
+  await expect(drawer).toContainText('Pendente')
   await expect(drawer.getByRole('button', { name: 'Editar' })).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(drawer).toBeHidden()
 
+  await openTransactionFilters(page)
   await page.getByLabel('Buscar').fill('inexistente')
-  await page.getByRole('button', { name: 'Filtrar' }).click()
+  await page.locator('[data-test="apply-filters"]').click()
   await expect(page.getByText('Nenhuma transação encontrada.')).toBeVisible()
   await expect(page.getByText('0 transações')).toBeVisible()
 })
@@ -407,7 +423,7 @@ test('owner edits, removes, and restores a transaction with archived association
   await expect(page.locator('.el-table__row').first()).toContainText('Conta de luz corrigida')
   await page.locator('.el-table__row').first().click()
   await page.locator('.el-drawer:visible').getByRole('button', { name: 'Remover' }).click()
-  await page.getByRole('button', { name: 'OK' }).click()
+  await page.locator('[data-test="confirm-remove"]').click()
 
   await expect(page.locator('.el-table__row')).toHaveCount(0)
   await expect(page.getByText('0 transações')).toBeVisible()
@@ -440,12 +456,13 @@ test('owner combines filters and search and clears the criteria', async ({ page 
   await page.goto('/app/transactions')
   await expect(page.locator('.el-table__row')).toHaveCount(4)
 
+  await openTransactionFilters(page)
   await page.getByLabel('Buscar').fill('salario')
   await page.locator('[data-test="filter-type"]').click()
   await page.getByRole('option', { name: 'Receita', exact: true }).click()
   await page.locator('[data-test="filter-status"]').click()
   await page.getByRole('option', { name: 'Efetiva', exact: true }).click()
-  await page.getByRole('button', { name: 'Filtrar' }).click()
+  await page.locator('[data-test="apply-filters"]').click()
 
   await expect(page.locator('.el-table__row')).toHaveCount(1)
   await expect(page.locator('.el-table__row').first()).toContainText('Salário setembro')
@@ -454,7 +471,7 @@ test('owner combines filters and search and clears the criteria', async ({ page 
   await expect(page.locator('[data-test="active-criteria"]')).toContainText('Busca: salario')
   await expect(page.locator('[data-test="active-criteria"]')).toContainText('Tipo: income')
 
-  await page.getByRole('button', { name: 'Limpar' }).click()
+  await page.locator('[data-test="clear-filters"]').click()
   await expect(page.locator('.el-table__row')).toHaveCount(4)
   await expect(page.locator('[data-test="active-criteria"]')).toHaveCount(0)
 })
@@ -470,7 +487,8 @@ test('filters activate from the keyboard and the dialog closes with Escape in da
   await page.emulateMedia({ colorScheme: 'dark' })
 
   await page.goto('/app/transactions')
-  const filterButton = page.getByRole('button', { name: 'Filtrar' })
+  await openTransactionFilters(page)
+  const filterButton = page.locator('[data-test="apply-filters"]')
   await filterButton.focus()
   await page.keyboard.press('Enter')
   await expect(page.locator('.el-table__row')).toHaveCount(1)

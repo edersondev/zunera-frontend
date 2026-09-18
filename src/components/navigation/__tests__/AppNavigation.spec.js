@@ -4,7 +4,7 @@ import AppNavigation from '../AppNavigation.vue'
 import { i18n } from '@/i18n'
 
 const items = [
-  { id: 'protected-home', routeName: 'protected-home', label: 'Início' },
+  { id: 'dashboard', routeName: 'dashboard', label: 'Início' },
   {
     id: 'settings',
     label: 'Configurações',
@@ -60,7 +60,7 @@ describe('AppNavigation', () => {
       global: stubs(),
     })
 
-    expect(wrapper.get('[data-test="navigation-item-protected-home"]').text()).toContain('Início')
+    expect(wrapper.get('[data-test="navigation-item-dashboard"]').text()).toContain('Início')
     expect(wrapper.get('[data-test="navigation-group-settings"]').text()).toContain('Configurações')
     expect(wrapper.get('[data-test="navigation-group-cash-flow"]').text()).toContain('Fluxo de caixa')
     expect(wrapper.get('[data-test="navigation-item-financial-accounts"]').text()).toContain('Contas financeiras')
@@ -92,7 +92,7 @@ describe('AppNavigation', () => {
 
   it('emits selected route names without owning navigation', () => {
     const wrapper = mount(AppNavigation, {
-      props: { items, activeRoute: 'protected-home' },
+      props: { items, activeRoute: 'dashboard' },
       global: stubs(),
     })
 

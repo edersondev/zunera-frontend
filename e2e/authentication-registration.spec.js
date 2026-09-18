@@ -1,5 +1,11 @@
 import { test, expect } from '@playwright/test'
 
+import { pinLocale } from './support/locale.js'
+
+test.beforeEach(async ({ page }) => {
+  await pinLocale(page, 'en')
+})
+
 test('registration view shows top-label form and privacy links', async ({ page }) => {
   await page.goto('/register')
 
