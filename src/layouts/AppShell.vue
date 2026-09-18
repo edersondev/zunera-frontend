@@ -1,6 +1,6 @@
 <script setup>
 import { computed, shallowRef } from 'vue'
-import { Calendar, CollectionTag, Delete, House, Money, Setting, Wallet } from '@element-plus/icons-vue'
+import { Calendar, Coin, CollectionTag, Delete, House, Money, Setting, Wallet } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppNavigation from '@/components/navigation/AppNavigation.vue'
@@ -15,6 +15,7 @@ const { t } = useI18n()
 
 const navigationItems = computed(() => [
   { id: 'dashboard', routeName: 'dashboard', label: t('dashboard.title'), icon: House },
+  { id: 'budgets', routeName: 'budgets', label: t('budgets.title'), icon: Coin },
   {
     id: 'settings',
     label: t('app.settings'),
