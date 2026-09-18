@@ -1,4 +1,17 @@
 const DEFAULT_LOCALE = 'pt-BR'
+const BUSINESS_TIME_ZONE = 'America/Sao_Paulo'
+
+export function businessMonth(date = new Date()) {
+  const values = new Intl.DateTimeFormat('en-US', {
+    timeZone: BUSINESS_TIME_ZONE,
+    year: 'numeric',
+    month: 'numeric',
+  })
+    .formatToParts(date)
+    .reduce((parts, part) => ({ ...parts, [part.type]: part.value }), {})
+
+  return { year: Number(values.year), month: Number(values.month) }
+}
 
 export function formatBRL(amountCentavos, locale = DEFAULT_LOCALE) {
   const value = Number(amountCentavos ?? 0) / 100
@@ -9,9 +22,11 @@ export function formatBRL(amountCentavos, locale = DEFAULT_LOCALE) {
 export function formatBudgetMonth(year, month, locale = DEFAULT_LOCALE) {
   const date = new Date(Date.UTC(Number(year), Number(month) - 1, 1))
 
-  return new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
-    date,
-  )
+  return new Intl.DateTimeFormat(locale, {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date)
 }
 
 export function formatPercent(value, locale = DEFAULT_LOCALE, notApplicable = '—') {

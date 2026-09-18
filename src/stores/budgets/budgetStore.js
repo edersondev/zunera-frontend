@@ -9,16 +9,10 @@ import {
   removeBudgetPlan,
   updateBudgetPlan,
 } from '@/services/budgetService'
-import { shiftMonth } from '@/utils/budgets/budgetFormatters'
-
-function currentBusinessMonth() {
-  const now = new Date()
-
-  return { year: now.getFullYear(), month: now.getMonth() + 1 }
-}
+import { businessMonth, shiftMonth } from '@/utils/budgets/budgetFormatters'
 
 export const useBudgetStore = defineStore('budgets', () => {
-  const selectedMonth = shallowRef(currentBusinessMonth())
+  const selectedMonth = shallowRef(businessMonth())
   const monthData = shallowRef(null)
   const loading = shallowRef(false)
   const error = shallowRef(null)

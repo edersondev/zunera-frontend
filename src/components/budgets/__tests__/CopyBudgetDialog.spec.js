@@ -72,7 +72,7 @@ describe('CopyBudgetDialog', () => {
     const wrapper = mountDialog({ sourceMonth: { year: 2026, month: 12 } })
     const selects = wrapper.findAll('select')
 
-    expect(selects[0].element.value).toBe('2026')
+    expect(selects[0].element.value).toBe('2027')
     expect(selects[1].element.value).toBe('1')
   })
 

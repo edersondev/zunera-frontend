@@ -19,7 +19,7 @@ const editingPlan = shallowRef(null)
 const removeDialogOpen = shallowRef(false)
 const removingPlan = shallowRef(null)
 const copyDialogOpen = shallowRef(false)
-const copySourceId = shallowRef(null)
+const copySource = shallowRef(null)
 
 const fieldErrors = computed(() => store.mutationError?.errors ?? {})
 const isLoading = computed(() => store.loading)
@@ -60,8 +60,8 @@ function openRemovePlan(plan) {
   removeDialogOpen.value = true
 }
 
-function openCopy(sourceId = null) {
-  copySourceId.value = sourceId
+function openCopy(source = null) {
+  copySource.value = source
   store.clearMutationError()
   copyDialogOpen.value = true
 }
@@ -90,8 +90,8 @@ async function confirmRemove(plan) {
 }
 
 async function confirmCopy(destination) {
-  const source = copySourceId.value ?? store.budget?.id ?? null
-  const result = await store.copyMonth(destination, source)
+  const sourceId = copySource.value?.id ?? store.budget?.id ?? null
+  const result = await store.copyMonth(destination, sourceId)
 
   if (result === null) return
 
@@ -136,7 +136,13 @@ onMounted(reload)
       />
     </header>
 
-    <ElAlert v-if="store.error" type="error" :closable="false" show-icon :title="t('budgets.states.error')">
+    <ElAlert
+      v-if="store.error"
+      type="error"
+      :closable="false"
+      show-icon
+      :title="t('budgets.states.error')"
+    >
       <ElButton size="small" @click="reload">{{ t('budgets.states.retry') }}</ElButton>
     </ElAlert>
 
@@ -148,12 +154,12 @@ onMounted(reload)
         state="no-budget"
         :can-copy="canCopyPrevious"
         @create="createMonth"
-        @copy="openCopy(store.copySource?.id ?? null)"
+        @copy="openCopy(store.copySource)"
       />
 
       <template v-else>
         <BudgetSummary v-if="store.summary" :summary="store.summary" />
-        <ElButton v-if="hasPlans" class="budgets-copy-action" @click="openCopy(store.budget.id)">
+        <ElButton v-if="hasPlans" class="budgets-copy-action" @click="openCopy()">
           {{ t('budgets.copy.action') }}
         </ElButton>
         <BudgetEmptyState v-if="!hasPlans" state="no-plans" @add="openCreatePlan" />
@@ -183,7 +189,7 @@ onMounted(reload)
     />
     <CopyBudgetDialog
       v-model="copyDialogOpen"
-      :source-month="store.selectedMonth"
+      :source-month="copySource ?? store.selectedMonth"
       :submitting="store.submitting"
       :error="store.mutationError"
       @copy="confirmCopy"

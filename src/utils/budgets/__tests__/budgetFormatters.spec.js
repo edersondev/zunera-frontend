@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   availabilityLabel,
+  businessMonth,
   excessLabel,
   formatBRL,
   formatBudgetMonth,
@@ -23,6 +24,11 @@ describe('budgetFormatters', () => {
   it('renders the selected calendar month without shifting the day', () => {
     expect(formatBudgetMonth(2026, 9, 'pt-BR')).toBe('setembro de 2026')
     expect(formatBudgetMonth(2026, 1, 'en')).toBe('January 2026')
+  })
+
+  it('uses the São Paulo business month at timezone boundaries', () => {
+    expect(businessMonth(new Date('2026-10-01T02:30:00Z'))).toEqual({ year: 2026, month: 9 })
+    expect(businessMonth(new Date('2026-10-01T03:30:00Z'))).toEqual({ year: 2026, month: 10 })
   })
 
   it('labels utilisation and the not-applicable empty budget state', () => {

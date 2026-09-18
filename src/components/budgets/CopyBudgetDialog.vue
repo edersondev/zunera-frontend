@@ -1,7 +1,7 @@
 <script setup>
 import { computed, reactive, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { formatBudgetMonth } from '@/utils/budgets/budgetFormatters'
+import { formatBudgetMonth, shiftMonth } from '@/utils/budgets/budgetFormatters'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -37,8 +37,9 @@ watch(
   (open) => {
     if (!open) return
 
-    destination.year = props.sourceMonth.year
-    destination.month = props.sourceMonth.month === 12 ? 1 : props.sourceMonth.month + 1
+    const nextMonth = shiftMonth(props.sourceMonth, 1)
+    destination.year = nextMonth.year
+    destination.month = nextMonth.month
   },
   { immediate: true },
 )

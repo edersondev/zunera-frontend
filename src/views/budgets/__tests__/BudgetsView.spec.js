@@ -46,7 +46,13 @@ function money(amountCentavos) {
 function plan(overrides = {}) {
   return {
     id: 11,
-    category: { id: 3, name: 'Mercado', classification: 'expense', origin: 'personal', status: 'active' },
+    category: {
+      id: 3,
+      name: 'Mercado',
+      classification: 'expense',
+      origin: 'personal',
+      status: 'active',
+    },
     planned: money(100_000),
     realized: money(72_000),
     available: money(28_000),
@@ -145,6 +151,11 @@ describe('BudgetsView', () => {
 
     expect(hoisted.store.clearMutationError).toHaveBeenCalled()
     expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
+    expect(wrapper.findComponent({ name: 'CopyBudgetDialog' }).props('sourceMonth')).toEqual({
+      id: 6,
+      year: 2026,
+      month: 8,
+    })
   })
 
   it('renders derived values for a planned month', () => {
@@ -158,7 +169,13 @@ describe('BudgetsView', () => {
   it('keeps an archived plan read-only with an explicit label', () => {
     const archived = plan({
       is_read_only: true,
-      category: { id: 3, name: 'Mercado', classification: 'expense', origin: 'personal', status: 'archived' },
+      category: {
+        id: 3,
+        name: 'Mercado',
+        classification: 'expense',
+        origin: 'personal',
+        status: 'archived',
+      },
     })
     hoisted.store = createStore({ plans: [archived], budget: budget([archived]) })
     const wrapper = mountView()
@@ -168,7 +185,13 @@ describe('BudgetsView', () => {
   })
 
   it('shows a loading state instead of an empty month while fetching', () => {
-    hoisted.store = createStore({ loading: true, hasBudget: false, budget: null, summary: null, plans: [] })
+    hoisted.store = createStore({
+      loading: true,
+      hasBudget: false,
+      budget: null,
+      summary: null,
+      plans: [],
+    })
     const wrapper = mountView()
 
     expect(wrapper.text()).toContain('Carregando orçamento')
