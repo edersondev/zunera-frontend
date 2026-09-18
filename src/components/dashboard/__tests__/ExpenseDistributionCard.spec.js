@@ -17,6 +17,11 @@ const stubs = {
   },
   ElSkeleton: { name: 'ElSkeleton', template: '<div class="skeleton" />' },
   ElTag: { name: 'ElTag', template: '<span class="tag"><slot /></span>' },
+  BaseChart: {
+    name: 'BaseChart',
+    props: ['label'],
+    template: '<div role="img" :aria-label="label" />',
+  },
 }
 
 function mountCard(props = {}) {
@@ -27,25 +32,26 @@ function mountCard(props = {}) {
 }
 
 describe('ExpenseDistributionCard', () => {
-  it('ranks realized categories with exact totals and textual share cues', () => {
+  it('shows realized category values as text alongside the donut chart', () => {
     const wrapper = mountCard()
 
     expect(wrapper.get('[data-test="dashboard-distribution-total"]').text()).toContain('1.200,00')
 
     const rows = wrapper.findAll('[data-test="dashboard-distribution-row"]')
     expect(rows).toHaveLength(2)
-    expect(rows[0].get('[data-test="dashboard-distribution-rank"]').text()).toBe('1')
     expect(rows[0].get('[data-test="dashboard-distribution-share"]').text()).toContain('75%')
     expect(rows[0].get('[data-test="dashboard-distribution-amount"]').text()).toContain('900,00')
     expect(rows[1].get('[data-test="dashboard-distribution-share"]').text()).toContain('25%')
     expect(rows[1].text()).toContain('Arquivada')
   })
 
-  it('exposes the visualisation as a labelled table for assistive technology', () => {
+  it('exposes the visualisation with a label and a textual category breakdown', () => {
     const wrapper = mountCard()
 
-    expect(wrapper.get('table caption').text()).toBe('Tabela de despesas por categoria')
-    expect(wrapper.findAll('th[scope="col"]')).toHaveLength(4)
+    expect(wrapper.get('[data-test="dashboard-distribution-chart"] [role="img"]').attributes('aria-label')).toBe(
+      'Gráfico de rosca das despesas realizadas por categoria no período selecionado.',
+    )
+    expect(wrapper.get('.category-breakdown').text()).toContain('Detalhamento por categoria')
   })
 
   it('explains a period without realized expenses', () => {

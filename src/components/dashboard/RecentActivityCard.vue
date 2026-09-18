@@ -94,73 +94,58 @@ function amountLabel(movement) {
       {{ t('dashboard.recent.empty') }}
     </p>
 
-    <div
-      v-else
-      class="recent-table-scroll"
-      role="region"
-      :aria-label="t('dashboard.recent.title')"
-      tabindex="0"
-      data-test="dashboard-recent-table-scroll"
-    >
-      <table class="recent-table">
-        <caption class="visually-hidden">
-          {{
-            t('dashboard.recent.title')
-          }}
-        </caption>
-        <thead>
-          <tr>
-            <th scope="col">{{ t('dashboard.recent.date') }}</th>
-            <th scope="col">{{ t('dashboard.recent.description') }}</th>
-            <th scope="col">{{ t('dashboard.recent.category') }}</th>
-            <th scope="col">{{ t('dashboard.recent.account') }}</th>
-            <th scope="col">{{ t('dashboard.recent.amount') }}</th>
-            <th scope="col">{{ t('dashboard.recent.status') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="movement in movements"
-            :key="`${movement.movement_kind}-${movement.id}`"
-            data-test="dashboard-recent-row"
+    <ul v-else class="activity-list" data-test="dashboard-recent-list">
+      <li
+        v-for="movement in movements"
+        :key="`${movement.movement_kind}-${movement.id}`"
+        class="activity-row"
+        data-test="dashboard-recent-row"
+      >
+        <div class="activity-field date-field">
+          <span class="field-label">{{ t('dashboard.recent.date') }}</span>
+          <span data-test="dashboard-recent-date">
+            {{ formatDashboardDate(movement.movement_date, locale) }}
+          </span>
+        </div>
+        <div class="activity-field description-field">
+          <span class="field-label">{{ t('dashboard.recent.description') }}</span>
+          <span class="movement-kind">{{ movementKindLabel(movement.movement_kind) }}</span>
+          <span data-test="dashboard-recent-description">{{ movement.description || '—' }}</span>
+          <span
+            v-if="movement.recurrence_source"
+            class="recurrence-source"
+            data-test="dashboard-recent-recurrence"
           >
-            <td data-test="dashboard-recent-date">
-              {{ formatDashboardDate(movement.movement_date, locale) }}
-            </td>
-            <td>
-              <span class="movement-kind">{{ movementKindLabel(movement.movement_kind) }}</span>
-              <span data-test="dashboard-recent-description">{{
-                movement.description || '—'
-              }}</span>
-              <span
-                v-if="movement.recurrence_source"
-                class="recurrence-source"
-                data-test="dashboard-recent-recurrence"
-              >
-                {{ t('dashboard.recent.recurrenceSource', { id: movement.recurrence_source.id }) }}
-              </span>
-            </td>
-            <td data-test="dashboard-recent-category">{{ categoryLabel(movement) }}</td>
-            <td data-test="dashboard-recent-account">{{ accountLabel(movement) }}</td>
-            <td
-              class="amount-cell"
-              :class="{
-                'financial-positive': movement.movement_kind === 'income',
-                'financial-negative': movement.movement_kind === 'expense',
-              }"
-              data-test="dashboard-recent-amount"
-            >
-              {{ amountLabel(movement) }}
-            </td>
-            <td data-test="dashboard-recent-status">
-              <ElTag :type="movement.status === 'pending' ? 'warning' : 'info'" size="small">
-                {{ statusLabel(movement.status) }}
-              </ElTag>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+            {{ t('dashboard.recent.recurrenceSource', { id: movement.recurrence_source.id }) }}
+          </span>
+        </div>
+        <div class="activity-field">
+          <span class="field-label">{{ t('dashboard.recent.category') }}</span>
+          <span data-test="dashboard-recent-category">{{ categoryLabel(movement) }}</span>
+        </div>
+        <div class="activity-field">
+          <span class="field-label">{{ t('dashboard.recent.account') }}</span>
+          <span data-test="dashboard-recent-account">{{ accountLabel(movement) }}</span>
+        </div>
+        <div
+          class="activity-field amount-cell"
+          :class="{
+            'financial-positive': movement.movement_kind === 'income',
+            'financial-negative': movement.movement_kind === 'expense',
+          }"
+          data-test="dashboard-recent-amount"
+        >
+          <span class="field-label">{{ t('dashboard.recent.amount') }}</span>
+          {{ amountLabel(movement) }}
+        </div>
+        <div class="activity-field status-field" data-test="dashboard-recent-status">
+          <span class="field-label">{{ t('dashboard.recent.status') }}</span>
+          <ElTag :type="movement.status === 'pending' ? 'warning' : 'info'" size="small">
+            {{ statusLabel(movement.status) }}
+          </ElTag>
+        </div>
+      </li>
+    </ul>
 
     <RouterLink
       class="history-link"
@@ -205,25 +190,37 @@ function amountLabel(movement) {
   line-height: 20px;
 }
 
-.recent-table {
-  width: 100%;
-  min-width: 720px;
-  border-collapse: collapse;
+.activity-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activity-row {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-secondary);
   color: var(--color-text);
   font-size: 14px;
   line-height: 20px;
 }
 
-.recent-table-scroll {
-  max-width: 100%;
-  overflow-x: auto;
+.activity-field {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
 }
 
-.recent-table th,
-.recent-table td {
-  padding: 8px;
-  border-bottom: 1px solid var(--color-border);
-  text-align: left;
+.field-label {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
 }
 
 .movement-kind,
@@ -252,12 +249,24 @@ function amountLabel(movement) {
   font-weight: 600;
 }
 
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
+@media (min-width: 960px) {
+  .activity-row {
+    grid-template-columns: minmax(90px, 0.6fr) minmax(160px, 1.4fr) minmax(110px, 0.9fr) minmax(120px, 1fr) auto auto;
+    align-items: start;
+  }
+
+  .field-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .amount-cell,
+  .status-field {
+    justify-items: end;
+  }
 }
 </style>

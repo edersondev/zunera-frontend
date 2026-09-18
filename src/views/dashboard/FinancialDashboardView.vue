@@ -159,18 +159,19 @@ onMounted(() => {
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 24px;
   align-items: start;
 }
 
 @media (min-width: 1024px) {
   .dashboard-grid {
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
-      'summary accounts'
-      'distribution distribution'
-      'evolution upcoming';
+      'summary summary'
+      'evolution evolution'
+      'distribution accounts'
+      'upcoming upcoming';
   }
 
   .dashboard-summary-card {
@@ -194,9 +195,4 @@ onMounted(() => {
   }
 }
 
-@media (max-width: 639px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-}
 </style>

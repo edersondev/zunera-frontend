@@ -35,18 +35,18 @@ describe('UpcomingActivityCard', () => {
       '17 de set. de 2026',
     )
     expect(rows[0].get('[data-test="dashboard-upcoming-source"]').text()).toBe('Transação pendente')
+    expect(rows[0].get('[data-test="dashboard-upcoming-type"]').text()).toBe('Despesa')
     expect(rows[0].get('[data-test="dashboard-upcoming-amount"]').text()).toContain('215,00')
     expect(rows[0].get('[data-test="dashboard-upcoming-amount"]').classes()).toContain(
       'financial-negative',
     )
     expect(rows[1].get('[data-test="dashboard-upcoming-source"]').text()).toBe('Recorrência')
+    expect(rows[1].get('[data-test="dashboard-upcoming-type"]').text()).toBe('Receita')
     expect(rows[1].get('[data-test="dashboard-upcoming-amount"]').text()).toContain('2.500,00')
     expect(rows[1].get('[data-test="dashboard-upcoming-amount"]').classes()).toContain(
       'financial-positive',
     )
-    expect(
-      wrapper.get('[data-test="dashboard-upcoming-table-scroll"]').get('.upcoming-table').exists(),
-    ).toBe(true)
+    expect(wrapper.get('[data-test="dashboard-upcoming-list"]').exists()).toBe(true)
   })
 
   it('never lets expected values read as realized results', () => {

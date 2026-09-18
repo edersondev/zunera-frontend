@@ -45,6 +45,10 @@ function sourceLabel(item) {
     ? t('dashboard.upcoming.recurringOccurrence')
     : t('dashboard.upcoming.pendingTransaction')
 }
+
+function typeLabel(item) {
+  return t(`dashboard.recent.${item.type}`)
+}
 </script>
 
 <template>
@@ -73,59 +77,43 @@ function sourceLabel(item) {
       {{ t('dashboard.upcoming.empty') }}
     </p>
 
-    <div
-      v-else
-      class="upcoming-table-scroll"
-      role="region"
-      :aria-label="t('dashboard.upcoming.title')"
-      tabindex="0"
-      data-test="dashboard-upcoming-table-scroll"
-    >
-      <table class="upcoming-table">
-        <caption class="visually-hidden">
-          {{
-            t('dashboard.upcoming.title')
-          }}
-        </caption>
-        <thead>
-          <tr>
-            <th scope="col">{{ t('dashboard.upcoming.date') }}</th>
-            <th scope="col">{{ t('dashboard.upcoming.expected') }}</th>
-            <th scope="col">{{ t('dashboard.upcoming.account') }}</th>
-            <th scope="col">{{ t('dashboard.upcoming.category') }}</th>
-            <th scope="col">{{ t('dashboard.upcoming.amount') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="item in items"
-            :key="`${item.source_kind}-${item.expected_date}-${item.description}`"
-            data-test="dashboard-upcoming-row"
-          >
-            <td data-test="dashboard-upcoming-date">
-              {{ formatDashboardDate(item.expected_date, locale) }}
-            </td>
-            <td>
-              <span class="source-kind" data-test="dashboard-upcoming-source">{{
-                sourceLabel(item)
-              }}</span>
-              <span data-test="dashboard-upcoming-description">{{ item.description }}</span>
-            </td>
-            <td>{{ item.account?.name ?? '—' }}</td>
-            <td>{{ item.category?.name ?? '—' }}</td>
-            <td
-              class="amount-cell"
-              :class="item.type === 'income' ? 'financial-positive' : 'financial-negative'"
-              data-test="dashboard-upcoming-amount"
-            >
-              {{
-                formatDashboardMovementAmount(item.amount?.amount_centavos ?? 0, item.type, locale)
-              }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <ul v-else class="activity-list" data-test="dashboard-upcoming-list">
+      <li
+        v-for="item in items"
+        :key="`${item.source_kind}-${item.expected_date}-${item.description}`"
+        class="activity-row"
+        data-test="dashboard-upcoming-row"
+      >
+        <div class="activity-field date-field">
+          <span class="field-label">{{ t('dashboard.upcoming.date') }}</span>
+          <span data-test="dashboard-upcoming-date">
+            {{ formatDashboardDate(item.expected_date, locale) }}
+          </span>
+        </div>
+        <div class="activity-field description-field">
+          <span class="field-label">{{ t('dashboard.upcoming.expected') }}</span>
+          <span class="source-kind" data-test="dashboard-upcoming-source">{{ sourceLabel(item) }}</span>
+          <span class="movement-type" data-test="dashboard-upcoming-type">{{ typeLabel(item) }}</span>
+          <span data-test="dashboard-upcoming-description">{{ item.description }}</span>
+        </div>
+        <div class="activity-field">
+          <span class="field-label">{{ t('dashboard.upcoming.account') }}</span>
+          <span>{{ item.account?.name ?? '—' }}</span>
+        </div>
+        <div class="activity-field">
+          <span class="field-label">{{ t('dashboard.upcoming.category') }}</span>
+          <span>{{ item.category?.name ?? '—' }}</span>
+        </div>
+        <div
+          class="activity-field amount-cell"
+          :class="item.type === 'income' ? 'financial-positive' : 'financial-negative'"
+          data-test="dashboard-upcoming-amount"
+        >
+          <span class="field-label">{{ t('dashboard.upcoming.amount') }}</span>
+          {{ formatDashboardMovementAmount(item.amount?.amount_centavos ?? 0, item.type, locale) }}
+        </div>
+      </li>
+    </ul>
 
     <p v-if="!error" class="card-note" data-test="dashboard-upcoming-note">
       {{ t('dashboard.upcoming.note') }}
@@ -167,28 +155,41 @@ function sourceLabel(item) {
   line-height: 20px;
 }
 
-.upcoming-table {
-  width: 100%;
-  min-width: 640px;
-  border-collapse: collapse;
+.activity-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activity-row {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-secondary);
   color: var(--color-text);
   font-size: 14px;
   line-height: 20px;
 }
 
-.upcoming-table-scroll {
-  max-width: 100%;
-  overflow-x: auto;
+.activity-field {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
 }
 
-.upcoming-table th,
-.upcoming-table td {
-  padding: 8px;
-  border-bottom: 1px solid var(--color-border);
-  text-align: left;
+.field-label {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
 }
 
-.source-kind {
+.source-kind,
+.movement-type {
   display: block;
   color: var(--color-text-muted);
   font-size: 12px;
@@ -208,12 +209,23 @@ function sourceLabel(item) {
   color: var(--color-financial-negative);
 }
 
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
+@media (min-width: 800px) {
+  .activity-row {
+    grid-template-columns: minmax(100px, 0.7fr) minmax(180px, 1.5fr) minmax(100px, 1fr) minmax(100px, 1fr) auto;
+    align-items: start;
+  }
+
+  .field-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .amount-cell {
+    justify-items: end;
+  }
 }
 </style>

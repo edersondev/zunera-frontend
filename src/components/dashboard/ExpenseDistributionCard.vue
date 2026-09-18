@@ -5,6 +5,7 @@ import {
   formatDashboardCurrency,
   formatDashboardPercent,
 } from '@/utils/dashboard/dashboardFormatters'
+import ExpenseCategoryChart from '@/components/charts/ExpenseCategoryChart.vue'
 
 const props = defineProps({
   distribution: {
@@ -71,48 +72,34 @@ function share(value) {
       {{ t('dashboard.distribution.empty') }}
     </p>
 
-    <table v-else class="distribution-table">
-      <caption class="visually-hidden">
-        {{
-          t('dashboard.distribution.table')
-        }}
-      </caption>
-      <thead>
-        <tr>
-          <th scope="col">{{ t('dashboard.distribution.rank') }}</th>
-          <th scope="col">{{ t('dashboard.distribution.category') }}</th>
-          <th scope="col">{{ t('dashboard.distribution.share') }}</th>
-          <th scope="col">{{ t('dashboard.distribution.amount') }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          v-for="entry in categories"
-          :key="entry.category.id"
-          data-test="dashboard-distribution-row"
-        >
-          <td data-test="dashboard-distribution-rank">{{ entry.rank }}</td>
-          <td>
-            <span class="category-name">{{ entry.category.name }}</span>
-            <ElTag v-if="entry.category.status === 'archived'" size="small" type="info">
-              {{ t('dashboard.distribution.archived') }}
-            </ElTag>
-          </td>
-          <td data-test="dashboard-distribution-share">
-            {{ share(entry.share_percent) }}
-            <span class="share-bar" aria-hidden="true">
-              <span
-                class="share-bar-fill"
-                :style="{ width: `${Math.min(100, Math.max(0, entry.share_percent))}%` }"
-              />
+    <template v-else>
+      <ExpenseCategoryChart :categories="categories" :locale="locale" />
+
+      <section class="category-breakdown" :aria-label="t('dashboard.distribution.breakdown')">
+        <h3 class="breakdown-title">{{ t('dashboard.distribution.breakdown') }}</h3>
+        <ul class="category-list">
+          <li
+            v-for="entry in categories"
+            :key="entry.category.id"
+            class="category-row"
+            data-test="dashboard-distribution-row"
+          >
+            <div class="category-details">
+              <span class="category-name">{{ entry.category.name }}</span>
+              <ElTag v-if="entry.category.status === 'archived'" size="small" type="info">
+                {{ t('dashboard.distribution.archived') }}
+              </ElTag>
+            </div>
+            <span class="category-share" data-test="dashboard-distribution-share">
+              {{ share(entry.share_percent) }}
             </span>
-          </td>
-          <td class="amount-cell" data-test="dashboard-distribution-amount">
-            {{ money(entry.total?.amount_centavos ?? 0) }}
-          </td>
-        </tr>
-      </tbody>
-    </table>
+            <span class="amount-cell" data-test="dashboard-distribution-amount">
+              {{ money(entry.total?.amount_centavos ?? 0) }}
+            </span>
+          </li>
+        </ul>
+      </section>
+    </template>
   </section>
 </template>
 
@@ -149,53 +136,75 @@ function share(value) {
   line-height: 20px;
 }
 
-.distribution-table {
-  width: 100%;
-  border-collapse: collapse;
-  color: var(--color-text);
-  font-size: 14px;
-  line-height: 20px;
-}
-
-.distribution-table th,
-.distribution-table td {
-  padding: 8px;
-  border-bottom: 1px solid var(--color-border);
-  text-align: left;
-  vertical-align: middle;
-}
-
 .amount-cell {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
+.category-breakdown {
+  display: grid;
+  gap: 8px;
+}
+
+.breakdown-title {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.category-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.category-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.category-details {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
 .category-name {
-  margin-right: 8px;
-}
-
-.share-bar {
-  display: block;
-  width: 96px;
-  height: 6px;
-  margin-top: 4px;
-  border-radius: var(--radius-full);
-  background: var(--color-surface-tertiary);
-}
-
-.share-bar-fill {
-  display: block;
-  height: 100%;
-  border-radius: var(--radius-full);
-  background: var(--color-action-primary);
-}
-
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
   overflow: hidden;
-  clip: rect(0 0 0 0);
+  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.category-share {
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 479px) {
+  .category-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .category-share {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .amount-cell {
+    grid-column: 1;
+  }
 }
 </style>

@@ -81,6 +81,11 @@ const stubs = {
     props: ['to'],
     template: '<a><slot /></a>',
   },
+  BaseChart: {
+    name: 'BaseChart',
+    props: ['label'],
+    template: '<div role="img" :aria-label="label" />',
+  },
 }
 
 function mockHappyPath() {
@@ -130,7 +135,7 @@ describe('FinancialDashboardView', () => {
 
     const recentCard = wrapper.get('[data-test="dashboard-recent-row"]').element.closest('section')
     const evolutionCard = wrapper
-      .get('[data-test="dashboard-evolution-row"]')
+      .get('[data-test="dashboard-evolution-chart"]')
       .element.closest('section')
     const upcomingCard = wrapper
       .get('[data-test="dashboard-upcoming-row"]')

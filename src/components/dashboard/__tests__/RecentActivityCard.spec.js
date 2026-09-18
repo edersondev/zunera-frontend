@@ -51,7 +51,7 @@ describe('RecentActivityCard', () => {
     expect(rows[1].get('[data-test="dashboard-recent-account"]').text()).toBe(
       'Conta corrente → Poupança',
     )
-    expect(rows[1].get('[data-test="dashboard-recent-status"]').text()).toBe('Pendente')
+    expect(rows[1].get('[data-test="dashboard-recent-status"]').text()).toContain('Pendente')
     expect(rows[1].get('[data-test="dashboard-recent-status"] .tag').attributes('data-type')).toBe(
       'warning',
     )
@@ -65,9 +65,7 @@ describe('RecentActivityCard', () => {
     expect(rows[2].get('[data-test="dashboard-recent-amount"]').classes()).toContain(
       'financial-positive',
     )
-    expect(
-      wrapper.get('[data-test="dashboard-recent-table-scroll"]').get('.recent-table').exists(),
-    ).toBe(true)
+    expect(wrapper.get('[data-test="dashboard-recent-list"]').exists()).toBe(true)
   })
 
   it('states the ten item scope and links to full financial history', () => {

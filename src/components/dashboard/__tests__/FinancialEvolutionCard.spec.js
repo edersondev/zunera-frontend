@@ -17,6 +17,11 @@ const stubs = {
   },
   ElSkeleton: { name: 'ElSkeleton', template: '<div class="skeleton" />' },
   ElTag: { name: 'ElTag', template: '<span class="tag"><slot /></span>' },
+  BaseChart: {
+    name: 'BaseChart',
+    props: ['label'],
+    template: '<div role="img" :aria-label="label" />',
+  },
 }
 
 function mountCard(props = {}) {
@@ -27,36 +32,26 @@ function mountCard(props = {}) {
 }
 
 describe('FinancialEvolutionCard', () => {
-  it('names the interval scope and renders realized values per interval', () => {
+  it('names the interval scope and supplies realized values to an accessible chart', () => {
     const wrapper = mountCard()
 
     expect(wrapper.get('[data-test="dashboard-evolution-interval"]').text()).toBe(
       'Intervalo: Diário',
     )
 
-    const rows = wrapper.findAll('[data-test="dashboard-evolution-row"]')
-    expect(rows).toHaveLength(2)
-    expect(
-      wrapper
-        .get('[data-test="dashboard-evolution-table-scroll"]')
-        .get('.evolution-table')
-        .exists(),
-    ).toBe(true)
-    expect(rows[0].get('[data-test="dashboard-evolution-income"]').text()).toContain('3.200,00')
-    expect(rows[0].get('[data-test="dashboard-evolution-result"]').text()).toContain('3.200,00')
-    expect(rows[1].get('[data-test="dashboard-evolution-expenses"]').text()).toContain('1.200,00')
-    expect(rows[1].get('[data-test="dashboard-evolution-result"]').text()).toContain('1.200,00')
-    expect(rows[1].get('[data-test="dashboard-evolution-result"]').classes()).toContain(
-      'result-negative',
+    expect(wrapper.get('[data-test="dashboard-evolution-chart"] [role="img"]').attributes('aria-label')).toBe(
+      'Gráfico de área das receitas e despesas realizadas no período selecionado.',
     )
+    const alternative = wrapper.get('[data-test="dashboard-evolution-text-alternative"]').text()
+    expect(alternative).toContain('3.200,00')
+    expect(alternative).toContain('1.200,00')
   })
 
   it('marks clipped boundary intervals instead of comparing them as complete', () => {
     const wrapper = mountCard()
-    const partials = wrapper.findAll('[data-test="dashboard-evolution-partial"]')
-
-    expect(partials).toHaveLength(1)
-    expect(partials[0].text()).toBe('Período parcial')
+    expect(wrapper.get('[data-test="dashboard-evolution-partial"]').text()).toBe(
+      'Período parcial: identificado nos dados disponíveis no gráfico.',
+    )
   })
 
   it('keeps weekly and monthly interval labels translatable', () => {

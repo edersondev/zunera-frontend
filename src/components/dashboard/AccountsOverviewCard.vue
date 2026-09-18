@@ -48,6 +48,12 @@ function allocation(item) {
 
   return formatDashboardPercent(item.allocation_percent, props.locale)
 }
+
+function hasAllocationIndicator(item) {
+  return Number.isFinite(item.allocation_percent)
+    && item.allocation_percent >= 0
+    && item.allocation_percent <= 100
+}
 </script>
 
 <template>
@@ -82,34 +88,38 @@ function allocation(item) {
       </ElEmpty>
     </div>
 
-    <table v-else class="accounts-table">
-      <caption class="visually-hidden">
-        {{
-          t('dashboard.accounts.title')
-        }}
-      </caption>
-      <thead>
-        <tr>
-          <th scope="col">{{ t('dashboard.recent.account') }}</th>
-          <th scope="col">{{ t('dashboard.accounts.balance') }}</th>
-          <th scope="col">{{ t('dashboard.accounts.allocation') }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="item in items" :key="item.account.id" data-test="dashboard-accounts-row">
-          <th scope="row" class="account-cell">
-            <span>{{ item.account.name }}</span>
-            <ElTag v-if="item.account.status === 'archived'" size="small" type="info">
-              {{ t('dashboard.distribution.archived') }}
-            </ElTag>
-          </th>
-          <td class="amount-cell" data-test="dashboard-accounts-balance">{{ balance(item) }}</td>
-          <td class="amount-cell" data-test="dashboard-accounts-allocation">
+    <ul v-else class="accounts-list">
+      <li v-for="item in items" :key="item.account.id" class="account-row" data-test="dashboard-accounts-row">
+        <div class="account-heading">
+          <span class="account-name">{{ item.account.name }}</span>
+          <ElTag v-if="item.account.status === 'archived'" size="small" type="info">
+            {{ t('dashboard.distribution.archived') }}
+          </ElTag>
+          <span class="amount-cell" data-test="dashboard-accounts-balance">{{ balance(item) }}</span>
+        </div>
+
+        <div class="allocation-row">
+          <div
+            v-if="hasAllocationIndicator(item)"
+            class="allocation-track"
+            role="progressbar"
+            :aria-label="t('dashboard.accounts.allocation')"
+            :aria-valuemin="0"
+            :aria-valuemax="100"
+            :aria-valuenow="item.allocation_percent"
+            :aria-valuetext="allocation(item)"
+          >
+            <span
+              class="allocation-fill"
+              :style="{ width: `${item.allocation_percent}%` }"
+            />
+          </div>
+          <span class="amount-cell allocation-value" data-test="dashboard-accounts-allocation">
             {{ allocation(item) }}
-          </td>
-        </tr>
-      </tbody>
-    </table>
+          </span>
+        </div>
+      </li>
+    </ul>
 
     <p v-if="!error" class="card-note">{{ t('dashboard.accounts.allocationHint') }}</p>
   </section>
@@ -148,26 +158,63 @@ function allocation(item) {
   line-height: 20px;
 }
 
-.accounts-table {
-  width: 100%;
-  border-collapse: collapse;
+.accounts-list {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.account-row {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.account-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
   color: var(--color-text);
   font-size: 14px;
   line-height: 20px;
 }
 
-.accounts-table th,
-.accounts-table td {
-  padding: 8px;
-  border-bottom: 1px solid var(--color-border);
-  text-align: left;
+.account-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.account-cell {
+.account-heading .amount-cell {
+  margin-left: auto;
+  font-weight: 600;
+}
+
+.allocation-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
   align-items: center;
+}
+
+.allocation-track {
+  min-width: 0;
+  flex: 1;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-tertiary);
+}
+
+.allocation-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-action-primary);
 }
 
 .amount-cell {
@@ -175,12 +222,8 @@ function allocation(item) {
   white-space: nowrap;
 }
 
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
+.allocation-value {
+  min-width: 52px;
+  text-align: right;
 }
 </style>
