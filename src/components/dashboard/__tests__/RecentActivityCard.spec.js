@@ -43,6 +43,9 @@ describe('RecentActivityCard', () => {
     expect(rows).toHaveLength(3)
     expect(rows[0].text()).toContain('Despesa')
     expect(rows[0].get('[data-test="dashboard-recent-amount"]').text()).toContain('450,00')
+    expect(rows[0].get('[data-test="dashboard-recent-amount"]').classes()).toContain(
+      'financial-negative',
+    )
     expect(rows[0].get('[data-test="dashboard-recent-category"]').text()).toBe('Mercado')
     expect(rows[1].text()).toContain('Transferência')
     expect(rows[1].get('[data-test="dashboard-recent-account"]').text()).toBe(
@@ -52,7 +55,16 @@ describe('RecentActivityCard', () => {
     expect(rows[1].get('[data-test="dashboard-recent-status"] .tag').attributes('data-type')).toBe(
       'warning',
     )
+    expect(rows[1].get('[data-test="dashboard-recent-amount"]').classes()).not.toContain(
+      'financial-positive',
+    )
+    expect(rows[1].get('[data-test="dashboard-recent-amount"]').classes()).not.toContain(
+      'financial-negative',
+    )
     expect(rows[2].get('[data-test="dashboard-recent-recurrence"]').text()).toBe('Recorrência #5')
+    expect(rows[2].get('[data-test="dashboard-recent-amount"]').classes()).toContain(
+      'financial-positive',
+    )
     expect(
       wrapper.get('[data-test="dashboard-recent-table-scroll"]').get('.recent-table').exists(),
     ).toBe(true)

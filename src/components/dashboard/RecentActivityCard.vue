@@ -142,7 +142,14 @@ function amountLabel(movement) {
             </td>
             <td data-test="dashboard-recent-category">{{ categoryLabel(movement) }}</td>
             <td data-test="dashboard-recent-account">{{ accountLabel(movement) }}</td>
-            <td class="amount-cell" data-test="dashboard-recent-amount">
+            <td
+              class="amount-cell"
+              :class="{
+                'financial-positive': movement.movement_kind === 'income',
+                'financial-negative': movement.movement_kind === 'expense',
+              }"
+              data-test="dashboard-recent-amount"
+            >
               {{ amountLabel(movement) }}
             </td>
             <td data-test="dashboard-recent-status">
@@ -230,6 +237,14 @@ function amountLabel(movement) {
 .amount-cell {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.financial-positive {
+  color: var(--color-financial-positive);
+}
+
+.financial-negative {
+  color: var(--color-financial-negative);
 }
 
 .history-link {

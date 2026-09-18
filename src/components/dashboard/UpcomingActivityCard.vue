@@ -113,7 +113,11 @@ function sourceLabel(item) {
             </td>
             <td>{{ item.account?.name ?? '—' }}</td>
             <td>{{ item.category?.name ?? '—' }}</td>
-            <td class="amount-cell" data-test="dashboard-upcoming-amount">
+            <td
+              class="amount-cell"
+              :class="item.type === 'income' ? 'financial-positive' : 'financial-negative'"
+              data-test="dashboard-upcoming-amount"
+            >
               {{
                 formatDashboardMovementAmount(item.amount?.amount_centavos ?? 0, item.type, locale)
               }}
@@ -194,6 +198,14 @@ function sourceLabel(item) {
 .amount-cell {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.financial-positive {
+  color: var(--color-financial-positive);
+}
+
+.financial-negative {
+  color: var(--color-financial-negative);
 }
 
 .visually-hidden {
