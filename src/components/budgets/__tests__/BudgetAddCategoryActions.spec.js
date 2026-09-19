@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { Plus } from '@element-plus/icons-vue'
+import { DocumentCopy, Plus } from '@element-plus/icons-vue'
 import { mount } from '@vue/test-utils'
 import BudgetEmptyState from '../BudgetEmptyState.vue'
 import BudgetPlanList from '../BudgetPlanList.vue'
@@ -34,5 +34,15 @@ describe('Budget add category actions', () => {
     })
 
     expect(iconFor(wrapper, 'budget-empty-add')).toBe(Plus)
+  })
+
+  it('uses icons for create and copy budget actions', () => {
+    const wrapper = mount(BudgetEmptyState, {
+      props: { state: 'no-budget', canCopy: true },
+      global: { stubs },
+    })
+
+    expect(iconFor(wrapper, 'budget-empty-create')).toBe(Plus)
+    expect(iconFor(wrapper, 'budget-empty-copy')).toBe(DocumentCopy)
   })
 })

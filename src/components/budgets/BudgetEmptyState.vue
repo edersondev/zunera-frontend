@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { Plus } from '@element-plus/icons-vue'
+import { DocumentCopy, Plus } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
@@ -23,6 +23,7 @@ const description = computed(() => t(`budgets.empty.${props.state}.description`)
         v-if="props.state === 'no-budget'"
         data-test="budget-empty-create"
         type="primary"
+        :icon="Plus"
         @click="emit('create')"
       >
         {{ t('budgets.empty.create') }}
@@ -30,6 +31,7 @@ const description = computed(() => t(`budgets.empty.${props.state}.description`)
       <ElButton
         v-if="props.state === 'no-budget' && props.canCopy"
         data-test="budget-empty-copy"
+        :icon="DocumentCopy"
         @click="emit('copy')"
       >
         {{ t('budgets.empty.copy') }}
