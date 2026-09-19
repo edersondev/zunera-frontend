@@ -1,5 +1,6 @@
 <script setup>
 import { computed, reactive, shallowRef, watch } from 'vue'
+import { Check, Close } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import CurrencyAmountInput from '@/components/common/CurrencyAmountInput.vue'
 
@@ -16,7 +17,9 @@ const formRef = shallowRef(null)
 const form = reactive({ categoryId: null, plannedAmountCentavos: null })
 
 const isEditing = computed(() => props.plan !== null)
-const title = computed(() => (isEditing.value ? t('budgets.form.editTitle') : t('budgets.form.createTitle')))
+const title = computed(() =>
+  isEditing.value ? t('budgets.form.editTitle') : t('budgets.form.createTitle'),
+)
 const categoryOptions = computed(() => {
   if (!props.plan) return props.categories
 
@@ -142,21 +145,24 @@ async function submit() {
         prop="plannedAmountCentavos"
         :error="props.fieldErrors.planned_amount_centavos?.[0]"
       >
-        <CurrencyAmountInput
-          v-model="form.plannedAmountCentavos"
-          name="planned_amount_centavos"
-        />
+        <CurrencyAmountInput v-model="form.plannedAmountCentavos" name="planned_amount_centavos" />
       </ElFormItem>
       <p class="budget-form-hint">{{ t('budgets.form.amountHelp') }}</p>
     </ElForm>
 
     <template #footer>
-      <ElButton :disabled="props.submitting" @click="emit('update:modelValue', false)">
+      <ElButton
+        type="danger"
+        :icon="Close"
+        :disabled="props.submitting"
+        @click="emit('update:modelValue', false)"
+      >
         {{ t('common.cancel') }}
       </ElButton>
       <ElButton
         data-test="budget-plan-submit"
         type="primary"
+        :icon="Check"
         :disabled="submitDisabled"
         :loading="props.submitting"
         @click="submit"

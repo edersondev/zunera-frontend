@@ -8,6 +8,7 @@ import BudgetPlanFormDialog from '@/components/budgets/BudgetPlanFormDialog.vue'
 import BudgetPlanList from '@/components/budgets/BudgetPlanList.vue'
 import BudgetSummary from '@/components/budgets/BudgetSummary.vue'
 import CopyBudgetDialog from '@/components/budgets/CopyBudgetDialog.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
 import RemoveBudgetPlanDialog from '@/components/budgets/RemoveBudgetPlanDialog.vue'
 import { useBudgetStore } from '@/stores/budgets/budgetStore'
 
@@ -124,17 +125,15 @@ onMounted(reload)
 
 <template>
   <div class="budgets-view">
-    <header class="budgets-header">
-      <div>
-        <h1>{{ t('budgets.title') }}</h1>
-        <p>{{ t('budgets.description') }}</p>
-      </div>
-      <BudgetMonthNavigator
-        :month="store.selectedMonth"
-        :loading="isLoading"
-        @change-month="changeMonth"
-      />
-    </header>
+    <PageHeader :title="t('budgets.title')" :description="t('budgets.description')">
+      <template #actions>
+        <BudgetMonthNavigator
+          :month="store.selectedMonth"
+          :loading="isLoading"
+          @change-month="changeMonth"
+        />
+      </template>
+    </PageHeader>
 
     <ElAlert
       v-if="store.error"
@@ -201,13 +200,6 @@ onMounted(reload)
 .budgets-view {
   display: grid;
   gap: 20px;
-}
-
-.budgets-header {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  justify-content: space-between;
 }
 
 .budgets-copy-action {

@@ -1,5 +1,6 @@
 <script setup>
 import { computed, reactive, shallowRef, watch } from 'vue'
+import { Close, DocumentCopy } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { formatBudgetMonth, shiftMonth } from '@/utils/budgets/budgetFormatters'
 
@@ -92,12 +93,18 @@ async function submit() {
     <p v-if="sameMonth" class="budget-copy-same">{{ t('budgets.copy.sameMonth') }}</p>
 
     <template #footer>
-      <ElButton :disabled="props.submitting" @click="emit('update:modelValue', false)">
+      <ElButton
+        type="danger"
+        :icon="Close"
+        :disabled="props.submitting"
+        @click="emit('update:modelValue', false)"
+      >
         {{ t('common.cancel') }}
       </ElButton>
       <ElButton
         data-test="budget-copy-confirm"
         type="primary"
+        :icon="DocumentCopy"
         :disabled="props.submitting || sameMonth"
         :loading="props.submitting"
         @click="submit"

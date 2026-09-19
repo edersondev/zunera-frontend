@@ -1,4 +1,5 @@
 <script setup>
+import { Plus } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import BudgetPlanRow from './BudgetPlanRow.vue'
 
@@ -14,7 +15,13 @@ const { t } = useI18n()
   <section class="budget-plan-list" aria-labelledby="budget-plan-list-title">
     <div class="budget-plan-list-header">
       <h2 id="budget-plan-list-title">{{ t('budgets.planList.title') }}</h2>
-      <ElButton data-test="budget-plan-add" type="primary" :disabled="props.loading" @click="emit('add')">
+      <ElButton
+        data-test="budget-plan-add"
+        type="primary"
+        :icon="Plus"
+        :disabled="props.loading"
+        @click="emit('add')"
+      >
         {{ t('budgets.planList.add') }}
       </ElButton>
     </div>

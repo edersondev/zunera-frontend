@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { Plus } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
@@ -33,7 +34,13 @@ const description = computed(() => t(`budgets.empty.${props.state}.description`)
       >
         {{ t('budgets.empty.copy') }}
       </ElButton>
-      <ElButton v-if="props.state === 'no-plans'" type="primary" @click="emit('add')">
+      <ElButton
+        v-if="props.state === 'no-plans'"
+        data-test="budget-empty-add"
+        type="primary"
+        :icon="Plus"
+        @click="emit('add')"
+      >
         {{ t('budgets.empty.add') }}
       </ElButton>
     </div>

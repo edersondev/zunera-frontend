@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { defineComponent } from 'vue'
 import { mount } from '@vue/test-utils'
+import { Check, Close } from '@element-plus/icons-vue'
 import BudgetPlanFormDialog from '../BudgetPlanFormDialog.vue'
 
 let validationFails = false
@@ -43,7 +44,7 @@ const stubs = {
   }),
   ElButton: {
     name: 'ElButton',
-    props: ['disabled'],
+    props: ['disabled', 'icon', 'type'],
     emits: ['click'],
     template: '<button :disabled="disabled" @click="$emit(\'click\')"><slot /></button>',
   },
@@ -87,7 +88,9 @@ describe('BudgetPlanFormDialog', () => {
 
   it('shows server field errors for money input without closing the dialog', () => {
     const wrapper = mountDialog({
-      fieldErrors: { planned_amount_centavos: ['Informe um valor entre R$ 0,01 e R$ 999.999.999,99.'] },
+      fieldErrors: {
+        planned_amount_centavos: ['Informe um valor entre R$ 0,01 e R$ 999.999.999,99.'],
+      },
     })
 
     expect(wrapper.text()).toContain('Informe um valor entre')
@@ -99,6 +102,26 @@ describe('BudgetPlanFormDialog', () => {
     await wrapper.get('[data-test="budget-plan-submit"]').trigger('click')
 
     expect(wrapper.emitted('submit')).toBeUndefined()
+  })
+
+  it('uses the documented cancel button treatment', () => {
+    const wrapper = mountDialog({ submitting: true })
+    const cancelButton = wrapper
+      .findAllComponents({ name: 'ElButton' })
+      .find((button) => button.text() === 'Cancelar')
+
+    expect(cancelButton?.props('type')).toBe('danger')
+    expect(cancelButton?.props('icon')).toBe(Close)
+    expect(cancelButton?.props('disabled')).toBe(true)
+  })
+
+  it('shows a save icon on the submit button', () => {
+    const wrapper = mountDialog()
+    const submitButton = wrapper
+      .findAllComponents({ name: 'ElButton' })
+      .find((button) => button.attributes('data-test') === 'budget-plan-submit')
+
+    expect(submitButton?.props('icon')).toBe(Check)
   })
 
   it('does not emit when form validation fails', async () => {

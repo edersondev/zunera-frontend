@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { defineComponent } from 'vue'
 import { mount } from '@vue/test-utils'
+import { Close, DocumentCopy } from '@element-plus/icons-vue'
 import CopyBudgetDialog from '../CopyBudgetDialog.vue'
 
 const ElForm = defineComponent({
@@ -37,7 +38,7 @@ const stubs = {
   }),
   ElButton: {
     name: 'ElButton',
-    props: ['disabled'],
+    props: ['disabled', 'icon', 'type'],
     emits: ['click'],
     template: '<button :disabled="disabled" @click="$emit(\'click\')"><slot /></button>',
   },
@@ -91,5 +92,25 @@ describe('CopyBudgetDialog', () => {
     const wrapper = mountDialog({ error: { message: 'O mês de destino já possui um orçamento.' } })
 
     expect(wrapper.get('[role="alert"]').text()).toContain('já possui um orçamento')
+  })
+
+  it('uses the documented cancel button treatment', () => {
+    const wrapper = mountDialog({ submitting: true })
+    const cancelButton = wrapper
+      .findAllComponents({ name: 'ElButton' })
+      .find((button) => button.text() === 'Cancelar')
+
+    expect(cancelButton?.props('type')).toBe('danger')
+    expect(cancelButton?.props('icon')).toBe(Close)
+    expect(cancelButton?.props('disabled')).toBe(true)
+  })
+
+  it('shows a copy icon on the confirmation button', () => {
+    const wrapper = mountDialog()
+    const copyButton = wrapper
+      .findAllComponents({ name: 'ElButton' })
+      .find((button) => button.attributes('data-test') === 'budget-copy-confirm')
+
+    expect(copyButton?.props('icon')).toBe(DocumentCopy)
   })
 })

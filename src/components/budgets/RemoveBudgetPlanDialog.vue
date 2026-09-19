@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { Close, Delete } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
@@ -22,10 +23,20 @@ const categoryName = computed(() => props.plan?.category.name ?? '')
     <p class="budget-remove-note">{{ t('budgets.remove.note') }}</p>
 
     <template #footer>
-      <ElButton :disabled="props.submitting" @click="emit('update:modelValue', false)">
+      <ElButton
+        type="danger"
+        :icon="Close"
+        :disabled="props.submitting"
+        @click="emit('update:modelValue', false)"
+      >
         {{ t('common.cancel') }}
       </ElButton>
-      <ElButton type="danger" :loading="props.submitting" @click="emit('confirm', props.plan)">
+      <ElButton
+        type="info"
+        :icon="Delete"
+        :loading="props.submitting"
+        @click="emit('confirm', props.plan)"
+      >
         {{ t('budgets.remove.confirm') }}
       </ElButton>
     </template>
