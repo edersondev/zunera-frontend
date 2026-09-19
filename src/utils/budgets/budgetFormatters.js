@@ -41,6 +41,14 @@ export function statusLabel(status, translate, notApplicable = '') {
   return translate(`budgets.status.${status}`)
 }
 
+export function statusTagType(status) {
+  if (status === 'within') return 'success'
+  if (status === 'approaching' || status === 'reached') return 'warning'
+  if (status === 'exceeded') return 'danger'
+
+  return 'info'
+}
+
 export function excessLabel(excessCentavos, locale, translate) {
   if (!excessCentavos || excessCentavos <= 0) return null
 

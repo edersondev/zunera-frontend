@@ -32,7 +32,12 @@ describe('budgetFormatters', () => {
   })
 
   it('labels utilisation and the not-applicable empty budget state', () => {
+    expect(formatPercent(0, 'pt-BR')).toBe('0%')
+    expect(formatPercent(0.1, 'pt-BR')).toBe('0,1%')
+    expect(formatPercent(0.25, 'pt-BR')).toBe('0,25%')
     expect(formatPercent(72, 'pt-BR')).toBe('72%')
+    expect(formatPercent(72.5, 'pt-BR')).toBe('72,5%')
+    expect(formatPercent(107.25, 'pt-BR')).toBe('107,25%')
     expect(formatPercent(null, 'pt-BR', 'Não aplicável')).toBe('Não aplicável')
     expect(statusLabel('not_applicable', translate, 'Não aplicável')).toBe('Não aplicável')
     expect(statusLabel('approaching', translate, 'Não aplicável')).toBe(

@@ -145,7 +145,10 @@ onMounted(reload)
       <ElButton size="small" @click="reload">{{ t('budgets.states.retry') }}</ElButton>
     </ElAlert>
 
-    <p v-else-if="isLoading" aria-live="polite">{{ t('budgets.states.loading') }}</p>
+    <section v-else-if="isLoading" aria-live="polite">
+      <span class="sr-only">{{ t('budgets.states.loading') }}</span>
+      <ElSkeleton :rows="6" animated />
+    </section>
 
     <template v-else>
       <BudgetEmptyState
@@ -158,14 +161,12 @@ onMounted(reload)
 
       <template v-else>
         <BudgetSummary v-if="store.summary" :summary="store.summary" />
-        <ElButton v-if="hasPlans" class="budgets-copy-action" @click="openCopy()">
-          {{ t('budgets.copy.action') }}
-        </ElButton>
         <BudgetEmptyState v-if="!hasPlans" state="no-plans" @add="openCreatePlan" />
         <BudgetPlanList
           :plans="store.plans"
           :loading="store.submitting"
           @add="openCreatePlan"
+          @copy="openCopy()"
           @edit="openEditPlan"
           @remove="openRemovePlan"
         />
@@ -200,9 +201,5 @@ onMounted(reload)
 .budgets-view {
   display: grid;
   gap: 20px;
-}
-
-.budgets-copy-action {
-  justify-self: start;
 }
 </style>

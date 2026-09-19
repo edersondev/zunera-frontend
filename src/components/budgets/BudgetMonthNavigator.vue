@@ -44,12 +44,18 @@ function shift(offset) {
 .budget-month-navigator {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
 }
 
 .budget-month-label {
   min-width: 12rem;
   margin: 0;
+  color: var(--color-text);
   font-weight: 600;
   text-align: center;
   text-transform: capitalize;

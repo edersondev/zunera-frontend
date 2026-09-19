@@ -51,6 +51,8 @@ describe('BudgetSummary', () => {
 
     expect(wrapper.get('[data-test="budget-summary-status"]').text()).toBe('Orçamento excedido')
     expect(wrapper.get('[data-test="budget-summary-excess"]').text()).toContain('70,00')
+    expect(wrapper.get('[role="progressbar"]').attributes('aria-valuenow')).toBe('100')
+    expect(wrapper.get('[role="progressbar"]').attributes('aria-valuetext')).toBe('107%')
   })
 
   it('marks a zero-plan month as not applicable with zero money totals', () => {
