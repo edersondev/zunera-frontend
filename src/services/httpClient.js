@@ -4,13 +4,16 @@ import { i18n } from '@/i18n'
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8001'
 
 export class HttpClientError extends Error {
-  constructor(message, { status = 0, code = null, errors = {}, retryAfter = null } = {}) {
+  constructor(message, { status = 0, code = null, errors = {}, retryAfter = null, payload = null } = {}) {
     super(message)
     this.name = 'HttpClientError'
     this.status = status
     this.code = code
     this.errors = errors
     this.retryAfter = retryAfter
+    // Typed error bodies (for example the credit-card over-limit confirmation)
+    // keep their extra fields so callers never parse the message text.
+    this.payload = payload
   }
 }
 
@@ -48,6 +51,7 @@ export function normalizeHttpError(error) {
     code: data.code ?? null,
     errors: data.errors ?? {},
     retryAfter: response?.headers?.['retry-after'] ?? null,
+    payload: data,
   })
 }
 
