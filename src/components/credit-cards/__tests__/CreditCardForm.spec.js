@@ -22,7 +22,12 @@ const stubs = {
     props: ['xs', 'md'],
     template: '<div class="credit-card-form-column" :data-xs="xs" :data-md="md"><slot /></div>',
   },
-  ElInput: { template: '<input v-bind="$attrs" />' },
+  ElInput: {
+    props: ['modelValue'],
+    emits: ['update:modelValue', 'input'],
+    template:
+      '<input v-bind="$attrs" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value); $emit(\'input\', $event.target.value)" />',
+  },
   ElInputNumber: { template: '<input v-bind="$attrs" type="number" />' },
   ElSelect: { template: '<select v-bind="$attrs"><slot /></select>' },
   ElOption: { template: '<option><slot /></option>' },
@@ -67,5 +72,17 @@ describe('CreditCardForm', () => {
     expect(wrapper.get('[data-test="credit-card-form-submit"]').attributes('data-icon')).toBe(
       'Check',
     )
+  })
+
+  it('accepts only digits in the last four field', async () => {
+    const wrapper = mount(CreditCardForm, {
+      props: { visible: true },
+      global: { plugins: [i18n], stubs },
+    })
+
+    await wrapper.get('[data-test="credit-card-last-four"]').setValue('a1b2c345')
+    await wrapper.get('[data-test="credit-card-form-submit"]').trigger('click')
+
+    expect(wrapper.emitted('submit')[0][0]).toMatchObject({ last_four: '1234' })
   })
 })

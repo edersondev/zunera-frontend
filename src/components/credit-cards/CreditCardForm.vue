@@ -81,6 +81,10 @@ function close() {
   emit('update:visible', false)
 }
 
+function sanitizeLastFour(value) {
+  form.last_four = value.replace(/\D/g, '').slice(0, 4)
+}
+
 function submit() {
   emit('submit', {
     name: form.name.trim(),
@@ -141,6 +145,7 @@ defineExpose({ resetCreateForm })
               v-model="form.last_four"
               maxlength="4"
               inputmode="numeric"
+              @input="sanitizeLastFour"
               data-test="credit-card-last-four"
             />
           </ElFormItem>

@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, reactive, shallowRef } from 'vue'
 import { ElAlert, ElButton, ElEmpty, ElSkeleton, ElTag } from 'element-plus'
-import { FolderOpened, Plus } from '@element-plus/icons-vue'
+import { Edit, FolderDelete, FolderOpened, Plus } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import CreditCardForm from '@/components/credit-cards/CreditCardForm.vue'
@@ -107,6 +107,7 @@ async function confirmArchive() {
       type="success"
       :closable="false"
       :title="successMessage"
+      class="!mb-4"
       data-test="credit-cards-success"
     />
     <ElAlert
@@ -114,6 +115,7 @@ async function confirmArchive() {
       type="error"
       :closable="false"
       :title="store.error.message"
+      class="!mb-4"
       data-test="credit-cards-error"
     />
 
@@ -221,12 +223,13 @@ async function confirmArchive() {
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
-          <ElButton data-test="credit-card-edit" @click="openEditDialog(item)">{{
+          <ElButton :icon="Edit" data-test="credit-card-edit" @click="openEditDialog(item)">{{
             t('common.edit')
           }}</ElButton>
           <ElButton
             type="danger"
             plain
+            :icon="FolderDelete"
             data-test="credit-card-archive"
             @click="openLifecycle(item)"
           >
