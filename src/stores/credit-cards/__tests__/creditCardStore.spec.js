@@ -7,6 +7,7 @@ vi.mock('@/services/creditCardService', () => ({
   createCard: vi.fn(),
   updateCard: vi.fn(),
   archiveCard: vi.fn(),
+  restoreCard: vi.fn(),
   listStatements: vi.fn(),
   getStatement: vi.fn(),
   listPurchases: vi.fn(),
@@ -20,7 +21,9 @@ vi.mock('@/services/creditCardService', () => ({
   getDashboardCards: vi.fn(),
   newIdempotencyKey: vi.fn(() => 'generated-key'),
   isOverLimitConfirmation: vi.fn((error) => error?.code === 'OVER_LIMIT_CONFIRMATION_REQUIRED'),
-  overLimitResultingCentavos: vi.fn((error) => error?.payload?.resulting_available_credit?.amount_centavos ?? 0),
+  overLimitResultingCentavos: vi.fn(
+    (error) => error?.payload?.resulting_available_credit?.amount_centavos ?? 0,
+  ),
 }))
 
 const service = await import('@/services/creditCardService')
@@ -46,7 +49,9 @@ beforeEach(() => {
 describe('creditCardStore', () => {
   it('loads active and archived cards separately', async () => {
     const store = useCreditCardStore()
-    service.listCards.mockResolvedValueOnce([activeCard]).mockResolvedValueOnce([{ id: 9, status: 'archived' }])
+    service.listCards
+      .mockResolvedValueOnce([activeCard])
+      .mockResolvedValueOnce([{ id: 9, status: 'archived' }])
 
     await store.fetchCards()
     await store.fetchCards('archived')
@@ -81,6 +86,21 @@ describe('creditCardStore', () => {
     expect(store.card.status).toBe('archived')
   })
 
+  it('restores an archived card, removes it from the archived snapshot, and refreshes active cards', async () => {
+    const store = useCreditCardStore()
+    const archivedCard = { ...activeCard, status: 'archived' }
+    const restoredCard = { ...activeCard, status: 'active' }
+    store.archivedCards = [archivedCard]
+    service.restoreCard.mockResolvedValue(restoredCard)
+
+    const outcome = await store.restoreCard(7)
+
+    expect(outcome).toEqual({ ok: true, result: restoredCard })
+    expect(service.restoreCard).toHaveBeenCalledWith(7, 'generated-key')
+    expect(store.archivedCards).toEqual([])
+    expect(store.cards).toEqual([activeCard])
+  })
+
   it('turns a confirmation-required outcome into a pending over-limit state', async () => {
     const store = useCreditCardStore()
     service.createPurchase.mockRejectedValueOnce({
@@ -98,7 +118,9 @@ describe('creditCardStore', () => {
 
   it('resubmits a confirmed over-limit purchase with a fresh key and confirmation echo', async () => {
     const store = useCreditCardStore()
-    service.newIdempotencyKey.mockReturnValueOnce('initial-key').mockReturnValueOnce('confirmation-key')
+    service.newIdempotencyKey
+      .mockReturnValueOnce('initial-key')
+      .mockReturnValueOnce('confirmation-key')
     service.createPurchase.mockRejectedValueOnce({
       code: 'OVER_LIMIT_CONFIRMATION_REQUIRED',
       payload: { resulting_available_credit: { amount_centavos: -50_000 } },
@@ -119,7 +141,12 @@ describe('creditCardStore', () => {
       },
       'confirmation-key',
     )
-    expect(service.createPurchase).toHaveBeenNthCalledWith(1, 7, { total_amount_centavos: 150_000 }, 'initial-key')
+    expect(service.createPurchase).toHaveBeenNthCalledWith(
+      1,
+      7,
+      { total_amount_centavos: 150_000 },
+      'initial-key',
+    )
   })
 
   it('keeps purchase statement assignments and category errors in explicit client state', async () => {
@@ -143,16 +170,24 @@ describe('creditCardStore', () => {
       expect.objectContaining({ category_id: 18, installment_count: 1 }),
       'generated-key',
     )
-    expect(saved.purchase.installments[0].statement).toMatchObject({ id: 9, closing_date: '2026-10-10' })
+    expect(saved.purchase.installments[0].statement).toMatchObject({
+      id: 9,
+      closing_date: '2026-10-10',
+    })
 
     service.createPurchase.mockRejectedValueOnce({
       code: 'validation_failed',
       errors: { category_id: ['Choose an owned expense category.'] },
     })
-    const rejected = await store.submitPurchase(7, { category_id: 99, total_amount_centavos: 10_000 })
+    const rejected = await store.submitPurchase(7, {
+      category_id: 99,
+      total_amount_centavos: 10_000,
+    })
 
     expect(rejected).toEqual({ ok: false, purchase: null, overLimit: false })
-    expect(store.mutationError).toMatchObject({ errors: { category_id: ['Choose an owned expense category.'] } })
+    expect(store.mutationError).toMatchObject({
+      errors: { category_id: ['Choose an owned expense category.'] },
+    })
   })
 
   it('keeps mutation failures as typed errors instead of dropping them', async () => {
@@ -168,8 +203,16 @@ describe('creditCardStore', () => {
 
   it('refreshes the statement snapshot after payment lifecycle mutations', async () => {
     const store = useCreditCardStore()
-    service.createPayment.mockResolvedValue({ payment: { id: 11 }, statement: { id: 9, status: 'paid' }, card: activeCard })
-    service.removePayment.mockResolvedValue({ payment: { id: 11, is_removed: true }, statement: { id: 9, status: 'overdue' }, card: activeCard })
+    service.createPayment.mockResolvedValue({
+      payment: { id: 11 },
+      statement: { id: 9, status: 'paid' },
+      card: activeCard,
+    })
+    service.removePayment.mockResolvedValue({
+      payment: { id: 11, is_removed: true },
+      statement: { id: 9, status: 'overdue' },
+      card: activeCard,
+    })
 
     await store.submitPayment(9, { amount_centavos: 1_000 })
     expect(store.statement).toMatchObject({ id: 9, status: 'paid' })
@@ -202,7 +245,11 @@ describe('creditCardStore', () => {
 
     await store.editPayment(11, { financial_account_id: 8, amount_centavos: 5_000 })
     expect(store.statement).toEqual(edited)
-    expect(service.updatePayment).toHaveBeenCalledWith(11, { financial_account_id: 8, amount_centavos: 5_000 }, 'generated-key')
+    expect(service.updatePayment).toHaveBeenCalledWith(
+      11,
+      { financial_account_id: 8, amount_centavos: 5_000 },
+      'generated-key',
+    )
 
     await store.removeStatementPayment(11)
     expect(store.statement).toEqual(removed)
@@ -212,8 +259,15 @@ describe('creditCardStore', () => {
     await store.restoreStatementPayment(11, { financial_account_id: 7 })
     expect(store.statement).toEqual(restored)
     expect(store.statement.payments).toHaveLength(1)
-    expect(store.statement.payments[0]).toMatchObject({ is_removed: false, financial_account: { id: 7 } })
-    expect(service.restorePayment).toHaveBeenCalledWith(11, { financial_account_id: 7 }, 'generated-key')
+    expect(store.statement.payments[0]).toMatchObject({
+      is_removed: false,
+      financial_account: { id: 7 },
+    })
+    expect(service.restorePayment).toHaveBeenCalledWith(
+      11,
+      { financial_account_id: 7 },
+      'generated-key',
+    )
   })
 
   it('reloads statement payment history after a partial payment', async () => {
@@ -223,13 +277,23 @@ describe('creditCardStore', () => {
       id: 9,
       status: 'partially_paid',
       outstanding_amount: { amount_centavos: 6_666 },
-      payments: [{ id: 11, amount: { amount_centavos: 3_334 }, status: 'effective', is_removed: false }],
+      payments: [
+        { id: 11, amount: { amount_centavos: 3_334 }, status: 'effective', is_removed: false },
+      ],
     }
     service.getStatement.mockResolvedValueOnce(initial).mockResolvedValueOnce(settled)
-    service.createPayment.mockResolvedValue({ payment: settled.payments[0], statement: settled, card: activeCard })
+    service.createPayment.mockResolvedValue({
+      payment: settled.payments[0],
+      statement: settled,
+      card: activeCard,
+    })
 
     await store.fetchStatement(9)
-    await store.submitPayment(9, { financial_account_id: 7, amount_centavos: 3_334, payment_date: '2026-10-05' })
+    await store.submitPayment(9, {
+      financial_account_id: 7,
+      amount_centavos: 3_334,
+      payment_date: '2026-10-05',
+    })
     await store.fetchStatement(9)
 
     expect(service.getStatement).toHaveBeenNthCalledWith(1, 9)
@@ -256,19 +320,37 @@ describe('creditCardStore', () => {
   it('refreshes card state after a direct correction and a credit event', async () => {
     const store = useCreditCardStore()
     const corrected = { id: 301, card: { id: 7 }, is_directly_editable: true }
-    const correctedCard = { ...activeCard, summary: { ...activeCard.summary, used_credit: { amount_centavos: 8_000 } } }
-    const creditedCard = { ...correctedCard, summary: { ...correctedCard.summary, card_credit: { amount_centavos: 2_000 } } }
+    const correctedCard = {
+      ...activeCard,
+      summary: { ...activeCard.summary, used_credit: { amount_centavos: 8_000 } },
+    }
+    const creditedCard = {
+      ...correctedCard,
+      summary: { ...correctedCard.summary, card_credit: { amount_centavos: 2_000 } },
+    }
     service.updatePurchase.mockResolvedValue(corrected)
     service.getCard.mockResolvedValue(correctedCard)
-    service.createCreditEvent.mockResolvedValue({ credit_event: { id: 91, reason: 'cancellation' }, card: creditedCard, applications: [{ id: 3 }] })
+    service.createCreditEvent.mockResolvedValue({
+      credit_event: { id: 91, reason: 'cancellation' },
+      card: creditedCard,
+      applications: [{ id: 3 }],
+    })
 
     const correction = await store.submitPurchaseCorrection(301, { total_amount_centavos: 8_000 })
-    const event = await store.submitCreditEvent(301, { reason: 'cancellation', amount_centavos: 8_000, event_date: '2026-10-05' })
+    const event = await store.submitCreditEvent(301, {
+      reason: 'cancellation',
+      amount_centavos: 8_000,
+      event_date: '2026-10-05',
+    })
 
     expect(correction.ok).toBe(true)
     expect(event.ok).toBe(true)
     expect(event.result.applications).toEqual([{ id: 3 }])
-    expect(service.updatePurchase).toHaveBeenCalledWith(301, { total_amount_centavos: 8_000 }, 'generated-key')
+    expect(service.updatePurchase).toHaveBeenCalledWith(
+      301,
+      { total_amount_centavos: 8_000 },
+      'generated-key',
+    )
     expect(service.createCreditEvent).toHaveBeenCalledWith(
       301,
       { reason: 'cancellation', amount_centavos: 8_000, event_date: '2026-10-05' },
@@ -284,6 +366,9 @@ describe('creditCardStore', () => {
     const outcome = await store.archiveCard(7)
 
     expect(outcome).toEqual({ ok: false, result: null })
-    expect(store.mutationError).toMatchObject({ code: 'card_has_outstanding_obligation', status: 409 })
+    expect(store.mutationError).toMatchObject({
+      code: 'card_has_outstanding_obligation',
+      status: 409,
+    })
   })
 })

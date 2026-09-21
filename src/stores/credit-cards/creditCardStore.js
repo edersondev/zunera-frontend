@@ -16,6 +16,7 @@ import {
   newIdempotencyKey,
   overLimitResultingCentavos,
   removePayment,
+  restoreCard as restoreCardRequest,
   restorePayment,
   updateCard,
   updatePurchase,
@@ -106,6 +107,17 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
       await refreshCardsQuietly()
 
       return archived
+    })
+  }
+
+  async function restoreCard(cardId) {
+    return runMutation(async () => {
+      const restored = await restoreCardRequest(cardId, newIdempotencyKey())
+      card.value = restored
+      archivedCards.value = archivedCards.value.filter((archivedCard) => archivedCard.id !== cardId)
+      await refreshCardsQuietly()
+
+      return restored
     })
   }
 
@@ -341,6 +353,7 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
     fetchCard,
     saveCard,
     archiveCard,
+    restoreCard,
     fetchStatements,
     fetchStatement,
     fetchPurchases,

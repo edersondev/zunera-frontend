@@ -44,6 +44,9 @@ export const updateCard = (cardId, payload, idempotencyKey) =>
 export const archiveCard = (cardId, idempotencyKey) =>
   mutation('post', `${CARDS}/${cardId}/archive`, undefined, idempotencyKey)
 
+export const restoreCard = (cardId, idempotencyKey) =>
+  mutation('post', `${CARDS}/${cardId}/restore`, undefined, idempotencyKey)
+
 export async function listPurchases(cardId, params = {}) {
   const response = await apiRequest({ method: 'get', url: `${CARDS}/${cardId}/purchases`, params })
 

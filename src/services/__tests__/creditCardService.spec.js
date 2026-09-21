@@ -22,6 +22,7 @@ const {
   newIdempotencyKey,
   overLimitResultingCentavos,
   removePayment,
+  restoreCard,
   restorePayment,
   updateCard,
   updatePayment,
@@ -46,7 +47,11 @@ describe('creditCardService', () => {
 
     const cards = await listCards('archived')
 
-    expect(apiRequest).toHaveBeenCalledWith({ method: 'get', url: CARDS, params: { view: 'archived' } })
+    expect(apiRequest).toHaveBeenCalledWith({
+      method: 'get',
+      url: CARDS,
+      params: { view: 'archived' },
+    })
     expect(cards).toEqual([{ id: 1, status: 'active' }])
   })
 
@@ -55,27 +60,56 @@ describe('creditCardService', () => {
     await getDashboardCards()
 
     expect(apiRequest).toHaveBeenNthCalledWith(1, { method: 'get', url: `${CARDS}/7` })
-    expect(apiRequest).toHaveBeenNthCalledWith(2, { method: 'get', url: '/api/v1/financial-dashboard/credit-cards' })
+    expect(apiRequest).toHaveBeenNthCalledWith(2, {
+      method: 'get',
+      url: '/api/v1/financial-dashboard/credit-cards',
+    })
   })
 
   it('sends card mutations with CSRF and an idempotency key', async () => {
     await createCard({ name: 'Nubank' }, 'card-key')
     await updateCard(7, { closing_day: 25 }, 'card-update-key')
     await archiveCard(7, 'card-archive-key')
+    await restoreCard(7, 'card-restore-key')
 
     expect(apiRequest).toHaveBeenNthCalledWith(
       1,
-      { method: 'post', url: CARDS, data: { name: 'Nubank' }, headers: { 'Idempotency-Key': 'card-key' } },
+      {
+        method: 'post',
+        url: CARDS,
+        data: { name: 'Nubank' },
+        headers: { 'Idempotency-Key': 'card-key' },
+      },
       MUTATION,
     )
     expect(apiRequest).toHaveBeenNthCalledWith(
       2,
-      { method: 'patch', url: `${CARDS}/7`, data: { closing_day: 25 }, headers: { 'Idempotency-Key': 'card-update-key' } },
+      {
+        method: 'patch',
+        url: `${CARDS}/7`,
+        data: { closing_day: 25 },
+        headers: { 'Idempotency-Key': 'card-update-key' },
+      },
       MUTATION,
     )
     expect(apiRequest).toHaveBeenNthCalledWith(
       3,
-      { method: 'post', url: `${CARDS}/7/archive`, data: undefined, headers: { 'Idempotency-Key': 'card-archive-key' } },
+      {
+        method: 'post',
+        url: `${CARDS}/7/archive`,
+        data: undefined,
+        headers: { 'Idempotency-Key': 'card-archive-key' },
+      },
+      MUTATION,
+    )
+    expect(apiRequest).toHaveBeenNthCalledWith(
+      4,
+      {
+        method: 'post',
+        url: `${CARDS}/7/restore`,
+        data: undefined,
+        headers: { 'Idempotency-Key': 'card-restore-key' },
+      },
       MUTATION,
     )
   })
@@ -102,45 +136,96 @@ describe('creditCardService', () => {
 
     expect(purchases).toEqual({ purchases: [{ id: 1 }], meta: { total: 1 } })
     expect(statements).toEqual({ statements: [{ id: 2 }], meta: { total: 1 } })
-    expect(apiRequest).toHaveBeenNthCalledWith(1, { method: 'get', url: `${CARDS}/7/purchases`, params: { page: 1 } })
-    expect(apiRequest).toHaveBeenNthCalledWith(2, { method: 'get', url: `${CARDS}/7/statements`, params: { status: 'open' } })
+    expect(apiRequest).toHaveBeenNthCalledWith(1, {
+      method: 'get',
+      url: `${CARDS}/7/purchases`,
+      params: { page: 1 },
+    })
+    expect(apiRequest).toHaveBeenNthCalledWith(2, {
+      method: 'get',
+      url: `${CARDS}/7/statements`,
+      params: { status: 'open' },
+    })
 
     await getPurchase(3)
     await createPurchase(7, { total_amount_centavos: 1_000 }, 'purchase-key')
     await updatePurchase(3, { total_amount_centavos: 2_000 }, 'purchase-update-key')
-    await createCreditEvent(3, { reason: 'refund', amount_centavos: 500, event_date: '2026-09-19' }, 'event-key')
+    await createCreditEvent(
+      3,
+      { reason: 'refund', amount_centavos: 500, event_date: '2026-09-19' },
+      'event-key',
+    )
     await getStatement(9)
-    await createPayment(9, { amount_centavos: 500, financial_account_id: 1, payment_date: '2026-09-19' }, 'payment-key')
+    await createPayment(
+      9,
+      { amount_centavos: 500, financial_account_id: 1, payment_date: '2026-09-19' },
+      'payment-key',
+    )
     await updatePayment(11, { amount_centavos: 600 }, 'payment-update-key')
     await removePayment(11, 'payment-remove-key')
     await restorePayment(11, {}, 'payment-restore-key')
 
     expect(apiRequest).toHaveBeenCalledWith(
-      { method: 'post', url: `${CARDS}/7/purchases`, data: { total_amount_centavos: 1_000 }, headers: { 'Idempotency-Key': 'purchase-key' } },
+      {
+        method: 'post',
+        url: `${CARDS}/7/purchases`,
+        data: { total_amount_centavos: 1_000 },
+        headers: { 'Idempotency-Key': 'purchase-key' },
+      },
       MUTATION,
     )
     expect(apiRequest).toHaveBeenCalledWith(
-      { method: 'patch', url: `/api/v1/credit-card-purchases/3`, data: { total_amount_centavos: 2_000 }, headers: { 'Idempotency-Key': 'purchase-update-key' } },
+      {
+        method: 'patch',
+        url: `/api/v1/credit-card-purchases/3`,
+        data: { total_amount_centavos: 2_000 },
+        headers: { 'Idempotency-Key': 'purchase-update-key' },
+      },
       MUTATION,
     )
     expect(apiRequest).toHaveBeenCalledWith(
-      { method: 'post', url: `/api/v1/credit-card-purchases/3/credit-events`, data: { reason: 'refund', amount_centavos: 500, event_date: '2026-09-19' }, headers: { 'Idempotency-Key': 'event-key' } },
+      {
+        method: 'post',
+        url: `/api/v1/credit-card-purchases/3/credit-events`,
+        data: { reason: 'refund', amount_centavos: 500, event_date: '2026-09-19' },
+        headers: { 'Idempotency-Key': 'event-key' },
+      },
       MUTATION,
     )
     expect(apiRequest).toHaveBeenCalledWith(
-      { method: 'post', url: `/api/v1/credit-card-statements/9/payments`, data: { amount_centavos: 500, financial_account_id: 1, payment_date: '2026-09-19' }, headers: { 'Idempotency-Key': 'payment-key' } },
+      {
+        method: 'post',
+        url: `/api/v1/credit-card-statements/9/payments`,
+        data: { amount_centavos: 500, financial_account_id: 1, payment_date: '2026-09-19' },
+        headers: { 'Idempotency-Key': 'payment-key' },
+      },
       MUTATION,
     )
     expect(apiRequest).toHaveBeenCalledWith(
-      { method: 'patch', url: '/api/v1/credit-card-payments/11', data: { amount_centavos: 600 }, headers: { 'Idempotency-Key': 'payment-update-key' } },
+      {
+        method: 'patch',
+        url: '/api/v1/credit-card-payments/11',
+        data: { amount_centavos: 600 },
+        headers: { 'Idempotency-Key': 'payment-update-key' },
+      },
       MUTATION,
     )
     expect(apiRequest).toHaveBeenCalledWith(
-      { method: 'post', url: `/api/v1/credit-card-payments/11/remove`, data: undefined, headers: { 'Idempotency-Key': 'payment-remove-key' } },
+      {
+        method: 'post',
+        url: `/api/v1/credit-card-payments/11/remove`,
+        data: undefined,
+        headers: { 'Idempotency-Key': 'payment-remove-key' },
+      },
       MUTATION,
     )
     expect(apiRequest).toHaveBeenCalledWith(
-      { method: 'post', url: `/api/v1/credit-card-payments/11/restore`, data: {}, headers: { 'Idempotency-Key': 'payment-restore-key' } },
+      {
+        method: 'post',
+        url: `/api/v1/credit-card-payments/11/restore`,
+        data: {},
+        headers: { 'Idempotency-Key': 'payment-restore-key' },
+      },
       MUTATION,
     )
   })
@@ -157,18 +242,32 @@ describe('creditCardService', () => {
 
     expect(apiRequest).toHaveBeenNthCalledWith(
       1,
-      { method: 'post', url: '/api/v1/credit-card-statements/72/payments', data: payload, headers: { 'Idempotency-Key': 'partial-payment-retry' } },
+      {
+        method: 'post',
+        url: '/api/v1/credit-card-statements/72/payments',
+        data: payload,
+        headers: { 'Idempotency-Key': 'partial-payment-retry' },
+      },
       MUTATION,
     )
     expect(apiRequest).toHaveBeenNthCalledWith(
       2,
-      { method: 'post', url: '/api/v1/credit-card-statements/72/payments', data: payload, headers: { 'Idempotency-Key': 'partial-payment-retry' } },
+      {
+        method: 'post',
+        url: '/api/v1/credit-card-statements/72/payments',
+        data: payload,
+        headers: { 'Idempotency-Key': 'partial-payment-retry' },
+      },
       MUTATION,
     )
   })
 
   it('sends cancellation and correction credit events through the same traceable endpoint', async () => {
-    const cancellation = { reason: 'cancellation', amount_centavos: 1_000, event_date: '2026-10-05' }
+    const cancellation = {
+      reason: 'cancellation',
+      amount_centavos: 1_000,
+      event_date: '2026-10-05',
+    }
     const correction = { reason: 'correction', amount_centavos: 250, event_date: '2026-10-06' }
 
     await createCreditEvent(301, cancellation, 'cancel-key')
@@ -176,12 +275,22 @@ describe('creditCardService', () => {
 
     expect(apiRequest).toHaveBeenNthCalledWith(
       1,
-      { method: 'post', url: '/api/v1/credit-card-purchases/301/credit-events', data: cancellation, headers: { 'Idempotency-Key': 'cancel-key' } },
+      {
+        method: 'post',
+        url: '/api/v1/credit-card-purchases/301/credit-events',
+        data: cancellation,
+        headers: { 'Idempotency-Key': 'cancel-key' },
+      },
       MUTATION,
     )
     expect(apiRequest).toHaveBeenNthCalledWith(
       2,
-      { method: 'post', url: '/api/v1/credit-card-purchases/301/credit-events', data: correction, headers: { 'Idempotency-Key': 'correction-key' } },
+      {
+        method: 'post',
+        url: '/api/v1/credit-card-purchases/301/credit-events',
+        data: correction,
+        headers: { 'Idempotency-Key': 'correction-key' },
+      },
       MUTATION,
     )
   })
@@ -189,7 +298,10 @@ describe('creditCardService', () => {
   it('recognises the typed over-limit confirmation outcome', () => {
     const confirmation = {
       code: 'OVER_LIMIT_CONFIRMATION_REQUIRED',
-      payload: { resulting_available_credit: { amount_centavos: -50_000, currency_code: 'BRL' }, is_over_limit: true },
+      payload: {
+        resulting_available_credit: { amount_centavos: -50_000, currency_code: 'BRL' },
+        is_over_limit: true,
+      },
     }
 
     expect(isOverLimitConfirmation(confirmation)).toBe(true)
