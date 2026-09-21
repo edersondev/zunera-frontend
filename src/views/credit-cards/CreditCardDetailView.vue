@@ -1,10 +1,11 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, shallowRef } from 'vue'
 import { ElAlert, ElButton, ElEmpty, ElSkeleton, ElTag } from 'element-plus'
-import { ArrowLeft } from '@element-plus/icons-vue'
+import { ArrowLeft, Plus } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import CreditCardPurchaseForm from '@/components/credit-cards/CreditCardPurchaseForm.vue'
 import { useCreditCardStore } from '@/stores/credit-cards/creditCardStore'
 import {
   availableCreditPresentation,
@@ -25,6 +26,9 @@ const router = useRouter()
 
 const card = computed(() => store.card)
 const currentStatement = computed(() => card.value?.current_statement ?? null)
+const purchaseDialogVisible = shallowRef(false)
+const createdPurchase = shallowRef(null)
+const successMessage = shallowRef('')
 const availablePresentation = computed(() =>
   availableCreditPresentation(card.value?.summary?.available_credit?.amount_centavos ?? 0),
 )
@@ -37,6 +41,31 @@ onMounted(async () => {
 
 function goBack() {
   router.push({ name: 'credit-cards' })
+}
+
+function openPurchaseDialog() {
+  successMessage.value = ''
+  createdPurchase.value = null
+  store.dismissOverLimit()
+  purchaseDialogVisible.value = true
+}
+
+async function submitPurchase(payload) {
+  const outcome = await store.submitPurchase(Number(props.cardId ?? route.params.card_id), payload)
+  if (outcome.ok) {
+    createdPurchase.value = outcome.purchase
+    successMessage.value = t('creditCards.purchase.created')
+    await store.fetchPurchases(Number(props.cardId ?? route.params.card_id))
+  }
+}
+
+async function confirmOverLimit() {
+  const outcome = await store.submitOverLimit()
+  if (outcome.ok) {
+    createdPurchase.value = outcome.purchase
+    successMessage.value = t('creditCards.purchase.created')
+    await store.fetchPurchases(Number(props.cardId ?? route.params.card_id))
+  }
 }
 
 function openStatement(statement) {
@@ -53,10 +82,14 @@ function openStatement(statement) {
         <ElButton :icon="ArrowLeft" data-test="credit-card-detail-back" @click="goBack">
           {{ t('creditCards.detail.back') }}
         </ElButton>
+        <ElButton type="primary" :icon="Plus" data-test="credit-card-purchase-create" @click="openPurchaseDialog">
+          {{ t('creditCards.purchase.title') }}
+        </ElButton>
       </template>
     </PageHeader>
 
     <ElAlert v-if="store.error" type="error" :closable="false" :title="store.error.message" data-test="credit-card-detail-error" />
+    <ElAlert v-if="successMessage" type="success" :closable="false" :title="successMessage" data-test="credit-card-purchase-success" />
     <ElSkeleton v-if="store.loading && !card" :rows="4" animated data-test="credit-card-detail-loading" />
 
     <template v-else-if="card">
@@ -157,6 +190,18 @@ function openStatement(statement) {
         </ul>
       </section>
     </template>
+
+    <CreditCardPurchaseForm
+      v-model:visible="purchaseDialogVisible"
+      :card="card"
+      :submitting="store.submitting"
+      :mutation-error="store.mutationError"
+      :over-limit="store.pendingOverLimit"
+      :created-purchase="createdPurchase"
+      @submit="submitPurchase"
+      @confirm-over-limit="confirmOverLimit"
+      @dismiss-over-limit="store.dismissOverLimit()"
+    />
   </section>
 </template>
 
