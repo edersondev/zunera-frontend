@@ -41,7 +41,11 @@ const {
 } = storeToRefs(store)
 
 const creditCardStore = useCreditCardStore()
-const { dashboard: creditCardProjection, loading: creditCardLoading, error: creditCardError } = storeToRefs(creditCardStore)
+const {
+  dashboard: creditCardProjection,
+  loading: creditCardLoading,
+  error: creditCardError,
+} = storeToRefs(creditCardStore)
 
 const router = useRouter()
 const { t } = useI18n()
@@ -208,6 +212,9 @@ onMounted(() => {
   .dashboard-upcoming-card {
     grid-area: upcoming;
   }
-}
 
+  .dashboard-credit-cards-card {
+    grid-column: 1 / -1;
+  }
+}
 </style>

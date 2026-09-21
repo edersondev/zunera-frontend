@@ -6,11 +6,13 @@ import {
   businessToday,
   cardIdentityLabel,
   formatBRL,
+  formatCreditUtilization,
   formatIsoDate,
   installmentLabel,
   paymentStatus,
   recognitionStatus,
   statementStatus,
+  sumCreditCardSummaryAmount,
 } from '../creditCardFormatters'
 
 describe('creditCardFormatters', () => {
@@ -49,7 +51,9 @@ describe('creditCardFormatters', () => {
 
   it('maps statement, recognition, and payment states to text tones', () => {
     expect(statementStatus('open').tone).toBe('info')
-    expect(statementStatus('partially_paid').labelKey).toBe('creditCards.statementStatus.partiallyPaid')
+    expect(statementStatus('partially_paid').labelKey).toBe(
+      'creditCards.statementStatus.partiallyPaid',
+    )
     expect(statementStatus('paid').tone).toBe('success')
     expect(statementStatus('overdue').tone).toBe('danger')
     expect(statementStatus('unknown').tone).toBe('neutral')
@@ -75,9 +79,40 @@ describe('creditCardFormatters', () => {
   })
 
   it('builds a non-sensitive card identity label', () => {
-    expect(cardIdentityLabel({ institution_name: 'Nubank', last_four: '1234' })).toBe('Nubank •••• 1234')
+    expect(cardIdentityLabel({ institution_name: 'Nubank', last_four: '1234' })).toBe(
+      'Nubank •••• 1234',
+    )
     expect(cardIdentityLabel({ institution_name: 'Nubank', last_four: null })).toBe('Nubank')
     expect(cardIdentityLabel({ last_four: '9876' })).toBe('•••• 9876')
     expect(cardIdentityLabel({})).toBe('')
+  })
+
+  it('formats exact credit utilization while safely capping visual width', () => {
+    expect(formatCreditUtilization(0, 100_000)).toMatchObject({
+      isAvailable: true,
+      percent: 0,
+      visualPercent: 0,
+      formatted: '0%',
+    })
+    expect(formatCreditUtilization(25_500, 100_000)).toMatchObject({
+      percent: 25.5,
+      visualPercent: 25.5,
+      formatted: '25,5%',
+    })
+    expect(formatCreditUtilization(100_500, 100_000)).toMatchObject({
+      percent: 100.5,
+      visualPercent: 100,
+      formatted: '100,5%',
+    })
+    expect(formatCreditUtilization(100, 0).isAvailable).toBe(false)
+  })
+
+  it('aggregates only the card summary values supplied by the API', () => {
+    const cards = [
+      { summary: { credit_limit: { amount_centavos: 200_000 } } },
+      { summary: { credit_limit: { amount_centavos: 50_000 } } },
+    ]
+
+    expect(sumCreditCardSummaryAmount(cards, 'credit_limit')).toBe(250_000)
   })
 })

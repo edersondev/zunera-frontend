@@ -21,6 +21,41 @@ export function formatIsoDate(isoDate, locale = DEFAULT_LOCALE) {
   }).format(new Date(Date.UTC(year, month - 1, day, 12)))
 }
 
+/**
+ * Presentation-only utilization: source amounts remain server-provided, while
+ * the visual width is safely capped without losing the exact numeric value.
+ */
+export function formatCreditUtilization(usedCentavos, limitCentavos, locale = DEFAULT_LOCALE) {
+  const used = Number(usedCentavos ?? 0)
+  const limit = Number(limitCentavos ?? 0)
+
+  if (!Number.isFinite(used) || !Number.isFinite(limit) || limit <= 0) {
+    return { isAvailable: false, percent: null, visualPercent: 0, formatted: '—' }
+  }
+
+  const percent = Number(((used / limit) * 100).toFixed(10))
+
+  return {
+    isAvailable: true,
+    percent,
+    visualPercent: Math.max(0, Math.min(100, percent)),
+    formatted: new Intl.NumberFormat(locale, {
+      maximumFractionDigits: 1,
+      minimumFractionDigits: 0,
+    })
+      .format(percent)
+      .concat('%'),
+  }
+}
+
+/** Aggregates already-calculated server summaries for dashboard presentation. */
+export function sumCreditCardSummaryAmount(cards, summaryKey) {
+  return (Array.isArray(cards) ? cards : []).reduce(
+    (total, card) => total + Number(card?.summary?.[summaryKey]?.amount_centavos ?? 0),
+    0,
+  )
+}
+
 export function businessToday(now = new Date()) {
   const values = new Intl.DateTimeFormat('en-US', {
     timeZone: BUSINESS_TIME_ZONE,
@@ -50,7 +85,9 @@ const STATUS_PRESENTATION = {
 }
 
 export function statementStatus(status) {
-  return STATUS_PRESENTATION[status] ?? { tone: 'neutral', labelKey: 'creditCards.statementStatus.open' }
+  return (
+    STATUS_PRESENTATION[status] ?? { tone: 'neutral', labelKey: 'creditCards.statementStatus.open' }
+  )
 }
 
 export function recognitionStatus(status) {
