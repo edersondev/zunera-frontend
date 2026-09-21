@@ -6,6 +6,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import CreditCardPurchaseForm from '@/components/credit-cards/CreditCardPurchaseForm.vue'
+import CreditCardCorrectionDialog from '@/components/credit-cards/CreditCardCorrectionDialog.vue'
+import CreditCardCreditEventDialog from '@/components/credit-cards/CreditCardCreditEventDialog.vue'
 import { useCreditCardStore } from '@/stores/credit-cards/creditCardStore'
 import {
   availableCreditPresentation,
@@ -29,6 +31,10 @@ const currentStatement = computed(() => card.value?.current_statement ?? null)
 const purchaseDialogVisible = shallowRef(false)
 const createdPurchase = shallowRef(null)
 const successMessage = shallowRef('')
+const correctionTarget = shallowRef(null)
+const creditEventTarget = shallowRef(null)
+const correctionVisible = shallowRef(false)
+const creditEventVisible = shallowRef(false)
 const availablePresentation = computed(() =>
   availableCreditPresentation(card.value?.summary?.available_credit?.amount_centavos ?? 0),
 )
@@ -66,6 +72,42 @@ async function confirmOverLimit() {
     successMessage.value = t('creditCards.purchase.created')
     await store.fetchPurchases(Number(props.cardId ?? route.params.card_id))
   }
+}
+
+function openCorrection(purchase) {
+  successMessage.value = ''
+  correctionTarget.value = purchase
+  correctionVisible.value = true
+}
+
+function openCreditEvent(purchase) {
+  successMessage.value = ''
+  creditEventTarget.value = purchase
+  creditEventVisible.value = true
+}
+
+async function submitCorrection(payload) {
+  if (!correctionTarget.value) return
+
+  const outcome = await store.submitPurchaseCorrection(correctionTarget.value.id, payload)
+  if (!outcome.ok) return
+
+  correctionVisible.value = false
+  correctionTarget.value = null
+  successMessage.value = t('creditCards.correction.saved')
+  await store.fetchPurchases(Number(props.cardId ?? route.params.card_id))
+}
+
+async function submitCreditEvent(payload) {
+  if (!creditEventTarget.value) return
+
+  const outcome = await store.submitCreditEvent(creditEventTarget.value.id, payload)
+  if (!outcome.ok) return
+
+  creditEventVisible.value = false
+  creditEventTarget.value = null
+  successMessage.value = t('creditCards.creditEvent.saved')
+  await store.fetchPurchases(Number(props.cardId ?? route.params.card_id))
 }
 
 function openStatement(statement) {
@@ -185,6 +227,23 @@ function openStatement(statement) {
               >
                 {{ t(recognitionStatus(purchase.installments[0].recognition_status).labelKey) }}
               </ElTag>
+              <ElButton
+                v-if="purchase.is_directly_editable"
+                size="small"
+                :data-test="`credit-card-purchase-correct-${purchase.id}`"
+                @click="openCorrection(purchase)"
+              >
+                {{ t('creditCards.correction.action') }}
+              </ElButton>
+              <ElButton
+                size="small"
+                type="warning"
+                plain
+                :data-test="`credit-card-purchase-credit-event-${purchase.id}`"
+                @click="openCreditEvent(purchase)"
+              >
+                {{ t('creditCards.creditEvent.action') }}
+              </ElButton>
             </div>
           </li>
         </ul>
@@ -201,6 +260,22 @@ function openStatement(statement) {
       @submit="submitPurchase"
       @confirm-over-limit="confirmOverLimit"
       @dismiss-over-limit="store.dismissOverLimit()"
+    />
+
+    <CreditCardCorrectionDialog
+      v-model:visible="correctionVisible"
+      :purchase="correctionTarget"
+      :submitting="store.submitting"
+      :mutation-error="store.mutationError"
+      @submit="submitCorrection"
+    />
+
+    <CreditCardCreditEventDialog
+      v-model:visible="creditEventVisible"
+      :purchase="creditEventTarget"
+      :submitting="store.submitting"
+      :mutation-error="store.mutationError"
+      @submit="submitCreditEvent"
     />
   </section>
 </template>

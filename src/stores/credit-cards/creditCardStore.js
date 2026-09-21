@@ -18,6 +18,7 @@ import {
   removePayment,
   restorePayment,
   updateCard,
+  updatePurchase,
   updatePayment,
 } from '@/services/creditCardService'
 
@@ -276,6 +277,20 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
     })
   }
 
+  /**
+   * Direct correction is only offered while the purchase is still directly
+   * editable; the server re-checks that every installment remains open.
+   */
+  async function submitPurchaseCorrection(purchaseId, payload) {
+    return runMutation(async () => {
+      const purchase = await updatePurchase(purchaseId, payload, newIdempotencyKey())
+      card.value = await getCard(purchase.card.id)
+      await refreshCardsQuietly()
+
+      return purchase
+    })
+  }
+
   async function refreshCardAfterMutation(cardId) {
     card.value = await getCard(cardId)
     await refreshCardsQuietly()
@@ -338,5 +353,6 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
     removeStatementPayment,
     restoreStatementPayment,
     submitCreditEvent,
+    submitPurchaseCorrection,
   }
 })
