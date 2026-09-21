@@ -1,6 +1,19 @@
 <script setup>
 import { computed, reactive, shallowRef, watch } from 'vue'
-import { ElAlert, ElButton, ElDialog, ElForm, ElFormItem, ElInput, ElInputNumber, ElOption, ElSelect } from 'element-plus'
+import {
+  ElAlert,
+  ElButton,
+  ElCol,
+  ElDialog,
+  ElForm,
+  ElFormItem,
+  ElInput,
+  ElInputNumber,
+  ElOption,
+  ElRow,
+  ElSelect,
+} from 'element-plus'
+import { Check, Close } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import CurrencyAmountInput from '@/components/common/CurrencyAmountInput.vue'
 import { availableCreditPresentation } from '@/utils/credit-cards/creditCardFormatters'
@@ -34,7 +47,9 @@ const fieldErrors = computed(() => props.mutationError?.errors ?? {})
 const errorMessage = computed(() =>
   props.mutationError && !Object.keys(fieldErrors.value).length ? props.mutationError.message : '',
 )
-const limitPresentation = computed(() => availableCreditPresentation(form.credit_limit_centavos ?? 0))
+const limitPresentation = computed(() =>
+  availableCreditPresentation(form.credit_limit_centavos ?? 0),
+)
 
 watch(
   () => [props.visible, props.card],
@@ -89,50 +104,131 @@ defineExpose({ resetCreateForm })
     data-test="credit-card-form-dialog"
     @close="close"
   >
-    <ElAlert v-if="errorMessage" type="error" :closable="false" :title="errorMessage" data-test="credit-card-form-error" />
+    <ElAlert
+      v-if="errorMessage"
+      type="error"
+      :closable="false"
+      :title="errorMessage"
+      data-test="credit-card-form-error"
+    />
 
     <ElForm ref="formRef" label-position="top" @submit.prevent>
-      <ElFormItem :label="t('creditCards.form.name')" :error="fieldErrors.name?.[0]">
-        <ElInput v-model="form.name" maxlength="100" data-test="credit-card-name" />
-      </ElFormItem>
+      <ElRow :gutter="16">
+        <ElCol :xs="24" :md="12">
+          <ElFormItem :label="t('creditCards.form.name')" :error="fieldErrors.name?.[0]">
+            <ElInput v-model="form.name" maxlength="100" data-test="credit-card-name" />
+          </ElFormItem>
+        </ElCol>
 
-      <ElFormItem :label="t('creditCards.form.institution')" :error="fieldErrors.institution_name?.[0]">
-        <ElInput v-model="form.institution_name" maxlength="100" data-test="credit-card-institution" />
-      </ElFormItem>
+        <ElCol :xs="24" :md="12">
+          <ElFormItem
+            :label="t('creditCards.form.institution')"
+            :error="fieldErrors.institution_name?.[0]"
+          >
+            <ElInput
+              v-model="form.institution_name"
+              maxlength="100"
+              data-test="credit-card-institution"
+            />
+          </ElFormItem>
+        </ElCol>
+      </ElRow>
 
-      <ElFormItem :label="t('creditCards.form.lastFour')" :error="fieldErrors.last_four?.[0]">
-        <ElInput v-model="form.last_four" maxlength="4" inputmode="numeric" data-test="credit-card-last-four" />
-      </ElFormItem>
+      <ElRow :gutter="16">
+        <ElCol :xs="24" :md="12">
+          <ElFormItem :label="t('creditCards.form.lastFour')" :error="fieldErrors.last_four?.[0]">
+            <ElInput
+              v-model="form.last_four"
+              maxlength="4"
+              inputmode="numeric"
+              data-test="credit-card-last-four"
+            />
+          </ElFormItem>
+        </ElCol>
 
-      <ElFormItem :label="t('creditCards.form.limit')" :error="fieldErrors.credit_limit_centavos?.[0]">
-        <CurrencyAmountInput v-model="form.credit_limit_centavos" data-test="credit-card-limit" />
-        <p class="credit-card-form__hint" data-test="credit-card-limit-preview">{{ limitPresentation.formatted }}</p>
-      </ElFormItem>
+        <ElCol :xs="24" :md="12">
+          <ElFormItem
+            :label="t('creditCards.form.limit')"
+            :error="fieldErrors.credit_limit_centavos?.[0]"
+          >
+            <CurrencyAmountInput
+              v-model="form.credit_limit_centavos"
+              data-test="credit-card-limit"
+            />
+            <p class="credit-card-form__hint" data-test="credit-card-limit-preview">
+              {{ limitPresentation.formatted }}
+            </p>
+          </ElFormItem>
+        </ElCol>
+      </ElRow>
 
-      <ElFormItem :label="t('creditCards.form.closingDay')" :error="fieldErrors.closing_day?.[0]">
-        <ElInputNumber v-model="form.closing_day" :min="1" :max="31" data-test="credit-card-closing-day" />
-      </ElFormItem>
+      <ElRow :gutter="16">
+        <ElCol :xs="24" :md="12">
+          <ElFormItem
+            :label="t('creditCards.form.closingDay')"
+            :error="fieldErrors.closing_day?.[0]"
+          >
+            <ElInputNumber
+              v-model="form.closing_day"
+              :min="1"
+              :max="31"
+              data-test="credit-card-closing-day"
+            />
+          </ElFormItem>
+        </ElCol>
 
-      <ElFormItem :label="t('creditCards.form.dueDay')" :error="fieldErrors.due_day?.[0]">
-        <ElInputNumber v-model="form.due_day" :min="1" :max="31" data-test="credit-card-due-day" />
-      </ElFormItem>
+        <ElCol :xs="24" :md="12">
+          <ElFormItem :label="t('creditCards.form.dueDay')" :error="fieldErrors.due_day?.[0]">
+            <ElInputNumber
+              v-model="form.due_day"
+              :min="1"
+              :max="31"
+              data-test="credit-card-due-day"
+            />
+          </ElFormItem>
+        </ElCol>
+      </ElRow>
 
-      <ElFormItem :label="t('creditCards.form.color')" :error="fieldErrors.color?.[0]">
-        <ElSelect v-model="form.color" data-test="credit-card-color">
-          <ElOption v-for="color in COLORS" :key="color" :label="t(`creditCards.colors.${color}`)" :value="color" />
-        </ElSelect>
-      </ElFormItem>
+      <ElRow :gutter="16">
+        <ElCol :xs="24" :md="12">
+          <ElFormItem :label="t('creditCards.form.color')" :error="fieldErrors.color?.[0]">
+            <ElSelect v-model="form.color" data-test="credit-card-color">
+              <ElOption
+                v-for="color in COLORS"
+                :key="color"
+                :label="t(`creditCards.colors.${color}`)"
+                :value="color"
+              />
+            </ElSelect>
+          </ElFormItem>
+        </ElCol>
 
-      <ElFormItem :label="t('creditCards.form.icon')" :error="fieldErrors.icon?.[0]">
-        <ElSelect v-model="form.icon" data-test="credit-card-icon">
-          <ElOption v-for="icon in ICONS" :key="icon" :label="t(`creditCards.icons.${icon}`)" :value="icon" />
-        </ElSelect>
-      </ElFormItem>
+        <ElCol :xs="24" :md="12">
+          <ElFormItem :label="t('creditCards.form.icon')" :error="fieldErrors.icon?.[0]">
+            <ElSelect v-model="form.icon" data-test="credit-card-icon">
+              <ElOption
+                v-for="icon in ICONS"
+                :key="icon"
+                :label="t(`creditCards.icons.${icon}`)"
+                :value="icon"
+              />
+            </ElSelect>
+          </ElFormItem>
+        </ElCol>
+      </ElRow>
     </ElForm>
 
     <template #footer>
-      <ElButton data-test="credit-card-form-cancel" @click="close">{{ t('common.cancel') }}</ElButton>
-      <ElButton type="primary" :loading="submitting" data-test="credit-card-form-submit" @click="submit">
+      <ElButton :icon="Close" type="danger" data-test="credit-card-form-cancel" @click="close">{{
+        t('common.cancel')
+      }}</ElButton>
+      <ElButton
+        type="primary"
+        :icon="Check"
+        :loading="submitting"
+        data-test="credit-card-form-submit"
+        @click="submit"
+      >
         {{ t('common.save') }}
       </ElButton>
     </template>

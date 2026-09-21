@@ -1,6 +1,16 @@
 <script setup>
 import { computed, onMounted, reactive, shallowRef, watch } from 'vue'
-import { ElAlert, ElButton, ElDatePicker, ElDialog, ElForm, ElFormItem, ElInput, ElOption, ElSelect } from 'element-plus'
+import {
+  ElAlert,
+  ElButton,
+  ElDatePicker,
+  ElDialog,
+  ElForm,
+  ElFormItem,
+  ElInput,
+  ElOption,
+  ElSelect,
+} from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import CurrencyAmountInput from '@/components/common/CurrencyAmountInput.vue'
 import { listFinancialAccounts } from '@/services/financialAccountService'
@@ -36,11 +46,14 @@ const outstandingCentavos = computed(() => {
   if (!props.statement) return 0
 
   const outstanding = props.statement.outstanding_amount?.amount_centavos ?? 0
-  const ownPayment = isEditing.value && !props.payment?.is_removed ? props.payment.amount.amount_centavos : 0
+  const ownPayment =
+    isEditing.value && !props.payment?.is_removed ? props.payment.amount.amount_centavos : 0
 
   return outstanding + ownPayment
 })
-const remainingAfterPayment = computed(() => Math.max(0, outstandingCentavos.value - (form.amount_centavos ?? 0)))
+const remainingAfterPayment = computed(() =>
+  Math.max(0, outstandingCentavos.value - (form.amount_centavos ?? 0)),
+)
 
 onMounted(loadAccounts)
 
@@ -90,8 +103,20 @@ function submit() {
     data-test="credit-card-payment-dialog"
     @close="close"
   >
-    <ElAlert v-if="errorMessage" type="error" :closable="false" :title="errorMessage" data-test="credit-card-payment-error" />
-    <ElAlert v-if="accountsError" type="error" :closable="false" :title="accountsError.message" data-test="credit-card-payment-account-error" />
+    <ElAlert
+      v-if="errorMessage"
+      type="error"
+      :closable="false"
+      :title="errorMessage"
+      data-test="credit-card-payment-error"
+    />
+    <ElAlert
+      v-if="accountsError"
+      type="error"
+      :closable="false"
+      :title="accountsError.message"
+      data-test="credit-card-payment-account-error"
+    />
 
     <p class="payment-dialog__outstanding" data-test="credit-card-payment-outstanding">
       {{ t('creditCards.payment.outstanding', { amount: formatBRL(outstandingCentavos) }) }}
@@ -101,33 +126,65 @@ function submit() {
     </p>
 
     <ElForm ref="formRef" label-position="top" @submit.prevent>
-      <ElFormItem :label="t('creditCards.payment.account')" :error="fieldErrors.financial_account_id?.[0]">
+      <ElFormItem
+        :label="t('creditCards.payment.account')"
+        :error="fieldErrors.financial_account_id?.[0]"
+      >
         <ElSelect v-model="form.financial_account_id" data-test="credit-card-payment-account">
-          <ElOption v-for="account in accounts" :key="account.id" :label="account.name" :value="account.id" />
+          <ElOption
+            v-for="account in accounts"
+            :key="account.id"
+            :label="account.name"
+            :value="account.id"
+          />
         </ElSelect>
       </ElFormItem>
 
-      <ElFormItem :label="t('creditCards.payment.amount')" :error="fieldErrors.amount_centavos?.[0]">
-        <CurrencyAmountInput v-model="form.amount_centavos" data-test="credit-card-payment-amount" />
+      <ElFormItem
+        :label="t('creditCards.payment.amount')"
+        :error="fieldErrors.amount_centavos?.[0]"
+      >
+        <CurrencyAmountInput
+          v-model="form.amount_centavos"
+          data-test="credit-card-payment-amount"
+        />
         <span class="payment-dialog__hint" data-test="credit-card-payment-remaining">
-          {{ t('creditCards.payment.remainingAfter', { amount: formatBRL(remainingAfterPayment) }) }}
+          {{
+            t('creditCards.payment.remainingAfter', { amount: formatBRL(remainingAfterPayment) })
+          }}
         </span>
       </ElFormItem>
 
       <ElFormItem :label="t('creditCards.payment.date')" :error="fieldErrors.payment_date?.[0]">
-        <ElDatePicker v-model="form.payment_date" value-format="YYYY-MM-DD" data-test="credit-card-payment-date" />
+        <ElDatePicker
+          v-model="form.payment_date"
+          value-format="YYYY-MM-DD"
+          data-test="credit-card-payment-date"
+        />
       </ElFormItem>
 
       <ElFormItem :label="t('creditCards.payment.notes')" :error="fieldErrors.notes?.[0]">
-        <ElInput v-model="form.notes" type="textarea" maxlength="1000" data-test="credit-card-payment-notes" />
+        <ElInput
+          v-model="form.notes"
+          type="textarea"
+          maxlength="1000"
+          data-test="credit-card-payment-notes"
+        />
       </ElFormItem>
     </ElForm>
 
     <p class="payment-dialog__hint">{{ t('creditCards.payment.settlementHint') }}</p>
 
     <template #footer>
-      <ElButton data-test="credit-card-payment-cancel" @click="close">{{ t('common.cancel') }}</ElButton>
-      <ElButton type="primary" :loading="submitting" data-test="credit-card-payment-submit" @click="submit">
+      <ElButton type="danger" data-test="credit-card-payment-cancel" @click="close">{{
+        t('common.cancel')
+      }}</ElButton>
+      <ElButton
+        type="primary"
+        :loading="submitting"
+        data-test="credit-card-payment-submit"
+        @click="submit"
+      >
         {{ t('common.save') }}
       </ElButton>
     </template>

@@ -1,6 +1,16 @@
 <script setup>
 import { computed, reactive, shallowRef, watch } from 'vue'
-import { ElAlert, ElButton, ElDatePicker, ElDialog, ElForm, ElFormItem, ElInput, ElOption, ElSelect } from 'element-plus'
+import {
+  ElAlert,
+  ElButton,
+  ElDatePicker,
+  ElDialog,
+  ElForm,
+  ElFormItem,
+  ElInput,
+  ElOption,
+  ElSelect,
+} from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import CurrencyAmountInput from '@/components/common/CurrencyAmountInput.vue'
 import { businessToday, formatBRL } from '@/utils/credit-cards/creditCardFormatters'
@@ -75,7 +85,13 @@ function close() {
     data-test="credit-card-credit-event-dialog"
     @close="close"
   >
-    <ElAlert v-if="errorMessage" type="error" :closable="false" :title="errorMessage" data-test="credit-card-credit-event-error" />
+    <ElAlert
+      v-if="errorMessage"
+      type="error"
+      :closable="false"
+      :title="errorMessage"
+      data-test="credit-card-credit-event-error"
+    />
 
     <p class="credit-event__hint" data-test="credit-card-credit-event-limit">
       {{ t('creditCards.creditEvent.uncredited', { amount: formatBRL(uncreditedCentavos) }) }}
@@ -84,28 +100,55 @@ function close() {
     <ElForm ref="formRef" label-position="top" @submit.prevent>
       <ElFormItem :label="t('creditCards.creditEvent.reason')" :error="fieldErrors.reason?.[0]">
         <ElSelect v-model="form.reason" data-test="credit-card-credit-event-reason">
-          <ElOption v-for="reason in REASONS" :key="reason" :label="t(`creditCards.creditEventReason.${reason}`)" :value="reason" />
+          <ElOption
+            v-for="reason in REASONS"
+            :key="reason"
+            :label="t(`creditCards.creditEventReason.${reason}`)"
+            :value="reason"
+          />
         </ElSelect>
       </ElFormItem>
 
-      <ElFormItem :label="t('creditCards.creditEvent.amount')" :error="fieldErrors.amount_centavos?.[0]">
-        <CurrencyAmountInput v-model="form.amount_centavos" data-test="credit-card-credit-event-amount" />
+      <ElFormItem
+        :label="t('creditCards.creditEvent.amount')"
+        :error="fieldErrors.amount_centavos?.[0]"
+      >
+        <CurrencyAmountInput
+          v-model="form.amount_centavos"
+          data-test="credit-card-credit-event-amount"
+        />
       </ElFormItem>
 
       <ElFormItem :label="t('creditCards.creditEvent.date')" :error="fieldErrors.event_date?.[0]">
-        <ElDatePicker v-model="form.event_date" value-format="YYYY-MM-DD" data-test="credit-card-credit-event-date" />
+        <ElDatePicker
+          v-model="form.event_date"
+          value-format="YYYY-MM-DD"
+          data-test="credit-card-credit-event-date"
+        />
       </ElFormItem>
 
       <ElFormItem :label="t('creditCards.creditEvent.notes')" :error="fieldErrors.notes?.[0]">
-        <ElInput v-model="form.notes" type="textarea" maxlength="1000" data-test="credit-card-credit-event-notes" />
+        <ElInput
+          v-model="form.notes"
+          type="textarea"
+          maxlength="1000"
+          data-test="credit-card-credit-event-notes"
+        />
       </ElFormItem>
     </ElForm>
 
     <p class="credit-event__hint">{{ t('creditCards.creditEvent.hint') }}</p>
 
     <template #footer>
-      <ElButton data-test="credit-card-credit-event-cancel" @click="close">{{ t('common.cancel') }}</ElButton>
-      <ElButton type="primary" :loading="submitting" data-test="credit-card-credit-event-submit" @click="submit">
+      <ElButton type="danger" data-test="credit-card-credit-event-cancel" @click="close">{{
+        t('common.cancel')
+      }}</ElButton>
+      <ElButton
+        type="primary"
+        :loading="submitting"
+        data-test="credit-card-credit-event-submit"
+        @click="submit"
+      >
         {{ t('common.save') }}
       </ElButton>
     </template>

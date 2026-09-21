@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, reactive, shallowRef } from 'vue'
 import { ElAlert, ElButton, ElEmpty, ElSkeleton, ElTag } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { FolderOpened, Plus } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import CreditCardForm from '@/components/credit-cards/CreditCardForm.vue'
@@ -88,7 +88,7 @@ async function confirmArchive() {
   <section class="credit-cards" data-test="credit-cards-view">
     <PageHeader :title="t('creditCards.title')" :description="t('creditCards.description')">
       <template #actions>
-        <ElButton data-test="credit-cards-archived-link" @click="openArchived">
+        <ElButton :icon="FolderOpened" data-test="credit-cards-archived-link" @click="openArchived">
           {{ t('creditCards.archived') }}
         </ElButton>
         <ElButton
@@ -124,7 +124,12 @@ async function confirmArchive() {
       :description="t('creditCards.empty')"
       data-test="credit-cards-empty"
     >
-      <ElButton type="primary" data-test="credit-cards-empty-create" @click="openCreateDialog">
+      <ElButton
+        type="primary"
+        :icon="Plus"
+        data-test="credit-cards-empty-create"
+        @click="openCreateDialog"
+      >
         {{ t('creditCards.new') }}
       </ElButton>
     </ElEmpty>
@@ -264,9 +269,12 @@ async function confirmArchive() {
         data-test="credit-card-archive-error"
       />
       <template #footer>
-        <ElButton data-test="credit-card-archive-cancel" @click="lifecycle.visible = false">{{
-          t('common.cancel')
-        }}</ElButton>
+        <ElButton
+          type="danger"
+          data-test="credit-card-archive-cancel"
+          @click="lifecycle.visible = false"
+          >{{ t('common.cancel') }}</ElButton
+        >
         <ElButton
           type="danger"
           :loading="store.submitting"

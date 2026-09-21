@@ -1,11 +1,26 @@
 <script setup>
 import { computed, onMounted, reactive, shallowRef, watch } from 'vue'
-import { ElAlert, ElButton, ElDatePicker, ElDialog, ElForm, ElFormItem, ElInput, ElInputNumber, ElOption, ElSelect } from 'element-plus'
+import {
+  ElAlert,
+  ElButton,
+  ElDatePicker,
+  ElDialog,
+  ElForm,
+  ElFormItem,
+  ElInput,
+  ElInputNumber,
+  ElOption,
+  ElSelect,
+} from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import CurrencyAmountInput from '@/components/common/CurrencyAmountInput.vue'
 import InstallmentSchedule from '@/components/credit-cards/InstallmentSchedule.vue'
 import { listCategories } from '@/services/categoryService'
-import { availableCreditPresentation, businessToday, formatBRL } from '@/utils/credit-cards/creditCardFormatters'
+import {
+  availableCreditPresentation,
+  businessToday,
+  formatBRL,
+} from '@/utils/credit-cards/creditCardFormatters'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -52,7 +67,9 @@ watch(
 async function loadCategories() {
   try {
     const result = await listCategories()
-    categories.value = result.filter((category) => category.classification === 'expense' && category.status === 'active')
+    categories.value = result.filter(
+      (category) => category.classification === 'expense' && category.status === 'active',
+    )
   } catch (requestError) {
     categoriesError.value = requestError
   }
@@ -92,8 +109,20 @@ function submit() {
     data-test="credit-card-purchase-dialog"
     @close="close"
   >
-    <ElAlert v-if="errorMessage" type="error" :closable="false" :title="errorMessage" data-test="credit-card-purchase-error" />
-    <ElAlert v-if="categoriesError" type="error" :closable="false" :title="categoriesError.message" data-test="credit-card-purchase-category-error" />
+    <ElAlert
+      v-if="errorMessage"
+      type="error"
+      :closable="false"
+      :title="errorMessage"
+      data-test="credit-card-purchase-error"
+    />
+    <ElAlert
+      v-if="categoriesError"
+      type="error"
+      :closable="false"
+      :title="categoriesError.message"
+      data-test="credit-card-purchase-category-error"
+    />
 
     <p class="purchase-form__availability" data-test="credit-card-purchase-available">
       {{ t('creditCards.purchase.availableCredit', { amount: availableCredit.formatted }) }}
@@ -111,27 +140,62 @@ function submit() {
         </ElSelect>
       </ElFormItem>
 
-      <ElFormItem :label="t('creditCards.purchase.description')" :error="fieldErrors.description?.[0]">
-        <ElInput v-model="form.description" maxlength="200" data-test="credit-card-purchase-description" />
+      <ElFormItem
+        :label="t('creditCards.purchase.description')"
+        :error="fieldErrors.description?.[0]"
+      >
+        <ElInput
+          v-model="form.description"
+          maxlength="200"
+          data-test="credit-card-purchase-description"
+        />
       </ElFormItem>
 
-      <ElFormItem :label="t('creditCards.purchase.amount')" :error="fieldErrors.total_amount_centavos?.[0]">
-        <CurrencyAmountInput v-model="form.total_amount_centavos" data-test="credit-card-purchase-amount" />
+      <ElFormItem
+        :label="t('creditCards.purchase.amount')"
+        :error="fieldErrors.total_amount_centavos?.[0]"
+      >
+        <CurrencyAmountInput
+          v-model="form.total_amount_centavos"
+          data-test="credit-card-purchase-amount"
+        />
       </ElFormItem>
 
       <ElFormItem :label="t('creditCards.purchase.date')" :error="fieldErrors.purchase_date?.[0]">
-        <ElDatePicker v-model="form.purchase_date" value-format="YYYY-MM-DD" data-test="credit-card-purchase-date" />
+        <ElDatePicker
+          v-model="form.purchase_date"
+          value-format="YYYY-MM-DD"
+          data-test="credit-card-purchase-date"
+        />
       </ElFormItem>
 
-      <ElFormItem :label="t('creditCards.purchase.installments')" :error="fieldErrors.installment_count?.[0]">
-        <ElInputNumber v-model="form.installment_count" :min="1" :max="360" data-test="credit-card-purchase-installments" />
+      <ElFormItem
+        :label="t('creditCards.purchase.installments')"
+        :error="fieldErrors.installment_count?.[0]"
+      >
+        <ElInputNumber
+          v-model="form.installment_count"
+          :min="1"
+          :max="360"
+          data-test="credit-card-purchase-installments"
+        />
         <span class="purchase-form__hint" data-test="credit-card-purchase-installment-hint">
-          {{ t('creditCards.purchase.installmentHint', { count: form.installment_count, suffix: installmentCountSuffix }) }}
+          {{
+            t('creditCards.purchase.installmentHint', {
+              count: form.installment_count,
+              suffix: installmentCountSuffix,
+            })
+          }}
         </span>
       </ElFormItem>
 
       <ElFormItem :label="t('creditCards.purchase.notes')" :error="fieldErrors.notes?.[0]">
-        <ElInput v-model="form.notes" type="textarea" maxlength="1000" data-test="credit-card-purchase-notes" />
+        <ElInput
+          v-model="form.notes"
+          type="textarea"
+          maxlength="1000"
+          data-test="credit-card-purchase-notes"
+        />
       </ElFormItem>
     </ElForm>
 
@@ -144,26 +208,49 @@ function submit() {
       :title="t('creditCards.purchase.overLimitTitle')"
     >
       <p>
-        {{ t('creditCards.purchase.overLimitBody', {
-          amount: formatBRL(overLimit.resultingCentavos),
-        }) }}
+        {{
+          t('creditCards.purchase.overLimitBody', {
+            amount: formatBRL(overLimit.resultingCentavos),
+          })
+        }}
       </p>
-      <ElButton type="danger" :loading="submitting" data-test="credit-card-purchase-confirm-over-limit" @click="emit('confirm-over-limit')">
+      <ElButton
+        type="danger"
+        :loading="submitting"
+        data-test="credit-card-purchase-confirm-over-limit"
+        @click="emit('confirm-over-limit')"
+      >
         {{ t('creditCards.purchase.confirmOverLimit') }}
       </ElButton>
-      <ElButton text data-test="credit-card-purchase-dismiss-over-limit" @click="emit('dismiss-over-limit')">
+      <ElButton
+        text
+        type="danger"
+        data-test="credit-card-purchase-dismiss-over-limit"
+        @click="emit('dismiss-over-limit')"
+      >
         {{ t('common.cancel') }}
       </ElButton>
     </ElAlert>
 
-    <section v-if="createdPurchase" class="purchase-form__result" data-test="credit-card-purchase-result">
+    <section
+      v-if="createdPurchase"
+      class="purchase-form__result"
+      data-test="credit-card-purchase-result"
+    >
       <h3>{{ t('creditCards.purchase.schedule') }}</h3>
       <InstallmentSchedule :installments="createdPurchase.installments" />
     </section>
 
     <template #footer>
-      <ElButton data-test="credit-card-purchase-cancel" @click="close">{{ t('common.cancel') }}</ElButton>
-      <ElButton type="primary" :loading="submitting" data-test="credit-card-purchase-submit" @click="submit">
+      <ElButton type="danger" data-test="credit-card-purchase-cancel" @click="close">{{
+        t('common.cancel')
+      }}</ElButton>
+      <ElButton
+        type="primary"
+        :loading="submitting"
+        data-test="credit-card-purchase-submit"
+        @click="submit"
+      >
         {{ t('common.save') }}
       </ElButton>
     </template>
