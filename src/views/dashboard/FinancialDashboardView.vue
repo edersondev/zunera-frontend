@@ -11,7 +11,9 @@ import FinancialEvolutionCard from '@/components/dashboard/FinancialEvolutionCar
 import AccountsOverviewCard from '@/components/dashboard/AccountsOverviewCard.vue'
 import RecentActivityCard from '@/components/dashboard/RecentActivityCard.vue'
 import UpcomingActivityCard from '@/components/dashboard/UpcomingActivityCard.vue'
+import CreditCardSummary from '@/components/dashboard/CreditCardSummary.vue'
 import { useDashboardStore } from '@/stores/dashboard/dashboardStore'
+import { useCreditCardStore } from '@/stores/credit-cards/creditCardStore'
 import { useLocale } from '@/composables/useLocale'
 import { formatDashboardPeriod } from '@/utils/dashboard/dashboardFormatters'
 
@@ -37,6 +39,9 @@ const {
   upcomingActivityLoading,
   upcomingActivityError,
 } = storeToRefs(store)
+
+const creditCardStore = useCreditCardStore()
+const { dashboard: creditCardProjection, loading: creditCardLoading, error: creditCardError } = storeToRefs(creditCardStore)
 
 const router = useRouter()
 const { t } = useI18n()
@@ -76,6 +81,7 @@ async function openFinancialAccounts() {
 
 onMounted(() => {
   store.refreshAll()
+  creditCardStore.fetchDashboard()
 })
 </script>
 
@@ -138,6 +144,15 @@ onMounted(() => {
         :error="upcomingActivityError"
         :locale="activeLocale"
         @retry="store.fetchUpcomingActivity()"
+      />
+
+      <CreditCardSummary
+        class="dashboard-credit-cards-card"
+        :projection="creditCardProjection"
+        :loading="creditCardLoading"
+        :error="creditCardError"
+        @retry="creditCardStore.fetchDashboard()"
+        @open-cards="router.push({ name: 'credit-cards' })"
       />
     </div>
 

@@ -13,6 +13,7 @@ export const messages = {
       english: 'English',
       currentUser: 'usuário atual',
       edit: 'Editar',
+      retry: 'Tentar novamente',
     },
     auth: {
       createAccount: 'Criar conta',
@@ -335,7 +336,8 @@ export const messages = {
         used: 'Usado',
         cardCredit: 'Crédito do cartão',
         available: 'Disponível',
-        billingDays: 'Fechamento/vencimento',
+       billingDays: 'Fechamento/vencimento',
+        overLimitTag: 'Acima do limite',
       },
       statement: {
         outstanding: 'Em aberto',
@@ -419,6 +421,14 @@ export const messages = {
         remove: 'Remover',
         restore: 'Restaurar',
         removedSection: 'Pagamentos removidos',
+      },
+      dashboard: {
+        title: 'Cartões de crédito',
+        manage: 'Gerenciar cartões',
+        empty: 'Nenhum cartão cadastrado.',
+        outstanding: 'Obrigação em aberto',
+        cashNote: 'A dívida do cartão é separada do saldo em contas.',
+        upcoming: 'Próximos vencimentos',
       },
     },
     financialAccounts: {
@@ -828,6 +838,7 @@ export const messages = {
       english: 'English',
       currentUser: 'current user',
       edit: 'Edit',
+      retry: 'Try again',
     },
     auth: {
       createAccount: 'Create account',
@@ -1146,7 +1157,8 @@ export const messages = {
         used: 'Used',
         cardCredit: 'Card credit',
         available: 'Available',
-        billingDays: 'Closing/due',
+       billingDays: 'Closing/due',
+        overLimitTag: 'Over limit',
       },
       statement: {
         outstanding: 'Outstanding',
@@ -1230,6 +1242,14 @@ export const messages = {
         remove: 'Remove',
         restore: 'Restore',
         removedSection: 'Removed payments',
+      },
+      dashboard: {
+        title: 'Credit cards',
+        manage: 'Manage cards',
+        empty: 'No cards registered.',
+        outstanding: 'Outstanding obligation',
+        cashNote: 'Card debt is kept separate from account balances.',
+        upcoming: 'Upcoming due statements',
       },
     },
     financialAccounts: {
