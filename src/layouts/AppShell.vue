@@ -33,6 +33,12 @@ const navigationItems = computed(() => [
         label: t('app.categories'),
         icon: CollectionTag,
       },
+      {
+        routeName: 'credit-cards',
+        activeRouteNames: ['credit-cards', 'credit-cards-archived', 'credit-card-detail'],
+        label: t('app.creditCards'),
+        icon: Money,
+      },
     ],
   },
   {
