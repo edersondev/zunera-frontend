@@ -91,7 +91,12 @@ async function confirmArchive() {
         <ElButton data-test="credit-cards-archived-link" @click="openArchived">
           {{ t('creditCards.archived') }}
         </ElButton>
-        <ElButton type="primary" :icon="Plus" data-test="credit-card-create" @click="openCreateDialog">
+        <ElButton
+          type="primary"
+          :icon="Plus"
+          data-test="credit-card-create"
+          @click="openCreateDialog"
+        >
           {{ t('creditCards.new') }}
         </ElButton>
       </template>
@@ -114,57 +119,112 @@ async function confirmArchive() {
 
     <ElSkeleton v-if="store.loading" :rows="3" animated data-test="credit-cards-loading" />
 
-    <ElEmpty v-else-if="!store.hasCards" :description="t('creditCards.empty')" data-test="credit-cards-empty">
+    <ElEmpty
+      v-else-if="!store.hasCards"
+      :description="t('creditCards.empty')"
+      data-test="credit-cards-empty"
+    >
       <ElButton type="primary" data-test="credit-cards-empty-create" @click="openCreateDialog">
         {{ t('creditCards.new') }}
       </ElButton>
     </ElEmpty>
 
-    <ul v-else class="credit-cards__list">
-      <li v-for="item in store.cards" :key="item.id" class="credit-cards__item" :data-test="`credit-card-${item.id}`">
-        <button type="button" class="credit-cards__open" :data-test="`credit-card-open-${item.id}`" @click="openCard(item)">
-          <span class="credit-cards__name">{{ item.name }}</span>
-          <span class="credit-cards__identity">{{ cardIdentityLabel(item) }}</span>
-          <span class="credit-cards__cycle">{{ t('creditCards.cycle', billingCycleSummary(item)) }}</span>
+    <ul v-else class="m-0 grid list-none gap-4 p-0 lg:grid-cols-2">
+      <li
+        v-for="item in store.cards"
+        :key="item.id"
+        class="grid min-h-full gap-3 rounded-xl border border-[var(--el-border-color)] p-4"
+        :data-test="`credit-card-${item.id}`"
+      >
+        <button
+          type="button"
+          class="grid cursor-pointer gap-0.5 border-0 bg-transparent p-0 text-left"
+          :data-test="`credit-card-open-${item.id}`"
+          @click="openCard(item)"
+        >
+          <span class="font-semibold">{{ item.name }}</span>
+          <span class="text-[0.8125rem] text-[var(--el-text-color-secondary)]">{{
+            cardIdentityLabel(item)
+          }}</span>
+          <span class="text-[0.8125rem] text-[var(--el-text-color-secondary)]">{{
+            t('creditCards.cycle', billingCycleSummary(item))
+          }}</span>
         </button>
 
-        <dl class="credit-cards__summary">
+        <dl class="m-0 grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-2">
           <div>
-            <dt>{{ t('creditCards.summary.limit') }}</dt>
-            <dd>{{ formatBRL(item.summary.credit_limit.amount_centavos) }}</dd>
+            <dt class="text-xs text-[var(--el-text-color-secondary)]">
+              {{ t('creditCards.summary.limit') }}
+            </dt>
+            <dd class="m-0 tabular-nums">
+              {{ formatBRL(item.summary.credit_limit.amount_centavos) }}
+            </dd>
           </div>
           <div>
-            <dt>{{ t('creditCards.summary.used') }}</dt>
-            <dd>{{ formatBRL(item.summary.used_credit.amount_centavos) }}</dd>
+            <dt class="text-xs text-[var(--el-text-color-secondary)]">
+              {{ t('creditCards.summary.used') }}
+            </dt>
+            <dd class="m-0 tabular-nums">
+              {{ formatBRL(item.summary.used_credit.amount_centavos) }}
+            </dd>
           </div>
           <div>
-            <dt>{{ t('creditCards.summary.cardCredit') }}</dt>
-            <dd>{{ formatBRL(item.summary.card_credit.amount_centavos) }}</dd>
+            <dt class="text-xs text-[var(--el-text-color-secondary)]">
+              {{ t('creditCards.summary.cardCredit') }}
+            </dt>
+            <dd class="m-0 tabular-nums">
+              {{ formatBRL(item.summary.card_credit.amount_centavos) }}
+            </dd>
           </div>
           <div>
-            <dt>{{ t('creditCards.summary.available') }}</dt>
-            <dd :data-test="`credit-card-available-${item.id}`">
+            <dt class="text-xs text-[var(--el-text-color-secondary)]">
+              {{ t('creditCards.summary.available') }}
+            </dt>
+            <dd class="m-0 tabular-nums" :data-test="`credit-card-available-${item.id}`">
               {{ formatBRL(item.summary.available_credit.amount_centavos) }}
             </dd>
           </div>
         </dl>
 
-        <p v-if="item.summary.is_over_limit" class="credit-cards__over-limit" :data-test="`credit-card-over-limit-${item.id}`">
-          {{ t('creditCards.overLimit', { amount: availableCreditPresentation(item.summary.available_credit.amount_centavos).formatted }) }}
+        <p
+          v-if="item.summary.is_over_limit"
+          class="m-0 font-semibold text-[var(--el-color-danger)]"
+          :data-test="`credit-card-over-limit-${item.id}`"
+        >
+          {{
+            t('creditCards.overLimit', {
+              amount: availableCreditPresentation(item.summary.available_credit.amount_centavos)
+                .formatted,
+            })
+          }}
         </p>
 
-        <div class="credit-cards__current">
-          <ElTag :type="statementStatus(item.current_statement.status).tone" data-test="credit-card-current-status">
+        <div class="flex flex-wrap items-center gap-2">
+          <ElTag
+            :type="statementStatus(item.current_statement.status).tone"
+            data-test="credit-card-current-status"
+          >
             {{ t(statementStatus(item.current_statement.status).labelKey) }}
           </ElTag>
           <span data-test="credit-card-current-outstanding">
-            {{ t('creditCards.currentStatement', { amount: formatBRL(item.current_statement.outstanding_amount.amount_centavos) }) }}
+            {{
+              t('creditCards.currentStatement', {
+                amount: formatBRL(item.current_statement.outstanding_amount.amount_centavos),
+              })
+            }}
           </span>
         </div>
 
-        <div class="credit-cards__actions">
-          <ElButton data-test="credit-card-edit" @click="openEditDialog(item)">{{ t('common.edit') }}</ElButton>
-          <ElButton type="danger" plain data-test="credit-card-archive" @click="openLifecycle(item)">
+        <div class="flex flex-wrap items-center gap-2">
+          <ElButton data-test="credit-card-edit" @click="openEditDialog(item)">{{
+            t('common.edit')
+          }}</ElButton>
+          <ElButton
+            type="danger"
+            plain
+            data-test="credit-card-archive"
+            @click="openLifecycle(item)"
+          >
             {{ t('creditCards.archive') }}
           </ElButton>
         </div>
@@ -193,7 +253,9 @@ async function confirmArchive() {
       @close="lifecycle.card = null"
     >
       <p>{{ t('creditCards.archiveConfirmation', { name: lifecycle.card?.name ?? '' }) }}</p>
-      <p class="credit-cards__hint">{{ t('creditCards.archiveBlockedHint') }}</p>
+      <p class="text-[0.8125rem] text-[var(--el-text-color-secondary)]">
+        {{ t('creditCards.archiveBlockedHint') }}
+      </p>
       <ElAlert
         v-if="store.mutationError"
         type="error"
@@ -202,91 +264,18 @@ async function confirmArchive() {
         data-test="credit-card-archive-error"
       />
       <template #footer>
-        <ElButton data-test="credit-card-archive-cancel" @click="lifecycle.visible = false">{{ t('common.cancel') }}</ElButton>
-        <ElButton type="danger" :loading="store.submitting" data-test="credit-card-archive-confirm" @click="confirmArchive">
+        <ElButton data-test="credit-card-archive-cancel" @click="lifecycle.visible = false">{{
+          t('common.cancel')
+        }}</ElButton>
+        <ElButton
+          type="danger"
+          :loading="store.submitting"
+          data-test="credit-card-archive-confirm"
+          @click="confirmArchive"
+        >
           {{ t('creditCards.archive') }}
         </ElButton>
       </template>
     </ElDialog>
   </section>
 </template>
-
-<style scoped>
-.credit-cards__list {
-  display: grid;
-  gap: 1rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.credit-cards__item {
-  display: grid;
-  gap: 0.75rem;
-  padding: 1rem;
-  border: 1px solid var(--el-border-color);
-  border-radius: 0.75rem;
-}
-
-.credit-cards__open {
-  display: grid;
-  gap: 0.125rem;
-  padding: 0;
-  text-align: start;
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
-.credit-cards__name {
-  font-weight: 600;
-}
-
-.credit-cards__identity,
-.credit-cards__cycle,
-.credit-cards__hint {
-  font-size: 0.8125rem;
-  color: var(--el-text-color-secondary);
-}
-
-.credit-cards__summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-  gap: 0.5rem;
-  margin: 0;
-}
-
-.credit-cards__summary dt {
-  font-size: 0.75rem;
-  color: var(--el-text-color-secondary);
-}
-
-.credit-cards__summary dd {
-  margin: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-.credit-cards__over-limit {
-  margin: 0;
-  font-weight: 600;
-  color: var(--el-color-danger);
-}
-
-.credit-cards__current,
-.credit-cards__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-@media (min-width: 1024px) {
-  .credit-cards__list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .credit-cards__item {
-    min-block-size: 100%;
-  }
-}
-</style>

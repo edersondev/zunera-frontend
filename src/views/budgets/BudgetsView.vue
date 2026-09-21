@@ -124,7 +124,7 @@ onMounted(reload)
 </script>
 
 <template>
-  <div class="budgets-view">
+  <div class="grid gap-5">
     <PageHeader :title="t('budgets.title')" :description="t('budgets.description')">
       <template #actions>
         <BudgetMonthNavigator
@@ -161,7 +161,10 @@ onMounted(reload)
 
       <template v-else>
         <BudgetSummary v-if="store.summary" :summary="store.summary" />
-        <p class="budget-card-recognition-note" data-test="budget-card-recognition-note">
+        <p
+          class="m-0 text-sm text-[var(--el-text-color-secondary)]"
+          data-test="budget-card-recognition-note"
+        >
           {{ t('creditCards.history.budgetRecognition') }}
         </p>
         <BudgetEmptyState v-if="!hasPlans" state="no-plans" @add="openCreatePlan" />
@@ -199,15 +202,3 @@ onMounted(reload)
     />
   </div>
 </template>
-
-<style scoped>
-.budgets-view {
-  display: grid;
-  gap: 20px;
-}
-.budget-card-recognition-note {
-  color: var(--el-text-color-secondary);
-  font-size: 0.875rem;
-  margin: 0;
-}
-</style>
