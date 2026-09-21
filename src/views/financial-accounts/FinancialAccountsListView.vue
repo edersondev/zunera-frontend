@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, reactive, shallowRef } from 'vue'
-import { Check, CirclePlus, Close, Edit, FolderOpened, Plus } from '@element-plus/icons-vue'
+import { Check, CirclePlus, Close, FolderOpened, Plus } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import FinancialAccountForm from '@/components/financial-accounts/FinancialAccountForm.vue'
 import FinancialAccountLifecycleDialog from '@/components/financial-accounts/FinancialAccountLifecycleDialog.vue'

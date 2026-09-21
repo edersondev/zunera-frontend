@@ -161,6 +161,15 @@ async function openOccurrence(occurrence) {
       </template>
     </PageHeader>
 
+    <ElAlert
+      type="info"
+      :closable="false"
+      show-icon
+      :title="t('creditCards.recurringUnsupported.title')"
+      :description="t('creditCards.recurringUnsupported.description')"
+      data-test="credit-card-recurring-unsupported"
+    />
+
     <ElAlert v-if="store.notice" type="success" :closable="false" show-icon :title="t(store.notice)" data-test="recurrence-notice" />
     <ElAlert v-if="store.error && !lifecycleOpen" type="error" :closable="false" show-icon :title="store.error.message" data-test="recurrence-error" />
     <div v-if="activeCriteria.length" class="criteria" data-test="recurrence-active-criteria">

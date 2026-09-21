@@ -132,11 +132,56 @@ describe('creditCardService', () => {
       MUTATION,
     )
     expect(apiRequest).toHaveBeenCalledWith(
+      { method: 'patch', url: '/api/v1/credit-card-payments/11', data: { amount_centavos: 600 }, headers: { 'Idempotency-Key': 'payment-update-key' } },
+      MUTATION,
+    )
+    expect(apiRequest).toHaveBeenCalledWith(
       { method: 'post', url: `/api/v1/credit-card-payments/11/remove`, data: undefined, headers: { 'Idempotency-Key': 'payment-remove-key' } },
       MUTATION,
     )
     expect(apiRequest).toHaveBeenCalledWith(
       { method: 'post', url: `/api/v1/credit-card-payments/11/restore`, data: {}, headers: { 'Idempotency-Key': 'payment-restore-key' } },
+      MUTATION,
+    )
+  })
+
+  it('reuses an explicit payment key for an identical partial-payment retry', async () => {
+    const payload = {
+      financial_account_id: 7,
+      amount_centavos: 3_334,
+      payment_date: '2026-10-05',
+    }
+
+    await createPayment(72, payload, 'partial-payment-retry')
+    await createPayment(72, payload, 'partial-payment-retry')
+
+    expect(apiRequest).toHaveBeenNthCalledWith(
+      1,
+      { method: 'post', url: '/api/v1/credit-card-statements/72/payments', data: payload, headers: { 'Idempotency-Key': 'partial-payment-retry' } },
+      MUTATION,
+    )
+    expect(apiRequest).toHaveBeenNthCalledWith(
+      2,
+      { method: 'post', url: '/api/v1/credit-card-statements/72/payments', data: payload, headers: { 'Idempotency-Key': 'partial-payment-retry' } },
+      MUTATION,
+    )
+  })
+
+  it('sends cancellation and correction credit events through the same traceable endpoint', async () => {
+    const cancellation = { reason: 'cancellation', amount_centavos: 1_000, event_date: '2026-10-05' }
+    const correction = { reason: 'correction', amount_centavos: 250, event_date: '2026-10-06' }
+
+    await createCreditEvent(301, cancellation, 'cancel-key')
+    await createCreditEvent(301, correction, 'correction-key')
+
+    expect(apiRequest).toHaveBeenNthCalledWith(
+      1,
+      { method: 'post', url: '/api/v1/credit-card-purchases/301/credit-events', data: cancellation, headers: { 'Idempotency-Key': 'cancel-key' } },
+      MUTATION,
+    )
+    expect(apiRequest).toHaveBeenNthCalledWith(
+      2,
+      { method: 'post', url: '/api/v1/credit-card-purchases/301/credit-events', data: correction, headers: { 'Idempotency-Key': 'correction-key' } },
       MUTATION,
     )
   })

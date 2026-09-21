@@ -382,7 +382,7 @@ function mixedHistory(route, state) {
       .map((item) => ({ ...item })),
     ...state.transfers
       .filter((item) => item.removed_at === null)
-      .filter((item) => kind === 'all' || kind === 'transfer')
+      .filter(() => kind === 'all' || kind === 'transfer')
       .map((item) => ({
         movement_kind: 'transfer',
         id: item.id,

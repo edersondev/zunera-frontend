@@ -77,8 +77,18 @@ describe('transactionStore', () => {
           movement_date: '2026-10-05',
           next_expected_occurrence: '2026-10-05',
         },
+        {
+          movement_kind: 'credit_card_expense',
+          id: 5,
+          amount_centavos: 1_234,
+          movement_date: '2026-09-25',
+          status: 'effective',
+          financial_account: null,
+          credit_card: { id: 41, name: 'Nubank Platinum', status: 'active' },
+          category: { id: 2, name: 'Mercado', classification: 'expense', status: 'active' },
+        },
       ],
-      meta: { total: 3, current_page: 1, last_page: 1, totals: { income_centavos: 500 } },
+      meta: { total: 4, current_page: 1, last_page: 1, totals: { income_centavos: 500 } },
       links: {},
     })
     const store = useTransactionStore()
@@ -92,6 +102,13 @@ describe('transactionStore', () => {
       movement_kind: 'recurring',
       type: 'expense',
       next_expected_occurrence: '2026-10-05',
+    })
+    expect(store.items[3]).toMatchObject({
+      movement_kind: 'credit_card_expense',
+      type: 'expense',
+      transaction_date: '2026-09-25',
+      financial_account: null,
+      credit_card: { name: 'Nubank Platinum' },
     })
     expect(store.totals).toEqual({ income_centavos: 500 })
   })

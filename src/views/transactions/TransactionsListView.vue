@@ -157,6 +157,8 @@ async function removeTransfer() {
 }
 
 async function openDetail(row) {
+  if (row.movement_kind === 'credit_card_expense') return
+
   await store.select(row.movement_kind === 'transfer' ? row : row.id)
   detailOpen.value = true
 }
@@ -377,6 +379,9 @@ const clearedFilters = {
             <span v-if="row.movement_kind === 'transfer'" data-test="transfer-history-label">
               {{ t('transfers.transfer') }}
             </span>
+            <span v-else-if="row.movement_kind === 'credit_card_expense'" data-test="credit-card-history-label">
+              {{ row.description }} · {{ t('creditCards.history.recognizedExpense') }}
+            </span>
             <span v-else>{{ row.description }}</span>
             <ElTooltip
               v-if="row.movement_kind !== 'transfer' && row.recurrence_source"
@@ -405,6 +410,9 @@ const clearedFilters = {
             <span v-if="row.movement_kind === 'transfer'" data-test="transfer-history-route">
               {{ accountLabel(row.source_financial_account, t) }} →
               {{ accountLabel(row.destination_financial_account, t) }}
+            </span>
+            <span v-else-if="row.movement_kind === 'credit_card_expense'" data-test="credit-card-history-card">
+              {{ row.credit_card.name }}
             </span>
             <template v-else>
               {{ row.financial_account.name
@@ -463,7 +471,7 @@ const clearedFilters = {
               @remove="requestTransferRemove"
             />
             <TransactionRowActions
-              v-else
+              v-else-if="row.movement_kind !== 'credit_card_expense'"
               :transaction="row"
               :saving="store.saving"
               @edit="edit"

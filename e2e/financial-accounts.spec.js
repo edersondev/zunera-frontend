@@ -34,7 +34,7 @@ test('authenticated user creates and sees an active account', async ({ page }) =
   await cancelButton.hover()
   await expect(cancelButton).toHaveCSS('background-color', 'rgb(252, 165, 165)')
   await cancelButton.click()
-  await expect(createDialog).not.toBeVisible()
+  await expect(createDialog).toBeHidden()
 
   await page.getByRole('button', { name: 'New account' }).click()
   await createDialog.getByLabel('Account name').fill('Conta principal')

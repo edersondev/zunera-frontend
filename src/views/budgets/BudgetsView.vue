@@ -161,6 +161,9 @@ onMounted(reload)
 
       <template v-else>
         <BudgetSummary v-if="store.summary" :summary="store.summary" />
+        <p class="budget-card-recognition-note" data-test="budget-card-recognition-note">
+          {{ t('creditCards.history.budgetRecognition') }}
+        </p>
         <BudgetEmptyState v-if="!hasPlans" state="no-plans" @add="openCreatePlan" />
         <BudgetPlanList
           :plans="store.plans"
@@ -201,5 +204,10 @@ onMounted(reload)
 .budgets-view {
   display: grid;
   gap: 20px;
+}
+.budget-card-recognition-note {
+  color: var(--el-text-color-secondary);
+  font-size: 0.875rem;
+  margin: 0;
 }
 </style>

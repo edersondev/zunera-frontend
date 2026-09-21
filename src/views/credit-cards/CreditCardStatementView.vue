@@ -34,6 +34,14 @@ const activePayments = computed(() =>
 const removedPayments = computed(() =>
   (statement.value?.payments ?? []).filter((payment) => payment.is_removed),
 )
+const creditEvents = computed(() =>
+  (statement.value?.credit_events ?? []).map((event) => ({
+    ...event,
+    statementApplications: (event.applications ?? []).filter(
+      (application) => application.statement_id === statement.value?.id,
+    ),
+  })),
+)
 
 onMounted(() => store.fetchStatement(Number(props.statementId ?? route.params.statement_id)))
 
@@ -177,12 +185,21 @@ async function restorePayment(payment) {
 
       <section class="statement__block" data-test="credit-card-statement-credit-events">
         <h2>{{ t('creditCards.statementDetail.creditEvents') }}</h2>
-        <ElEmpty v-if="statement.credit_events.length === 0" :description="t('creditCards.statementDetail.creditEventsEmpty')" />
+        <ElEmpty v-if="creditEvents.length === 0" :description="t('creditCards.statementDetail.creditEventsEmpty')" />
         <ul v-else class="statement__list">
-          <li v-for="event in statement.credit_events" :key="event.id" :data-test="`credit-card-credit-event-${event.id}`">
+          <li v-for="event in creditEvents" :key="event.id" :data-test="`credit-card-credit-event-${event.id}`">
             <span>{{ t(`creditCards.creditEventReason.${event.reason}`) }}</span>
             <span class="statement__muted">{{ formatIsoDate(event.event_date) }}</span>
             <span>{{ formatBRL(event.amount.amount_centavos) }}</span>
+            <ul v-if="event.statementApplications.length > 0" class="statement__credit-applications">
+              <li
+                v-for="application in event.statementApplications"
+                :key="`${event.id}-${application.statement_id}-${application.installment_id}`"
+                :data-test="`credit-card-credit-application-${event.id}-${application.statement_id}`"
+              >
+                {{ t('creditCards.statementDetail.creditApplied', { amount: formatBRL(application.amount.amount_centavos) }) }}
+              </li>
+            </ul>
           </li>
         </ul>
       </section>
@@ -227,6 +244,12 @@ async function restorePayment(payment) {
 .statement__totals dd {
   margin: 0;
   font-variant-numeric: tabular-nums;
+}
+
+.statement__credit-applications {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding-left: 1rem;
 }
 
 .statement__list {

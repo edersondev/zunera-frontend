@@ -355,6 +355,7 @@ export const messages = {
         paymentsEmpty: 'Nenhum pagamento registrado.',
         creditEvents: 'Estornos e correções',
         creditEventsEmpty: 'Nenhum estorno ou correção registrado.',
+        creditApplied: 'Aplicado nesta fatura: {amount}',
       },
       creditEventReason: { cancellation: 'Cancelamento', refund: 'Estorno', correction: 'Correção' },
       detail: {
@@ -429,6 +430,14 @@ export const messages = {
         outstanding: 'Obrigação em aberto',
         cashNote: 'A dívida do cartão é separada do saldo em contas.',
         upcoming: 'Próximos vencimentos',
+      },
+      history: {
+        recognizedExpense: 'Despesa reconhecida no fechamento da fatura',
+        budgetRecognition: 'Compras no cartão entram no realizado quando a fatura fecha; pagamentos da fatura não duplicam despesas.',
+      },
+      recurringUnsupported: {
+        title: 'Recorrências não usam cartão de crédito',
+        description: 'Crie a compra manualmente no cartão quando ela ocorrer para manter fatura e orçamento corretos.',
       },
       correction: {
         action: 'Corrigir',
@@ -1198,6 +1207,7 @@ export const messages = {
         paymentsEmpty: 'No payments recorded.',
         creditEvents: 'Refunds and corrections',
         creditEventsEmpty: 'No refunds or corrections recorded.',
+        creditApplied: 'Applied to this statement: {amount}',
       },
       creditEventReason: { cancellation: 'Cancellation', refund: 'Refund', correction: 'Correction' },
       detail: {
@@ -1272,6 +1282,14 @@ export const messages = {
         outstanding: 'Outstanding obligation',
         cashNote: 'Card debt is kept separate from account balances.',
         upcoming: 'Upcoming due statements',
+      },
+      history: {
+        recognizedExpense: 'Expense recognized when the statement closes',
+        budgetRecognition: 'Card purchases enter realized spending when the statement closes; statement payments never duplicate expenses.',
+      },
+      recurringUnsupported: {
+        title: 'Recurring transactions do not use credit cards',
+        description: 'Record the card purchase manually when it occurs to keep its statement and budget accurate.',
       },
       correction: {
         action: 'Correct',
