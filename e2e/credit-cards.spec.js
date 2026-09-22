@@ -18,7 +18,7 @@ test('owner creates card, sees its detail, and sends only non-sensitive payload'
 
   await page.goto('/app/credit-cards')
   await expect(page.getByRole('heading', { name: 'Credit cards' })).toBeVisible()
-  await expect(page.getByText('No active cards yet.')).toBeVisible()
+  await expect(page.getByText('No credit cards yet')).toBeVisible()
 
   await page.locator('[data-test="credit-cards-empty-create"]').click()
   const dialog = page.getByRole('dialog', { name: 'New card' })
@@ -29,6 +29,7 @@ test('owner creates card, sees its detail, and sends only non-sensitive payload'
   await dialog.getByRole('button', { name: 'Save' }).click()
 
   await expect(page.getByText('Card created.')).toBeVisible()
+  await expect(page.locator('[data-test="credit-cards-overview"]')).toContainText('Total credit limit')
   await expect(page.getByRole('button', { name: /Nubank Platinum/ })).toBeVisible()
   expect(createPayload).toMatchObject({
     name: 'Nubank Platinum',
@@ -64,7 +65,7 @@ test('owner updates, archives, and finds card in archived history', async ({ pag
   await expect(archiveDialog).toContainText('history stays readable')
   await archiveDialog.getByRole('button', { name: 'Archive' }).click()
   await expect(page.getByText('Card archived.')).toBeVisible()
-  await expect(page.getByText('No active cards yet.')).toBeVisible()
+  await expect(page.getByText('No credit cards yet')).toBeVisible()
 
   await page.getByRole('button', { name: 'Archived' }).click()
   await expect(page.getByRole('heading', { name: 'Archived cards' })).toBeVisible()
@@ -79,6 +80,37 @@ test('settings navigation reaches credit-card management', async ({ page }) => {
 
   await expect(page).toHaveURL(/\/app\/credit-cards$/)
   await expect(page.getByRole('heading', { name: 'Credit cards' })).toBeVisible()
+})
+
+test('credit-card management dashboard fits a narrow dark screen', async ({ page }) => {
+  const first = creditCard(41, 'Nubank Platinum', 'active', {
+    summary: {
+      credit_limit: money(500_000),
+      used_credit: money(125_000),
+      card_credit: money(0),
+      available_credit: money(375_000),
+      is_over_limit: false,
+    },
+  })
+  const second = creditCard(42, 'C6 Bank', 'active', {
+    summary: {
+      credit_limit: money(200_000),
+      used_credit: money(25_000),
+      card_credit: money(1_000),
+      available_credit: money(175_000),
+      is_over_limit: false,
+    },
+  })
+  await mockCreditCardsApi(page, { cards: [first, second] })
+
+  await page.setViewportSize({ width: 320, height: 900 })
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await page.goto('/app/credit-cards')
+
+  await expect(page.locator('[data-test="credit-cards-overview"]')).toContainText('2 active cards')
+  await expect(page.locator('[data-test="credit-cards-overview-limit"]')).toContainText('7.000,00')
+  await expect(page.locator('[data-test="credit-card-42"]')).toContainText('C6 Bank')
+  await expect(page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).resolves.toBe(true)
 })
 
 test('owner records installment spending and confirms an over-limit purchase with a fresh key', async ({ page }) => {

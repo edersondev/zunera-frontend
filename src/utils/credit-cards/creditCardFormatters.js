@@ -70,6 +70,14 @@ export function sumCreditCardSummaryAmount(cards, summaryKey) {
   )
 }
 
+/** Aggregates statement obligations already supplied by the active-card API. */
+export function sumCreditCardCurrentStatementOutstanding(cards) {
+  return (Array.isArray(cards) ? cards : []).reduce(
+    (total, card) => total + Number(card?.current_statement?.outstanding_amount?.amount_centavos ?? 0),
+    0,
+  )
+}
+
 export function businessToday(now = new Date()) {
   const values = new Intl.DateTimeFormat('en-US', {
     timeZone: BUSINESS_TIME_ZONE,

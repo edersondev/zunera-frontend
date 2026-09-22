@@ -1,19 +1,14 @@
 <script setup>
 import { onMounted, reactive, shallowRef } from 'vue'
-import { ElAlert, ElButton, ElEmpty, ElSkeleton, ElTag } from 'element-plus'
-import { Close, Edit, FolderDelete, FolderOpened, Plus } from '@element-plus/icons-vue'
+import { ElAlert, ElButton, ElEmpty, ElSkeleton } from 'element-plus'
+import { Close, FolderDelete, FolderOpened, Plus } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import CreditCardForm from '@/components/credit-cards/CreditCardForm.vue'
+import CreditCardManagementCard from '@/components/credit-cards/CreditCardManagementCard.vue'
+import CreditCardsOverview from '@/components/credit-cards/CreditCardsOverview.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import { useCreditCardStore } from '@/stores/credit-cards/creditCardStore'
-import {
-  availableCreditPresentation,
-  billingCycleSummary,
-  cardIdentityLabel,
-  formatBRL,
-  statementStatus,
-} from '@/utils/credit-cards/creditCardFormatters'
 
 const store = useCreditCardStore()
 const { t } = useI18n()
@@ -121,123 +116,34 @@ async function confirmArchive() {
 
     <ElSkeleton v-if="store.loading" :rows="3" animated data-test="credit-cards-loading" />
 
-    <ElEmpty
-      v-else-if="!store.hasCards"
-      :description="t('creditCards.empty')"
-      data-test="credit-cards-empty"
-    >
-      <ElButton
-        type="primary"
-        :icon="Plus"
-        data-test="credit-cards-empty-create"
-        @click="openCreateDialog"
-      >
-        {{ t('creditCards.new') }}
-      </ElButton>
-    </ElEmpty>
-
-    <ul v-else class="m-0 grid list-none gap-4 p-0 lg:grid-cols-2">
-      <li
-        v-for="item in store.cards"
-        :key="item.id"
-        class="grid min-h-full gap-3 rounded-xl border border-[var(--el-border-color)] p-4"
-        :data-test="`credit-card-${item.id}`"
-      >
-        <button
-          type="button"
-          class="grid cursor-pointer gap-0.5 border-0 bg-transparent p-0 text-left"
-          :data-test="`credit-card-open-${item.id}`"
-          @click="openCard(item)"
+    <div v-else-if="!store.hasCards" class="credit-cards-empty" data-test="credit-cards-empty">
+      <ElEmpty :image-size="64" :description="t('creditCards.management.emptyTitle')">
+        <p>{{ t('creditCards.management.emptyHint') }}</p>
+        <ElButton
+          type="primary"
+          :icon="Plus"
+          data-test="credit-cards-empty-create"
+          @click="openCreateDialog"
         >
-          <span class="font-semibold">{{ item.name }}</span>
-          <span class="text-[0.8125rem] text-[var(--el-text-color-secondary)]">{{
-            cardIdentityLabel(item)
-          }}</span>
-          <span class="text-[0.8125rem] text-[var(--el-text-color-secondary)]">{{
-            t('creditCards.cycle', billingCycleSummary(item))
-          }}</span>
-        </button>
+          {{ t('creditCards.new') }}
+        </ElButton>
+      </ElEmpty>
+    </div>
 
-        <dl class="m-0 grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-2">
-          <div>
-            <dt class="text-xs text-[var(--el-text-color-secondary)]">
-              {{ t('creditCards.summary.limit') }}
-            </dt>
-            <dd class="m-0 tabular-nums">
-              {{ formatBRL(item.summary.credit_limit.amount_centavos) }}
-            </dd>
-          </div>
-          <div>
-            <dt class="text-xs text-[var(--el-text-color-secondary)]">
-              {{ t('creditCards.summary.used') }}
-            </dt>
-            <dd class="m-0 tabular-nums">
-              {{ formatBRL(item.summary.used_credit.amount_centavos) }}
-            </dd>
-          </div>
-          <div>
-            <dt class="text-xs text-[var(--el-text-color-secondary)]">
-              {{ t('creditCards.summary.cardCredit') }}
-            </dt>
-            <dd class="m-0 tabular-nums">
-              {{ formatBRL(item.summary.card_credit.amount_centavos) }}
-            </dd>
-          </div>
-          <div>
-            <dt class="text-xs text-[var(--el-text-color-secondary)]">
-              {{ t('creditCards.summary.available') }}
-            </dt>
-            <dd class="m-0 tabular-nums" :data-test="`credit-card-available-${item.id}`">
-              {{ formatBRL(item.summary.available_credit.amount_centavos) }}
-            </dd>
-          </div>
-        </dl>
-
-        <p
-          v-if="item.summary.is_over_limit"
-          class="m-0 font-semibold text-[var(--el-color-danger)]"
-          :data-test="`credit-card-over-limit-${item.id}`"
-        >
-          {{
-            t('creditCards.overLimit', {
-              amount: availableCreditPresentation(item.summary.available_credit.amount_centavos)
-                .formatted,
-            })
-          }}
-        </p>
-
-        <div class="flex flex-wrap items-center gap-2">
-          <ElTag
-            :type="statementStatus(item.current_statement.status).tone"
-            data-test="credit-card-current-status"
-          >
-            {{ t(statementStatus(item.current_statement.status).labelKey) }}
-          </ElTag>
-          <span data-test="credit-card-current-outstanding">
-            {{
-              t('creditCards.currentStatement', {
-                amount: formatBRL(item.current_statement.outstanding_amount.amount_centavos),
-              })
-            }}
-          </span>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-2">
-          <ElButton :icon="Edit" data-test="credit-card-edit" @click="openEditDialog(item)">{{
-            t('common.edit')
-          }}</ElButton>
-          <ElButton
-            type="danger"
-            plain
-            :icon="FolderDelete"
-            data-test="credit-card-archive"
-            @click="openLifecycle(item)"
-          >
-            {{ t('creditCards.archive') }}
-          </ElButton>
-        </div>
-      </li>
-    </ul>
+    <template v-else>
+      <CreditCardsOverview :cards="store.cards" />
+      <ul class="card-grid" data-test="credit-cards-grid">
+        <li v-for="item in store.cards" :key="item.id">
+          <CreditCardManagementCard
+            :card="item"
+            :loading="store.submitting"
+            @open="openCard"
+            @edit="openEditDialog"
+            @archive="openLifecycle"
+          />
+        </li>
+      </ul>
+    </template>
 
     <CreditCardForm
       ref="formRef"
@@ -292,3 +198,48 @@ async function confirmArchive() {
     </ElDialog>
   </section>
 </template>
+
+<style scoped>
+.credit-cards {
+  display: grid;
+  gap: 24px;
+}
+
+.credit-cards-empty :deep(.el-empty__description) {
+  margin-bottom: 8px;
+}
+
+.credit-cards-empty :deep(.el-empty__description p),
+.credit-cards-empty :deep(.el-empty__bottom p) {
+  color: var(--color-text-muted);
+}
+
+.credit-cards-empty :deep(.el-empty__bottom) {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+}
+
+.credit-cards-empty :deep(.el-empty__bottom p) {
+  max-width: 24rem;
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 1024px) {
+  .card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+</style>

@@ -13,6 +13,7 @@ import {
   paymentStatus,
   recognitionStatus,
   statementStatus,
+  sumCreditCardCurrentStatementOutstanding,
   sumCreditCardSummaryAmount,
 } from '../creditCardFormatters'
 
@@ -122,5 +123,13 @@ describe('creditCardFormatters', () => {
     ]
 
     expect(sumCreditCardSummaryAmount(cards, 'credit_limit')).toBe(250_000)
+  })
+
+  it('aggregates only outstanding balances supplied by current statements', () => {
+    expect(sumCreditCardCurrentStatementOutstanding([
+      { current_statement: { outstanding_amount: { amount_centavos: 20_000 } } },
+      { current_statement: { outstanding_amount: { amount_centavos: 5_500 } } },
+      { current_statement: null },
+    ])).toBe(25_500)
   })
 })
