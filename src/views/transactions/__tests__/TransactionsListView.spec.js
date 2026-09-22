@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
-import ElementPlus, { ElTag } from 'element-plus'
+import ElementPlus from 'element-plus'
 import TransactionsListView from '../TransactionsListView.vue'
 import { i18n } from '@/i18n'
 
@@ -86,7 +86,8 @@ function stubs() {
     stubs: {
       PageHeader: {
         props: ['title', 'description'],
-        template: '<header><h1>{{ title }}</h1><p>{{ description }}</p><slot name="actions" /></header>',
+        template:
+          '<header><h1>{{ title }}</h1><p>{{ description }}</p><slot name="actions" /></header>',
       },
       ElDropdown: {
         name: 'ElDropdown',
@@ -102,7 +103,7 @@ function stubs() {
         props: ['filters', 'accounts', 'categories', 'loading'],
         emits: ['apply', 'clear'],
         template:
-          '<div><button data-test="apply-filter" @click="$emit(\'apply\', { q: \'almoço\', type: \'expense\' })">apply</button><button data-test="clear-filter" @click="$emit(\'clear\')">clear</button></div>',
+          '<div><p v-if="filters.q" data-test="active-criteria">Busca: {{ filters.q }}</p><button data-test="apply-filter" @click="$emit(\'apply\', { q: \'almoço\', type: \'expense\' })">apply</button><button data-test="clear-filter" @click="$emit(\'clear\')">clear</button></div>',
       },
       TransactionFormDialog: {
         props: ['modelValue', 'initialType', 'transfer'],
@@ -212,18 +213,24 @@ describe('TransactionsListView', () => {
 
     const trigger = wrapper.get('[data-test="transactions-header-menu"]')
     expect(trigger.classes()).toContain('el-button--primary')
-    expect(trigger.text()).toContain('Transação')
+    expect(trigger.text()).toContain('Nova transação')
     expect(trigger.find('svg').exists()).toBe(true)
     expect(
-      wrapper.findAll('[data-test="new-transaction"], [data-test="open-removed-transactions"]').map((button) => button.attributes('data-test')),
+      wrapper
+        .findAll('[data-test="new-transaction"], [data-test="open-removed-transactions"]')
+        .map((button) => button.attributes('data-test')),
     ).toEqual(['new-transaction', 'open-removed-transactions'])
     expect(wrapper.get('[data-test="new-transaction"]').text()).toContain('Nova transação')
-    expect(wrapper.get('[data-test="open-removed-transactions"]').text()).toContain('Transações removidas')
+    expect(wrapper.get('[data-test="open-removed-transactions"]').text()).toContain(
+      'Transações removidas',
+    )
     expect(wrapper.get('[data-test="open-removed-transactions"] svg').exists()).toBe(true)
 
     expect(wrapper.find('[data-test="transfers-header-menu"]').exists()).toBe(false)
     expect(wrapper.find('[data-test="new-transfer-from-transactions"]').exists()).toBe(false)
-    expect(wrapper.find('[data-test="open-removed-transfers-from-transactions"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="open-removed-transfers-from-transactions"]').exists()).toBe(
+      false,
+    )
 
     const [transactionDropdown] = wrapper.findAllComponents({ name: 'ElDropdown' })
     transactionDropdown.vm.$emit('command', 'new')
@@ -232,7 +239,6 @@ describe('TransactionsListView', () => {
 
     transactionDropdown.vm.$emit('command', 'removed')
     expect(routerPush).toHaveBeenCalledWith({ name: 'transactions-removed' })
-
   })
 
   it('clears form validation errors when the new transaction dialog closes', async () => {
@@ -487,17 +493,17 @@ describe('TransactionsListView', () => {
     await flushPromises()
 
     const indicator = wrapper.get('[data-test="transaction-recurrence-label"]')
-    const tag = wrapper.findComponent(ElTag)
-
     expect(indicator.find('svg').exists()).toBe(true)
     expect(indicator.attributes('aria-label')).toContain('#61')
-    expect(tag.props('type')).toBe('primary')
-    expect(tag.props('round')).toBe(true)
     expect(indicator.text()).toBe('')
   })
 
   it('reports income and expense totals that a transfer never changes', async () => {
-    const totals = { income_centavos: 500_000, expense_centavos: 200_000, financial_result_centavos: 300_000 }
+    const totals = {
+      income_centavos: 500_000,
+      expense_centavos: 200_000,
+      financial_result_centavos: 300_000,
+    }
     store.totals = totals
     store.items = [row(1, 'Salário', { type: 'income' })]
     store.meta = { total: 1, current_page: 1, last_page: 1, per_page: 50, totals }
@@ -507,7 +513,7 @@ describe('TransactionsListView', () => {
     expect(before.get('[data-test="history-total-income"]').text()).toContain('5.000,00')
     expect(before.get('[data-test="history-total-expense"]').text()).toContain('2.000,00')
     expect(before.get('[data-test="history-total-result"]').text()).toContain('3.000,00')
-    expect(before.get('[data-test="history-total-excludes"]').text()).toContain('Transferências')
+    expect(before.get('[data-test="history-total-excludes"]').text()).toContain('transferências')
 
     store.items = [
       {

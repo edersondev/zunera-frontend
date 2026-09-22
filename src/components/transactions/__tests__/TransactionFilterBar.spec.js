@@ -4,13 +4,15 @@ import TransactionFilterBar from '../TransactionFilterBar.vue'
 import { i18n } from '@/i18n'
 
 const stubs = {
-  ElCollapse: { props: ['modelValue'], template: '<section><slot /></section>' },
-  ElCollapseItem: {
-    props: ['name'],
-    template: '<section><header><slot name="title" /></header><div><slot /></div></section>',
+  ElDialog: {
+    props: ['modelValue', 'title'],
+    emits: ['update:modelValue'],
+    template:
+      '<section v-if="modelValue" role="dialog" :aria-label="title"><slot /><footer><slot name="footer" /></footer></section>',
   },
-  ElCard: {
-    template: '<section><div><slot /></div><footer><slot name="footer" /></footer></section>',
+  ElTag: {
+    emits: ['close'],
+    template: '<button type="button" @click="$emit(\'close\')"><slot /></button>',
   },
   ElIcon: { template: '<i><slot /></i>' },
   ElForm: { template: '<form><slot /></form>' },
@@ -19,7 +21,7 @@ const stubs = {
     props: ['modelValue'],
     emits: ['update:modelValue'],
     template:
-      '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+      '<div><slot name="prefix" /><input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" /></div>',
   },
   ElSelect: {
     props: ['modelValue'],
@@ -32,12 +34,13 @@ const stubs = {
     props: ['modelValue'],
     emits: ['update:modelValue'],
     template:
-      '<button type="button" @click="$emit(\'update:modelValue\', [\'2026-09-01\', \'2026-09-30\'])" />',
+      "<button type=\"button\" @click=\"$emit('update:modelValue', ['2026-09-01', '2026-09-30'])\" />",
   },
   ElButton: {
-    props: ['icon'],
+    props: ['icon', 'nativeType'],
     emits: ['click'],
-    template: '<button type="button" @click="$emit(\'click\')"><component :is="icon" /><slot /></button>',
+    template:
+      '<button :type="nativeType ?? \'button\'" @click="$emit(\'click\')"><component :is="icon" /><slot /></button>',
   },
 }
 
@@ -52,73 +55,87 @@ function mountBar(filters = { view: 'active', per_page: 50 }) {
   })
 }
 
+async function openFilters(wrapper) {
+  await wrapper.get('[data-test="open-filters"]').trigger('click')
+}
+
 describe('TransactionFilterBar', () => {
   beforeEach(() => {
     i18n.global.locale.value = 'pt-BR'
   })
 
-  it('renders transaction labels in the active locale', () => {
+  it('keeps search visible and localizes the filter dialog', async () => {
     i18n.global.locale.value = 'en'
     const wrapper = mountBar()
 
-    expect(wrapper.get('[data-test="transaction-filter-collapse"]').text()).toContain('Search')
-    expect(wrapper.get('[data-test="filter-date-range"]').attributes('data-test')).toBe('filter-date-range')
-    expect(wrapper.text()).toContain('Filter')
+    expect(wrapper.get('[data-test="filter-search"]').exists()).toBe(true)
+    expect(wrapper.get('[data-test="open-filters"]').text()).toContain('Filters')
+
+    await openFilters(wrapper)
+
+    expect(wrapper.get('[role="dialog"]').attributes('aria-label')).toBe('Filter transactions')
+    expect(wrapper.get('[data-test="filter-date-range"]').exists()).toBe(true)
   })
 
-  it('groups the search form in a collapsible Pesquisa panel', () => {
+  it('opens all advanced filters in a dialog with clear, cancel, and apply actions', async () => {
     const wrapper = mountBar()
 
-    expect(wrapper.get('[data-test="transaction-filter-collapse"]').text()).toContain('Pesquisar')
-    expect(wrapper.get('[data-test="transaction-filter-card"] [data-test="transaction-filters"]').exists()).toBe(true)
-    expect(wrapper.get('[data-test="transaction-filter-card"] footer [data-test="apply-filters"]').exists()).toBe(true)
-    expect(wrapper.get('[data-test="transaction-filter-card"] footer [data-test="clear-filters"]').exists()).toBe(true)
-    expect(
-      wrapper.findAll('[data-test="transaction-filter-card"] footer button').map((button) => button.attributes('data-test')),
-    ).toEqual(['clear-filters', 'apply-filters'])
-    expect(wrapper.get('[data-test="clear-filters"] svg').exists()).toBe(true)
-    expect(wrapper.get('[data-test="apply-filters"] svg').exists()).toBe(true)
-    expect(wrapper.get('[data-test="transaction-filter-collapse"] i svg').exists()).toBe(true)
-  })
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    await openFilters(wrapper)
 
-  it('offers every supported criterion control with its options', () => {
-    const wrapper = mountBar()
     const controls = wrapper.findAll('[data-test]').map((node) => node.attributes('data-test'))
-
     expect(controls).toEqual(
       expect.arrayContaining([
-        'filter-search',
+        'dialog-filter-search',
         'filter-type',
         'filter-status',
         'filter-account',
         'filter-category',
         'filter-date-range',
+        'clear-filters',
+        'cancel-filters',
+        'apply-filters',
       ]),
     )
     expect(wrapper.text()).toContain('Conta principal')
     expect(wrapper.text()).toContain('Salário')
   })
 
-  it('emits the combined criteria when the form is applied', async () => {
+  it('shares search state between page and dialog and applies combined criteria', async () => {
     const wrapper = mountBar()
 
-    await wrapper.get('[data-test="filter-search"]').setValue('almoço')
+    await wrapper.get('[data-test="filter-search"] input').setValue('almoço')
+    await openFilters(wrapper)
+    expect(wrapper.get('[data-test="dialog-filter-search"] input').element.value).toBe('almoço')
+
     await wrapper.get('[data-test="filter-type"]').setValue('expense')
     await wrapper.get('[data-test="filter-status"]').setValue('pending')
-    await wrapper.get('form').trigger('submit')
+    await wrapper.get('[data-test="transaction-filters"]').trigger('submit')
 
     expect(wrapper.emitted('apply')[0][0]).toMatchObject({
       q: 'almoço',
       type: 'expense',
       status: 'pending',
     })
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
   })
 
-  it('maps the selected date range to the API date criteria', async () => {
+  it('applies visible search from Enter without opening the dialog', async () => {
     const wrapper = mountBar()
 
+    await wrapper.get('[data-test="filter-search"] input').setValue(' mercado ')
+    await wrapper.get('[data-test="transaction-search-form"]').trigger('submit')
+
+    expect(wrapper.emitted('apply')[0][0]).toMatchObject({ q: 'mercado' })
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+  })
+
+  it('maps selected date range to API criteria', async () => {
+    const wrapper = mountBar()
+    await openFilters(wrapper)
+
     await wrapper.get('[data-test="filter-date-range"]').trigger('click')
-    await wrapper.get('form').trigger('submit')
+    await wrapper.get('[data-test="apply-filters"]').trigger('click')
 
     expect(wrapper.emitted('apply').at(-1)[0]).toMatchObject({
       from: '2026-09-01',
@@ -126,7 +143,7 @@ describe('TransactionFilterBar', () => {
     })
   })
 
-  it('clears every criterion and asks the parent to reset the list', async () => {
+  it('clears all criteria from dialog', async () => {
     const wrapper = mountBar({
       view: 'active',
       per_page: 50,
@@ -135,26 +152,58 @@ describe('TransactionFilterBar', () => {
       status: 'effective',
       from: '2026-09-01',
     })
+    await openFilters(wrapper)
 
     await wrapper.get('[data-test="clear-filters"]').trigger('click')
 
     expect(wrapper.emitted('clear')).toHaveLength(1)
-
-    await wrapper.get('form').trigger('submit')
-    const payload = wrapper.emitted('apply').at(-1)[0]
-    expect(payload).toMatchObject({ view: 'active', per_page: 50 })
-    expect(payload.q).toBeUndefined()
-    expect(payload.type).toBeUndefined()
-    expect(payload.status).toBeUndefined()
-    expect(payload.from).toBeUndefined()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
   })
 
-  it('keeps the form in sync when the active criteria change outside the bar', async () => {
+  it('discards unapplied dialog edits on cancel', async () => {
+    const wrapper = mountBar({ view: 'active', per_page: 50, q: 'aplicado' })
+    await openFilters(wrapper)
+    await wrapper.get('[data-test="dialog-filter-search"] input').setValue('rascunho')
+    await wrapper.get('[data-test="cancel-filters"]').trigger('click')
+    await openFilters(wrapper)
+
+    expect(wrapper.get('[data-test="dialog-filter-search"] input').element.value).toBe('aplicado')
+    expect(wrapper.emitted('apply')).toBeUndefined()
+  })
+
+  it('renders localized active tags and removes one criterion without clearing others', async () => {
+    const wrapper = mountBar({
+      view: 'active',
+      per_page: 50,
+      q: 'almoço',
+      type: 'income',
+      financial_account_id: 1,
+      from: '2026-09-01',
+      to: '2026-09-30',
+    })
+
+    expect(wrapper.get('[data-test="active-filter-type"]').text()).toContain('Receita')
+    expect(wrapper.get('[data-test="active-filter-financial_account_id"]').text()).toContain(
+      'Conta principal',
+    )
+    expect(wrapper.get('[data-test="active-filter-period"]').text()).toContain('set.')
+
+    await wrapper.get('[data-test="active-filter-q"]').trigger('click')
+
+    expect(wrapper.emitted('apply').at(-1)[0]).toMatchObject({
+      q: undefined,
+      type: 'income',
+      financial_account_id: 1,
+    })
+  })
+
+  it('keeps visible and dialog search synced when applied criteria change outside', async () => {
     const wrapper = mountBar({ view: 'active', per_page: 50, q: 'antigo' })
 
     await wrapper.setProps({ filters: { view: 'active', per_page: 50, q: 'novo' } })
-    await wrapper.get('form').trigger('submit')
+    expect(wrapper.get('[data-test="filter-search"] input').element.value).toBe('novo')
 
-    expect(wrapper.emitted('apply').at(-1)[0]).toMatchObject({ q: 'novo' })
+    await openFilters(wrapper)
+    expect(wrapper.get('[data-test="dialog-filter-search"] input').element.value).toBe('novo')
   })
 })
