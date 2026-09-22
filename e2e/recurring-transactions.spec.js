@@ -12,8 +12,6 @@ const headers = {
   'Content-Type': 'application/json',
 }
 
-const today = '2026-09-14'
-
 function account({ id, name, status = 'active' }) {
   return {
     id,

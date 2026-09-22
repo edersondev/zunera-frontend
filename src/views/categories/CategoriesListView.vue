@@ -48,7 +48,9 @@ async function createCategory(payload) {
     formRef.value?.resetCreateForm?.()
     createDialogVisible.value = false
     successMessage.value = t('categories.created')
-  } catch {}
+  } catch {
+    // The store exposes request feedback.
+  }
 }
 async function updateCategory(payload) {
   if (!editingCategory.value) return
@@ -57,7 +59,9 @@ async function updateCategory(payload) {
     await store.update(editingCategory.value.id, payload)
     closeEditDialog()
     successMessage.value = t('categories.saved')
-  } catch {}
+  } catch {
+    // The store exposes request feedback.
+  }
 }
 function askArchive(category) {
   lifecycle.category = category
@@ -69,7 +73,9 @@ async function confirmLifecycle() {
     await store.archive(lifecycle.category)
     lifecycle.visible = false
     successMessage.value = t('categories.archivedSuccess')
-  } catch {}
+  } catch {
+    // The store exposes request feedback.
+  }
 }
 </script>
 

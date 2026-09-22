@@ -26,8 +26,7 @@ const form = reactive(blank())
 const isEditing = computed(() => Boolean(props.transaction || props.transfer))
 const title = computed(() => (isEditing.value ? t('transactions.edit') : t('transactions.new')))
 const isTransfer = computed(() => form.type === 'transfer')
-const rules = computed(() => ({
-  ...(isTransfer.value
+const rules = computed(() => ((isTransfer.value
     ? {
         source_financial_account_id: [
           { required: true, message: t('transfers.sourceRequired'), trigger: 'change' },
@@ -43,8 +42,7 @@ const rules = computed(() => ({
         category_id: [
           { required: true, message: t('transactions.categoryRequired'), trigger: 'change' },
         ],
-      }),
-}))
+      })))
 
 /**
  * Archived associations stay selectable while the association is unchanged so

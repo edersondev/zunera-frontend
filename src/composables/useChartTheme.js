@@ -16,7 +16,7 @@ const chartColorVariables = {
   chartCyan: '--chart-cyan',
 }
 
-function readTheme() {
+function readTheme(_revision = 0) {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     return {
       mode: 'light',
@@ -75,8 +75,7 @@ export function useChartTheme() {
   })
 
   const theme = computed(() => {
-    revision.value
-    return readTheme()
+    return readTheme(revision.value)
   })
 
   return { theme }

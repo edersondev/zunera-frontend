@@ -58,6 +58,32 @@ const router = createRouter({
           meta: { requiresAuth: true, titleKey: 'budgets.title' },
         },
         {
+          path: 'credit-cards',
+          name: 'credit-cards',
+          component: () => import('@/views/credit-cards/CreditCardsListView.vue'),
+          meta: { requiresAuth: true, titleKey: 'app.creditCards' },
+        },
+        {
+          path: 'credit-cards/archived',
+          name: 'credit-cards-archived',
+          component: () => import('@/views/credit-cards/ArchivedCreditCardsView.vue'),
+          meta: { requiresAuth: true, titleKey: 'creditCards.archivedTitle' },
+        },
+        {
+          path: 'credit-cards/:card_id',
+          name: 'credit-card-detail',
+          component: () => import('@/views/credit-cards/CreditCardDetailView.vue'),
+          props: true,
+          meta: { requiresAuth: true, titleKey: 'creditCards.detail.title' },
+        },
+        {
+          path: 'credit-card-statements/:statement_id',
+          name: 'credit-card-statement-detail',
+          component: () => import('@/views/credit-cards/CreditCardStatementView.vue'),
+          props: true,
+          meta: { requiresAuth: true, titleKey: 'creditCards.statementDetail.title' },
+        },
+        {
           path: 'financial-accounts/archived',
           name: 'financial-accounts-archived',
           component: () => import('@/views/financial-accounts/ArchivedFinancialAccountsView.vue'),

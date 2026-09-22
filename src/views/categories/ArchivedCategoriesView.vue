@@ -26,7 +26,9 @@ async function confirmRestore() {
     await store.restore(lifecycle.category)
     lifecycle.visible = false
     successMessage.value = t('categories.restored')
-  } catch {}
+  } catch {
+    // The store exposes request feedback.
+  }
 }
 </script>
 

@@ -33,14 +33,18 @@ export const useTransactionStore = defineStore('transactions', () => {
   }
 
   /**
-   * Mixed history entries use movement_kind and movement_date. Income and expense
-   * entries keep the transaction shape the existing screens already expect, while
-   * transfer entries stay discriminated with both account sides.
+   * Mixed history entries use movement_kind and movement_date. Income, expense,
+   * and recognized card expenses retain the compatible expense presentation;
+   * transfer and recurring entries keep their discriminated shapes.
    */
   function normalizeEntry(entry) {
     if (entry?.movement_kind === 'transfer' || entry?.movement_kind === 'recurring') return entry
 
-    return { ...entry, type: entry.movement_kind, transaction_date: entry.movement_date }
+    return {
+      ...entry,
+      type: entry.movement_kind === 'credit_card_expense' ? 'expense' : entry.movement_kind,
+      transaction_date: entry.movement_date,
+    }
   }
 
   function accountSnapshots(accounts) {
