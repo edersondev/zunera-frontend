@@ -72,9 +72,12 @@ describe('TransactionHistoryList', () => {
 
   it('renders desktop and mobile presentations with identical financial meaning', () => {
     const wrapper = mountList()
+    const mobileIncome = wrapper.findAll('.mobile-item')[0]
 
     expect(wrapper.findAll('.el-table__row')).toHaveLength(3)
     expect(wrapper.findAll('.mobile-item')).toHaveLength(3)
+    expect(mobileIncome.find('.movement-label').exists()).toBe(false)
+    expect(mobileIncome.get('.income-amount').text()).toContain('+ R$\u00a05.000,00')
     expect(wrapper.get('[data-test="mobile-transfer-history-route"]').text()).toBe(
       'Conta principal → Poupança',
     )

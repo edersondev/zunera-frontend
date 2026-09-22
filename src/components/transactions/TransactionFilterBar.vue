@@ -1,6 +1,6 @@
 <script setup>
 import { computed, reactive, shallowRef, watch } from 'vue'
-import { Close, Filter, RefreshLeft, Search } from '@element-plus/icons-vue'
+import { Close, Filter, Search } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { formatTransactionDate } from '@/utils/transactions/transactionFormatters'
 
@@ -259,9 +259,6 @@ function removeFilter(key) {
       </ElForm>
       <template #footer>
         <div class="filter-actions">
-          <ElButton :icon="RefreshLeft" data-test="clear-filters" @click="clear">
-            {{ t('transactions.clear') }}
-          </ElButton>
           <ElButton type="danger" :icon="Close" data-test="cancel-filters" @click="cancelDialog">
             {{ t('transactions.cancel') }}
           </ElButton>

@@ -62,7 +62,7 @@ function movementLabel(row) {
   if (isTransfer(row)) return t('transactions.transfer')
   if (isCreditCardExpense(row)) return t('creditCards.history.recognizedExpense')
 
-  return t(`transactions.${row.type ?? row.movement_kind ?? 'expense'}`)
+  return null
 }
 
 function date(row) {
@@ -139,7 +139,9 @@ function updateTransferStatus(transfer, status) {
             <template #default="{ row }">
               <div class="description-cell">
                 <span class="description-text">{{ description(row) }}</span>
-                <span class="movement-label">{{ movementLabel(row) }}</span>
+                <span v-if="movementLabel(row)" class="movement-label">
+                  {{ movementLabel(row) }}
+                </span>
               </div>
               <ElTooltip
                 v-if="!isTransfer(row) && row.recurrence_source"
@@ -240,11 +242,15 @@ function updateTransferStatus(transfer, status) {
               @click="select(row)"
             >
               <span class="description-text">{{ description(row) }}</span>
-              <span class="movement-label">{{ movementLabel(row) }}</span>
+              <span v-if="movementLabel(row)" class="movement-label">
+                {{ movementLabel(row) }}
+              </span>
             </button>
             <div v-else class="mobile-description-static">
               <span class="description-text">{{ description(row) }}</span>
-              <span class="movement-label">{{ movementLabel(row) }}</span>
+              <span v-if="movementLabel(row)" class="movement-label">
+                {{ movementLabel(row) }}
+              </span>
             </div>
             <span
               class="amount"

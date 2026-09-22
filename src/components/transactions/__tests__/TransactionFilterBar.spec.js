@@ -77,7 +77,7 @@ describe('TransactionFilterBar', () => {
     expect(wrapper.get('[data-test="filter-date-range"]').exists()).toBe(true)
   })
 
-  it('opens all advanced filters in a dialog with clear, cancel, and apply actions', async () => {
+  it('opens all advanced filters in a dialog with cancel and apply actions', async () => {
     const wrapper = mountBar()
 
     expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
@@ -92,7 +92,6 @@ describe('TransactionFilterBar', () => {
         'filter-account',
         'filter-category',
         'filter-date-range',
-        'clear-filters',
         'cancel-filters',
         'apply-filters',
       ]),
@@ -143,7 +142,7 @@ describe('TransactionFilterBar', () => {
     })
   })
 
-  it('clears all criteria from dialog', async () => {
+  it('clears all criteria from the active filter controls', async () => {
     const wrapper = mountBar({
       view: 'active',
       per_page: 50,
@@ -152,9 +151,7 @@ describe('TransactionFilterBar', () => {
       status: 'effective',
       from: '2026-09-01',
     })
-    await openFilters(wrapper)
-
-    await wrapper.get('[data-test="clear-filters"]').trigger('click')
+    await wrapper.get('[data-test="clear-active-filters"]').trigger('click')
 
     expect(wrapper.emitted('clear')).toHaveLength(1)
     expect(wrapper.find('[role="dialog"]').exists()).toBe(false)

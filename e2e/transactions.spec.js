@@ -397,6 +397,7 @@ test('signed-in user records income and expense and sees the balance impact', as
 
   const table = page.locator('[data-test="transaction-table"]')
   await expect(table.getByText('Salário setembro')).toBeVisible()
+  await expect(table.getByText('Receita', { exact: true })).toHaveCount(0)
   await expect(table.locator('.income-amount')).toHaveText('+ R$ 250,00')
   await expect(page.locator('[data-test="balance-impact"]')).toContainText('R$ 350,00')
 
@@ -410,6 +411,7 @@ test('signed-in user records income and expense and sees the balance impact', as
   await dialog.getByRole('button', { name: 'Salvar' }).click()
 
   await expect(table.getByText('Almoço')).toBeVisible()
+  await expect(table.getByText('Despesa', { exact: true })).toHaveCount(0)
   await expect(table.locator('.expense-amount')).toHaveText('− R$ 35,00')
   await expect(page.locator('[data-test="balance-impact"]')).toContainText('R$ 315,00')
 })
