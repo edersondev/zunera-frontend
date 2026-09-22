@@ -9,9 +9,12 @@ import {
   ElFormItem,
   ElInput,
   ElInputNumber,
+  ElCol,
   ElOption,
+  ElRow,
   ElSelect,
 } from 'element-plus'
+import { Check, Close } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import CurrencyAmountInput from '@/components/common/CurrencyAmountInput.vue'
 import InstallmentSchedule from '@/components/credit-cards/InstallmentSchedule.vue'
@@ -129,17 +132,6 @@ function submit() {
     </p>
 
     <ElForm ref="formRef" label-position="top" @submit.prevent>
-      <ElFormItem :label="t('creditCards.purchase.category')" :error="fieldErrors.category_id?.[0]">
-        <ElSelect v-model="form.category_id" data-test="credit-card-purchase-category">
-          <ElOption
-            v-for="category in categories"
-            :key="category.id"
-            :label="category.name"
-            :value="category.id"
-          />
-        </ElSelect>
-      </ElFormItem>
-
       <ElFormItem
         :label="t('creditCards.purchase.description')"
         :error="fieldErrors.description?.[0]"
@@ -151,43 +143,72 @@ function submit() {
         />
       </ElFormItem>
 
-      <ElFormItem
-        :label="t('creditCards.purchase.amount')"
-        :error="fieldErrors.total_amount_centavos?.[0]"
-      >
-        <CurrencyAmountInput
-          v-model="form.total_amount_centavos"
-          data-test="credit-card-purchase-amount"
-        />
-      </ElFormItem>
+      <ElRow :gutter="16">
+        <ElCol :xs="24" :md="12">
+          <ElFormItem
+            :label="t('creditCards.purchase.category')"
+            :error="fieldErrors.category_id?.[0]"
+          >
+            <ElSelect v-model="form.category_id" data-test="credit-card-purchase-category">
+              <ElOption
+                v-for="category in categories"
+                :key="category.id"
+                :label="category.name"
+                :value="category.id"
+              />
+            </ElSelect>
+          </ElFormItem>
+        </ElCol>
 
-      <ElFormItem :label="t('creditCards.purchase.date')" :error="fieldErrors.purchase_date?.[0]">
-        <ElDatePicker
-          v-model="form.purchase_date"
-          value-format="YYYY-MM-DD"
-          data-test="credit-card-purchase-date"
-        />
-      </ElFormItem>
+        <ElCol :xs="24" :md="12">
+          <ElFormItem
+            :label="t('creditCards.purchase.amount')"
+            :error="fieldErrors.total_amount_centavos?.[0]"
+          >
+            <CurrencyAmountInput
+              v-model="form.total_amount_centavos"
+              data-test="credit-card-purchase-amount"
+            />
+          </ElFormItem>
+        </ElCol>
+      </ElRow>
 
-      <ElFormItem
-        :label="t('creditCards.purchase.installments')"
-        :error="fieldErrors.installment_count?.[0]"
-      >
-        <ElInputNumber
-          v-model="form.installment_count"
-          :min="1"
-          :max="360"
-          data-test="credit-card-purchase-installments"
-        />
-        <span class="purchase-form__hint" data-test="credit-card-purchase-installment-hint">
-          {{
-            t('creditCards.purchase.installmentHint', {
-              count: form.installment_count,
-              suffix: installmentCountSuffix,
-            })
-          }}
-        </span>
-      </ElFormItem>
+      <ElRow :gutter="16">
+        <ElCol :xs="24" :md="12">
+          <ElFormItem
+            :label="t('creditCards.purchase.date')"
+            :error="fieldErrors.purchase_date?.[0]"
+          >
+            <ElDatePicker
+              v-model="form.purchase_date"
+              value-format="YYYY-MM-DD"
+              data-test="credit-card-purchase-date"
+            />
+          </ElFormItem>
+        </ElCol>
+
+        <ElCol :xs="24" :md="12">
+          <ElFormItem
+            :label="t('creditCards.purchase.installments')"
+            :error="fieldErrors.installment_count?.[0]"
+          >
+            <ElInputNumber
+              v-model="form.installment_count"
+              :min="1"
+              :max="360"
+              data-test="credit-card-purchase-installments"
+            />
+            <span class="purchase-form__hint" data-test="credit-card-purchase-installment-hint">
+              {{
+                t('creditCards.purchase.installmentHint', {
+                  count: form.installment_count,
+                  suffix: installmentCountSuffix,
+                })
+              }}
+            </span>
+          </ElFormItem>
+        </ElCol>
+      </ElRow>
 
       <ElFormItem :label="t('creditCards.purchase.notes')" :error="fieldErrors.notes?.[0]">
         <ElInput
@@ -216,6 +237,7 @@ function submit() {
       </p>
       <ElButton
         type="danger"
+        :icon="Check"
         :loading="submitting"
         data-test="credit-card-purchase-confirm-over-limit"
         @click="emit('confirm-over-limit')"
@@ -225,6 +247,7 @@ function submit() {
       <ElButton
         text
         type="danger"
+        :icon="Close"
         data-test="credit-card-purchase-dismiss-over-limit"
         @click="emit('dismiss-over-limit')"
       >
@@ -242,11 +265,16 @@ function submit() {
     </section>
 
     <template #footer>
-      <ElButton type="danger" data-test="credit-card-purchase-cancel" @click="close">{{
-        t('common.cancel')
-      }}</ElButton>
+      <ElButton
+        :icon="Close"
+        type="danger"
+        data-test="credit-card-purchase-cancel"
+        @click="close"
+        >{{ t('common.cancel') }}</ElButton
+      >
       <ElButton
         type="primary"
+        :icon="Check"
         :loading="submitting"
         data-test="credit-card-purchase-submit"
         @click="submit"

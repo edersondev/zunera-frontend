@@ -57,21 +57,29 @@ function openPurchaseDialog() {
 }
 
 async function submitPurchase(payload) {
-  const outcome = await store.submitPurchase(Number(props.cardId ?? route.params.card_id), payload)
+  const cardId = Number(props.cardId ?? route.params.card_id)
+  const outcome = await store.submitPurchase(cardId, payload)
   if (outcome.ok) {
     createdPurchase.value = outcome.purchase
     successMessage.value = t('creditCards.purchase.created')
-    await store.fetchPurchases(Number(props.cardId ?? route.params.card_id))
+    purchaseDialogVisible.value = false
+    await refreshCardActivity(cardId)
   }
 }
 
 async function confirmOverLimit() {
+  const cardId = Number(props.cardId ?? route.params.card_id)
   const outcome = await store.submitOverLimit()
   if (outcome.ok) {
     createdPurchase.value = outcome.purchase
     successMessage.value = t('creditCards.purchase.created')
-    await store.fetchPurchases(Number(props.cardId ?? route.params.card_id))
+    purchaseDialogVisible.value = false
+    await refreshCardActivity(cardId)
   }
+}
+
+async function refreshCardActivity(cardId) {
+  await Promise.allSettled([store.fetchStatements(cardId), store.fetchPurchases(cardId)])
 }
 
 function openCorrection(purchase) {

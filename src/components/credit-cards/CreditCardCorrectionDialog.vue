@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, shallowRef, watch } from 'vue'
 import {
   ElAlert,
   ElButton,
+  ElCol,
   ElDatePicker,
   ElDialog,
   ElForm,
@@ -10,8 +11,10 @@ import {
   ElInput,
   ElInputNumber,
   ElOption,
+  ElRow,
   ElSelect,
 } from 'element-plus'
+import { Check, Close } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import CurrencyAmountInput from '@/components/common/CurrencyAmountInput.vue'
 import { listCategories } from '@/services/categoryService'
@@ -99,20 +102,6 @@ function close() {
 
     <ElForm ref="formRef" label-position="top" @submit.prevent>
       <ElFormItem
-        :label="t('creditCards.correction.category')"
-        :error="fieldErrors.category_id?.[0]"
-      >
-        <ElSelect v-model="form.category_id" data-test="credit-card-correction-category">
-          <ElOption
-            v-for="category in categories"
-            :key="category.id"
-            :label="category.name"
-            :value="category.id"
-          />
-        </ElSelect>
-      </ElFormItem>
-
-      <ElFormItem
         :label="t('creditCards.correction.description')"
         :error="fieldErrors.description?.[0]"
       >
@@ -123,45 +112,79 @@ function close() {
         />
       </ElFormItem>
 
-      <ElFormItem
-        :label="t('creditCards.correction.amount')"
-        :error="fieldErrors.total_amount_centavos?.[0]"
-      >
-        <CurrencyAmountInput
-          v-model="form.total_amount_centavos"
-          data-test="credit-card-correction-amount"
-        />
-      </ElFormItem>
+      <ElRow :gutter="16">
+        <ElCol :xs="24" :md="12">
+          <ElFormItem
+            :label="t('creditCards.correction.category')"
+            :error="fieldErrors.category_id?.[0]"
+          >
+            <ElSelect v-model="form.category_id" data-test="credit-card-correction-category">
+              <ElOption
+                v-for="category in categories"
+                :key="category.id"
+                :label="category.name"
+                :value="category.id"
+              />
+            </ElSelect>
+          </ElFormItem>
+        </ElCol>
 
-      <ElFormItem :label="t('creditCards.correction.date')" :error="fieldErrors.purchase_date?.[0]">
-        <ElDatePicker
-          v-model="form.purchase_date"
-          value-format="YYYY-MM-DD"
-          data-test="credit-card-correction-date"
-        />
-      </ElFormItem>
+        <ElCol :xs="24" :md="12">
+          <ElFormItem
+            :label="t('creditCards.correction.amount')"
+            :error="fieldErrors.total_amount_centavos?.[0]"
+          >
+            <CurrencyAmountInput
+              v-model="form.total_amount_centavos"
+              data-test="credit-card-correction-amount"
+            />
+          </ElFormItem>
+        </ElCol>
+      </ElRow>
 
-      <ElFormItem
-        :label="t('creditCards.correction.installments')"
-        :error="fieldErrors.installment_count?.[0]"
-      >
-        <ElInputNumber
-          v-model="form.installment_count"
-          :min="1"
-          :max="360"
-          data-test="credit-card-correction-installments"
-        />
-      </ElFormItem>
+      <ElRow :gutter="16">
+        <ElCol :xs="24" :md="12">
+          <ElFormItem
+            :label="t('creditCards.correction.date')"
+            :error="fieldErrors.purchase_date?.[0]"
+          >
+            <ElDatePicker
+              v-model="form.purchase_date"
+              value-format="YYYY-MM-DD"
+              data-test="credit-card-correction-date"
+            />
+          </ElFormItem>
+        </ElCol>
+
+        <ElCol :xs="24" :md="12">
+          <ElFormItem
+            :label="t('creditCards.correction.installments')"
+            :error="fieldErrors.installment_count?.[0]"
+          >
+            <ElInputNumber
+              v-model="form.installment_count"
+              :min="1"
+              :max="360"
+              data-test="credit-card-correction-installments"
+            />
+          </ElFormItem>
+        </ElCol>
+      </ElRow>
     </ElForm>
 
     <p class="correction__hint">{{ t('creditCards.correction.hint') }}</p>
 
     <template #footer>
-      <ElButton type="danger" data-test="credit-card-correction-cancel" @click="close">{{
-        t('common.cancel')
-      }}</ElButton>
+      <ElButton
+        :icon="Close"
+        type="danger"
+        data-test="credit-card-correction-cancel"
+        @click="close"
+        >{{ t('common.cancel') }}</ElButton
+      >
       <ElButton
         type="primary"
+        :icon="Check"
         :loading="submitting"
         data-test="credit-card-correction-submit"
         @click="submit"
