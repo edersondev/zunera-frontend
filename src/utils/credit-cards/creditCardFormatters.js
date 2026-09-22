@@ -21,6 +21,20 @@ export function formatIsoDate(isoDate, locale = DEFAULT_LOCALE) {
   }).format(new Date(Date.UTC(year, month - 1, day, 12)))
 }
 
+/** Formats the authoritative statement closing date as a localized month and year. */
+export function formatStatementMonth(isoDate, locale = DEFAULT_LOCALE) {
+  if (!isoDate) return ''
+
+  const [year, month] = String(isoDate).slice(0, 10).split('-').map(Number)
+  if (!year || !month) return String(isoDate)
+
+  return new Intl.DateTimeFormat(locale, {
+    month: 'long',
+    year: 'numeric',
+    timeZone: BUSINESS_TIME_ZONE,
+  }).format(new Date(Date.UTC(year, month - 1, 1, 12)))
+}
+
 /**
  * Presentation-only utilization: source amounts remain server-provided, while
  * the visual width is safely capped without losing the exact numeric value.

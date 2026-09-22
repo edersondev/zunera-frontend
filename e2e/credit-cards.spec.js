@@ -187,6 +187,31 @@ test('statement history shows an automatically applied card credit exactly once'
   await expect(page.locator('[data-test="credit-card-credit-application-91-72"]')).toHaveCount(1)
 })
 
+test('statement dashboard remains readable on a narrow dark screen', async ({ page }) => {
+  const card = creditCard(41, 'Nubank Platinum')
+  const statement = statementFixture(card)
+  statement.installments = [{
+    id: 721,
+    description: 'Groceries',
+    purchase_date: '2026-09-05',
+    sequence: 1,
+    total_count: 3,
+    amount: money(3_334),
+    recognition_date: '2026-09-25',
+  }]
+
+  await mockCreditCardsApi(page, { cards: [card], statement })
+  await page.setViewportSize({ width: 320, height: 900 })
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await page.goto('/app/credit-card-statements/72')
+
+  await expect(page.getByRole('heading', { name: 'September 2026 Statement' })).toBeVisible()
+  await expect(page.locator('[data-test="credit-card-statement-summary"]')).toContainText('100,00')
+  await expect(page.locator('[data-test="credit-card-line-721"]')).toContainText('Groceries')
+  await expect(page.locator('[data-test="credit-card-statement-payments"]')).toContainText('Payments associated')
+  await expect(page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).resolves.toBe(true)
+})
+
 test('history identifies recognized card spending and recurring rules guide manual card purchases', async ({ page }) => {
   await mockCreditCardsApi(page, { cards: [] })
   await page.route(/\/api\/v1\/financial-accounts(?:\?[^/]*)?$/, (route) =>

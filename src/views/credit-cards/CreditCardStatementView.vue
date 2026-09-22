@@ -1,23 +1,22 @@
 <script setup>
 import { computed, onMounted, shallowRef } from 'vue'
-import { ElAlert, ElButton, ElEmpty, ElSkeleton, ElTag } from 'element-plus'
+import { ElAlert, ElButton, ElSkeleton } from 'element-plus'
 import { ArrowLeft, Plus } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import CreditCardStatementBreakdown from '@/components/credit-cards/CreditCardStatementBreakdown.vue'
+import CreditCardStatementCreditEvents from '@/components/credit-cards/CreditCardStatementCreditEvents.vue'
+import CreditCardStatementLineItems from '@/components/credit-cards/CreditCardStatementLineItems.vue'
 import CreditCardStatementPaymentDialog from '@/components/credit-cards/CreditCardStatementPaymentDialog.vue'
+import CreditCardStatementPayments from '@/components/credit-cards/CreditCardStatementPayments.vue'
+import CreditCardStatementSummary from '@/components/credit-cards/CreditCardStatementSummary.vue'
 import { useCreditCardStore } from '@/stores/credit-cards/creditCardStore'
-import {
-  formatBRL,
-  formatIsoDate,
-  installmentLabel,
-  paymentStatus,
-  statementStatus,
-} from '@/utils/credit-cards/creditCardFormatters'
+import { cardIdentityLabel, formatStatementMonth } from '@/utils/credit-cards/creditCardFormatters'
 
 const props = defineProps({ statementId: { type: [String, Number], required: true } })
 const store = useCreditCardStore()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
@@ -25,6 +24,12 @@ const statement = computed(() => store.statement)
 const paymentDialogVisible = shallowRef(false)
 const editingPayment = shallowRef(null)
 const successMessage = shallowRef('')
+const statementTitle = computed(() => {
+  const month = formatStatementMonth(statement.value?.closing_date, locale.value)
+
+  return month ? t('creditCards.statementDetail.monthTitle', { month }) : t('creditCards.statementDetail.title')
+})
+const statementIdentity = computed(() => cardIdentityLabel(statement.value?.card))
 const payable = computed(() =>
   ['closed', 'partially_paid', 'overdue'].includes(statement.value?.status ?? ''),
 )
@@ -84,15 +89,12 @@ async function restorePayment(payment) {
 </script>
 
 <template>
-  <section data-test="credit-card-statement-view">
-    <PageHeader
-      :title="t('creditCards.statementDetail.title')"
-      :description="statement ? formatIsoDate(statement.closing_date) : ''"
-    >
+  <section class="statement-detail" data-test="credit-card-statement-view">
+    <PageHeader :title="statementTitle" :description="statementIdentity">
       <template #actions>
-        <ElButton :icon="ArrowLeft" data-test="credit-card-statement-back" @click="goBack">{{
-          t('creditCards.detail.back')
-        }}</ElButton>
+        <ElButton :icon="ArrowLeft" data-test="credit-card-statement-back" @click="goBack">
+          {{ t('creditCards.detail.back') }}
+        </ElButton>
         <ElButton
           v-if="payable"
           type="primary"
@@ -119,187 +121,24 @@ async function restorePayment(payment) {
       :title="successMessage"
       data-test="credit-card-payment-success"
     />
-    <ElSkeleton v-if="store.loading && !statement" :rows="4" animated />
+    <ElSkeleton v-if="store.loading && !statement" :rows="6" animated />
 
-    <template v-else-if="statement">
-      <p class="m-0 mb-2 flex flex-wrap items-center gap-2">
-        <ElTag
-          :type="statementStatus(statement.status).tone"
-          data-test="credit-card-statement-status"
-        >
-          {{ t(statementStatus(statement.status).labelKey) }}
-        </ElTag>
-        <span class="text-[0.8125rem] text-[var(--el-text-color-secondary)]">
-          {{ formatIsoDate(statement.period_from) }} – {{ formatIsoDate(statement.period_to) }} ·
-          {{ t('creditCards.statement.due') }} {{ formatIsoDate(statement.due_date) }}
-        </span>
-      </p>
-
-      <dl
-        class="m-0 mb-4 grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-3"
-        data-test="credit-card-statement-totals"
-      >
-        <div>
-          <dt class="text-xs text-[var(--el-text-color-secondary)]">
-            {{ t('creditCards.statement.original') }}
-          </dt>
-          <dd class="m-0 tabular-nums">
-            {{ formatBRL(statement.original_amount.amount_centavos) }}
-          </dd>
-        </div>
-        <div>
-          <dt class="text-xs text-[var(--el-text-color-secondary)]">
-            {{ t('creditCards.statement.creditAdjustments') }}
-          </dt>
-          <dd class="m-0 tabular-nums">
-            {{ formatBRL(statement.credit_adjustments.amount_centavos) }}
-          </dd>
-        </div>
-        <div>
-          <dt class="text-xs text-[var(--el-text-color-secondary)]">
-            {{ t('creditCards.statement.net') }}
-          </dt>
-          <dd class="m-0 tabular-nums">{{ formatBRL(statement.net_amount.amount_centavos) }}</dd>
-        </div>
-        <div>
-          <dt class="text-xs text-[var(--el-text-color-secondary)]">
-            {{ t('creditCards.statement.paid') }}
-          </dt>
-          <dd class="m-0 tabular-nums">{{ formatBRL(statement.paid_amount.amount_centavos) }}</dd>
-        </div>
-        <div>
-          <dt class="text-xs text-[var(--el-text-color-secondary)]">
-            {{ t('creditCards.statement.outstanding') }}
-          </dt>
-          <dd class="m-0 tabular-nums" data-test="credit-card-statement-outstanding">
-            {{ formatBRL(statement.outstanding_amount.amount_centavos) }}
-          </dd>
-        </div>
-      </dl>
-
-      <section data-test="credit-card-statement-lines">
-        <h2 class="m-0 mb-2 text-base">{{ t('creditCards.statementDetail.lines') }}</h2>
-        <ElEmpty
-          v-if="statement.installments.length === 0"
-          :description="t('creditCards.statementsEmpty')"
-        />
-        <ul v-else class="m-0 grid list-none gap-2 p-0">
-          <li
-            v-for="installment in statement.installments"
-            :key="installment.id"
-            class="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--el-border-color)] px-3 py-2"
-            :data-test="`credit-card-line-${installment.id}`"
-          >
-            <span>{{ installmentLabel(installment.sequence, installment.total_count) }}</span>
-            <span class="text-[0.8125rem] text-[var(--el-text-color-secondary)]">{{
-              installment.statement?.card?.name
-            }}</span>
-            <span>{{ formatBRL(installment.amount.amount_centavos) }}</span>
-          </li>
-        </ul>
-      </section>
-
-      <section data-test="credit-card-statement-payments">
-        <h2 class="m-0 mb-2 text-base">{{ t('creditCards.statementDetail.payments') }}</h2>
-        <ElEmpty
-          v-if="statement.payments.length === 0"
-          :description="t('creditCards.statementDetail.paymentsEmpty')"
-        />
-        <ul v-else class="m-0 grid list-none gap-2 p-0">
-          <li
-            v-for="payment in activePayments"
-            :key="payment.id"
-            class="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--el-border-color)] px-3 py-2"
-            :data-test="`credit-card-payment-${payment.id}`"
-          >
-            <span>{{ formatIsoDate(payment.payment_date) }}</span>
-            <span class="text-[0.8125rem] text-[var(--el-text-color-secondary)]">{{
-              payment.financial_account.name
-            }}</span>
-            <ElTag :type="paymentStatus(payment.status).tone" size="small">{{
-              t(paymentStatus(payment.status).labelKey)
-            }}</ElTag>
-            <span>{{ formatBRL(payment.amount.amount_centavos) }}</span>
-            <ElButton
-              size="small"
-              :data-test="`credit-card-payment-edit-${payment.id}`"
-              @click="openPaymentDialog(payment)"
-            >
-              {{ t('common.edit') }}
-            </ElButton>
-            <ElButton
-              size="small"
-              type="danger"
-              plain
-              :data-test="`credit-card-payment-remove-${payment.id}`"
-              @click="removePayment(payment)"
-            >
-              {{ t('creditCards.payment.remove') }}
-            </ElButton>
-          </li>
-        </ul>
-
-        <template v-if="removedPayments.length > 0">
-          <h3 class="m-0 mt-3 mb-2 text-sm">{{ t('creditCards.payment.removedSection') }}</h3>
-          <ul class="m-0 grid list-none gap-2 p-0">
-            <li
-              v-for="payment in removedPayments"
-              :key="payment.id"
-              class="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--el-border-color)] px-3 py-2"
-              :data-test="`credit-card-payment-removed-${payment.id}`"
-            >
-              <span>{{ formatIsoDate(payment.payment_date) }}</span>
-              <span class="text-[0.8125rem] text-[var(--el-text-color-secondary)]">{{
-                payment.financial_account.name
-              }}</span>
-              <span>{{ formatBRL(payment.amount.amount_centavos) }}</span>
-              <ElButton
-                size="small"
-                :data-test="`credit-card-payment-restore-${payment.id}`"
-                @click="restorePayment(payment)"
-              >
-                {{ t('creditCards.payment.restore') }}
-              </ElButton>
-            </li>
-          </ul>
-        </template>
-      </section>
-
-      <section data-test="credit-card-statement-credit-events">
-        <h2 class="m-0 mb-2 text-base">{{ t('creditCards.statementDetail.creditEvents') }}</h2>
-        <ElEmpty
-          v-if="creditEvents.length === 0"
-          :description="t('creditCards.statementDetail.creditEventsEmpty')"
-        />
-        <ul v-else class="m-0 grid list-none gap-2 p-0">
-          <li
-            v-for="event in creditEvents"
-            :key="event.id"
-            class="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--el-border-color)] px-3 py-2"
-            :data-test="`credit-card-credit-event-${event.id}`"
-          >
-            <span>{{ t(`creditCards.creditEventReason.${event.reason}`) }}</span>
-            <span class="text-[0.8125rem] text-[var(--el-text-color-secondary)]">{{
-              formatIsoDate(event.event_date)
-            }}</span>
-            <span>{{ formatBRL(event.amount.amount_centavos) }}</span>
-            <ul v-if="event.statementApplications.length > 0" class="m-0 basis-full pl-4">
-              <li
-                v-for="application in event.statementApplications"
-                :key="`${event.id}-${application.statement_id}-${application.installment_id}`"
-                :data-test="`credit-card-credit-application-${event.id}-${application.statement_id}`"
-              >
-                {{
-                  t('creditCards.statementDetail.creditApplied', {
-                    amount: formatBRL(application.amount.amount_centavos),
-                  })
-                }}
-              </li>
-            </ul>
-          </li>
-        </ul>
-      </section>
-    </template>
+    <div v-else-if="statement" class="statement-content">
+      <CreditCardStatementSummary :statement="statement" />
+      <CreditCardStatementBreakdown :statement="statement" />
+      <CreditCardStatementLineItems
+        :installments="statement.installments"
+        :statement-amount-centavos="statement.net_amount?.amount_centavos"
+      />
+      <CreditCardStatementPayments
+        :payments="activePayments"
+        :removed-payments="removedPayments"
+        @edit="openPaymentDialog"
+        @remove="removePayment"
+        @restore="restorePayment"
+      />
+      <CreditCardStatementCreditEvents :events="creditEvents" />
+    </div>
 
     <CreditCardStatementPaymentDialog
       v-model:visible="paymentDialogVisible"
@@ -311,3 +150,21 @@ async function restorePayment(payment) {
     />
   </section>
 </template>
+
+<style scoped>
+.statement-detail {
+  display: grid;
+  gap: 16px;
+}
+
+.statement-content {
+  display: grid;
+  gap: 32px;
+}
+
+@media (max-width: 639px) {
+  .statement-content {
+    gap: 24px;
+  }
+}
+</style>

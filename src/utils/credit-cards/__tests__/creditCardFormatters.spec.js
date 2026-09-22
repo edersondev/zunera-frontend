@@ -8,6 +8,7 @@ import {
   formatBRL,
   formatCreditUtilization,
   formatIsoDate,
+  formatStatementMonth,
   installmentLabel,
   paymentStatus,
   recognitionStatus,
@@ -31,6 +32,13 @@ describe('creditCardFormatters', () => {
     expect(formatIsoDate('2026-10-10')).toBe('10/10/2026')
     expect(formatIsoDate(null)).toBe('')
     expect(formatIsoDate('not-a-date')).toBe('not-a-date')
+  })
+
+  it('formats a statement closing date as a localized month and year', () => {
+    expect(formatStatementMonth('2026-09-25')).toBe('setembro de 2026')
+    expect(formatStatementMonth('2026-09-25', 'en')).toBe('September 2026')
+    expect(formatStatementMonth(null)).toBe('')
+    expect(formatStatementMonth('not-a-date')).toBe('not-a-date')
   })
 
   it('derives the business date in America/Sao_Paulo', () => {

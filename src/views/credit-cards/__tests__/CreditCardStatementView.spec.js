@@ -26,6 +26,7 @@ const stubs = {
   PageHeader: { props: ['title', 'description'], template: '<header><h1>{{ title }}</h1><p>{{ description }}</p><slot name="actions" /></header>' },
   ElButton: { emits: ['click'], template: '<button @click="$emit(\'click\')"><slot /></button>' },
   ElTag: { template: '<span><slot /></span>' },
+  ElIcon: { template: '<i><slot /></i>' },
   ElEmpty: { props: ['description'], template: '<p>{{ description }}</p>' },
   ElAlert: { props: ['title'], template: '<aside>{{ title }}</aside>' },
   ElSkeleton: true,
@@ -37,6 +38,7 @@ const money = (amount_centavos) => ({ amount_centavos, currency_code: 'BRL' })
 function statement() {
   return {
     id: 72,
+    card: { name: 'Nubank Platinum', institution_name: 'Nubank', last_four: '1234' },
     status: 'partially_paid',
     period_from: '2026-08-26',
     period_to: '2026-09-25',
@@ -49,10 +51,11 @@ function statement() {
     outstanding_amount: money(6_666),
     installments: [{
       id: 301,
+      description: 'Monthly groceries',
+      purchase_date: '2026-09-05',
       sequence: 1,
       total_count: 3,
       amount: money(3_334),
-      statement: { card: { name: 'Nubank Platinum' } },
     }],
     payments: [],
     credit_events: [],
@@ -75,15 +78,21 @@ beforeEach(() => {
 })
 
 describe('CreditCardStatementView', () => {
-  it('renders partial-payment status, due date, totals, and assigned line item', () => {
+  it('renders the localized statement dashboard from authoritative values', () => {
     const wrapper = factory()
 
     expect(store.fetchStatement).toHaveBeenCalledWith(72)
+    expect(wrapper.get('h1').text()).toBe('Fatura de setembro de 2026')
+    expect(wrapper.text()).toContain('Nubank •••• 1234')
     expect(wrapper.get('[data-test="credit-card-statement-status"]').text()).toContain('Parcialmente paga')
     expect(wrapper.text()).toContain('05/10/2026')
     expect(wrapper.get('[data-test="credit-card-statement-totals"]').text()).toContain('66,66')
     expect(wrapper.get('[data-test="credit-card-statement-outstanding"]').text()).toContain('66,66')
-    expect(wrapper.get('[data-test="credit-card-line-301"]').text()).toContain('Nubank Platinum')
+    expect(wrapper.get('[data-test="credit-card-statement-summary"]').text()).toContain('Saldo atual em aberto')
+    expect(wrapper.get('[data-test="credit-card-statement-lines"]').text()).toContain('Data da compra')
+    expect(wrapper.get('[data-test="credit-card-line-301"]').text()).toContain('Monthly groceries')
+    expect(wrapper.get('[data-test="credit-card-line-301"]').text()).toContain('05/09/2026')
     expect(wrapper.get('[data-test="credit-card-line-301"]').text()).toContain('33,34')
+    expect(wrapper.get('[data-test="credit-card-statement-payments"]').text()).toContain('Os pagamentos vinculados')
   })
 })
