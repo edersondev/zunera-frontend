@@ -56,8 +56,6 @@ const errorMessage = computed(() =>
 const availableCredit = computed(() =>
   availableCreditPresentation(props.card?.summary?.available_credit?.amount_centavos ?? 0),
 )
-const installmentCountSuffix = computed(() => (form.installment_count > 1 ? 'x' : ''))
-
 onMounted(loadCategories)
 
 watch(
@@ -198,14 +196,6 @@ function submit() {
               :max="360"
               data-test="credit-card-purchase-installments"
             />
-            <span class="purchase-form__hint" data-test="credit-card-purchase-installment-hint">
-              {{
-                t('creditCards.purchase.installmentHint', {
-                  count: form.installment_count,
-                  suffix: installmentCountSuffix,
-                })
-              }}
-            </span>
           </ElFormItem>
         </ElCol>
       </ElRow>
@@ -286,8 +276,7 @@ function submit() {
 </template>
 
 <style scoped>
-.purchase-form__availability,
-.purchase-form__hint {
+.purchase-form__availability {
   font-size: 0.8125rem;
   color: var(--el-text-color-secondary);
 }
