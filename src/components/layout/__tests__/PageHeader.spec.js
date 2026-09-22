@@ -12,9 +12,13 @@ describe('PageHeader', () => {
       },
     })
 
-    const children = [...wrapper.get('header').element.children].map((node) => node.className)
+    const [heading, context, actions] = wrapper.get('header').element.children
 
-    expect(children).toEqual(['', 'page-context', 'page-actions'])
+    // Context sits between the heading and the page actions.
+    expect(heading.textContent).toContain('Transações')
+    expect(context.textContent).toContain('setembro de 2026')
+    expect(actions.textContent).toContain('Nova transação')
+    expect(context.classList).toContain('page-context')
     expect(wrapper.get('h1').text()).toBe('Transações')
     expect(wrapper.get('[data-test="month"]').text()).toBe('setembro de 2026')
   })
