@@ -505,8 +505,9 @@ test('history is newest first with details, empty state, and no foreign transact
   await page.keyboard.press('Escape')
   await expect(drawer).toBeHidden()
 
+  // Element Plus forwards data-test to the native input of the search field.
+  await page.locator('[data-test="filter-search"]').fill('inexistente')
   const filterDialog = await openTransactionFilters(page)
-  await filterDialog.getByLabel('Buscar').fill('inexistente')
   await filterDialog.locator('[data-test="apply-filters"]').click()
   await expect(page.getByText('Nenhuma transação corresponde aos filtros atuais.')).toBeVisible()
   await expect(page.getByText('0 transações')).toBeVisible()
@@ -611,8 +612,8 @@ test('owner combines filters and search and clears the criteria', async ({ page 
   await page.goto('/app/transactions')
   await expect(page.locator('.el-table__row')).toHaveCount(4)
 
+  await page.locator('[data-test="filter-search"]').fill('salario')
   const filterDialog = await openTransactionFilters(page)
-  await filterDialog.getByLabel('Buscar').fill('salario')
   await filterDialog.locator('[data-test="filter-type"]').click()
   await page.getByRole('option', { name: 'Receita', exact: true }).click()
   await filterDialog.locator('[data-test="filter-status"]').click()
@@ -710,7 +711,9 @@ test('mobile uses the compact history list without horizontal page overflow', as
     .toBe(true)
 
   const filterDialog = await openTransactionFilters(page)
-  await expect(filterDialog.getByLabel('Buscar')).toBeVisible()
+  // Search lives in the filter row; the dialog only carries advanced criteria.
+  await expect(filterDialog.locator('[data-test="filter-type"]')).toBeVisible()
+  await expect(filterDialog.getByLabel('Buscar')).toHaveCount(0)
   await page.keyboard.press('Escape')
   await expect(filterDialog).toBeHidden()
 })

@@ -213,18 +213,6 @@ function removeFilter(key) {
         data-test="transaction-filters"
         @submit.prevent="apply"
       >
-        <ElFormItem :label="t('transactions.searchLabel')" class="filter-span-full">
-          <ElInput
-            v-model="form.q"
-            clearable
-            :placeholder="t('transactions.searchPlaceholder')"
-            data-test="dialog-filter-search"
-          >
-            <template #prefix>
-              <ElIcon><Search /></ElIcon>
-            </template>
-          </ElInput>
-        </ElFormItem>
         <ElFormItem :label="t('transactions.type')">
           <ElSelect v-model="form.type" clearable data-test="filter-type">
             <ElOption :label="t('transactions.income')" value="income" />
