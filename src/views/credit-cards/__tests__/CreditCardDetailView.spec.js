@@ -21,11 +21,12 @@ const store = reactive({
   submitPurchaseCorrection: vi.fn(),
   submitCreditEvent: vi.fn(),
 })
+const routerPush = vi.fn()
 
 vi.mock('@/stores/credit-cards/creditCardStore', () => ({ useCreditCardStore: () => store }))
 vi.mock('vue-router', () => ({
   useRoute: () => ({ params: { card_id: '7' } }),
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: routerPush }),
 }))
 
 const { default: CreditCardDetailView } = await import('../CreditCardDetailView.vue')
@@ -63,6 +64,7 @@ function card() {
       available_credit: money(500_000),
     },
     current_statement: {
+      id: 72,
       status: 'open',
       period_from: '2026-09-01',
       period_to: '2026-09-30',
@@ -101,5 +103,20 @@ describe('CreditCardDetailView', () => {
     expect(store.fetchPurchases).toHaveBeenLastCalledWith(7)
     expect(wrapper.get('[data-test="purchase-dialog"]').attributes('data-visible')).toBe('false')
     expect(wrapper.text()).toContain('Compra registrada.')
+  })
+
+  it('keeps current-statement navigation on the existing statement-detail route', async () => {
+    const wrapper = mount(CreditCardDetailView, {
+      props: { cardId: 7 },
+      global: { plugins: [i18n], stubs },
+    })
+    await flushPromises()
+
+    await wrapper.get('[data-test="credit-card-current-statement-open"]').trigger('click')
+
+    expect(routerPush).toHaveBeenCalledWith({
+      name: 'credit-card-statement-detail',
+      params: { statement_id: 72 },
+    })
   })
 })

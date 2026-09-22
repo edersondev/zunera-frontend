@@ -314,6 +314,7 @@ test('owner corrects an open purchase and records a traceable refund event', asy
   await page.goto('/app/credit-cards/41')
   await expect(page.locator('[data-test="credit-card-purchase-301"]')).toContainText('Headphones')
 
+  await page.locator('[data-test="credit-card-purchase-actions-301"]').click()
   await page.locator('[data-test="credit-card-purchase-correct-301"]').click()
   let dialog = page.getByRole('dialog', { name: 'Correct purchase' })
   await dialog.getByLabel('Description').fill('Corrected headphones')
@@ -321,6 +322,7 @@ test('owner corrects an open purchase and records a traceable refund event', asy
   await expect(page.getByText('Purchase corrected.')).toBeVisible()
   await expect(page.locator('[data-test="credit-card-purchase-301"]')).toContainText('Corrected headphones')
 
+  await page.locator('[data-test="credit-card-purchase-actions-301"]').click()
   await page.locator('[data-test="credit-card-purchase-credit-event-301"]').click()
   dialog = page.getByRole('dialog', { name: 'Refund, cancellation, or correction' })
   await dialog.getByLabel('Amount').press('Control+A')
@@ -328,6 +330,37 @@ test('owner corrects an open purchase and records a traceable refund event', asy
   await dialog.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByText('Event recorded.')).toBeVisible()
   await expect(page.locator('[data-test="credit-card-detail-summary"]')).toContainText('25,00')
+})
+
+test('detail dashboard keeps statement navigation and purchase actions usable on a narrow dark screen', async ({ page }) => {
+  const card = creditCard(41, 'Nubank Platinum')
+  card.current_statement = {
+    ...card.current_statement,
+    id: 72,
+    status: 'closed',
+    outstanding_amount: money(10_000),
+  }
+  const purchase = purchaseFixture(card, {
+    category_id: 18,
+    description: 'Headphones',
+    purchase_date: '2026-09-05',
+    total_amount_centavos: 10_000,
+    installment_count: 1,
+  }, 301)
+  const statement = statementFixture({ id: 41, name: 'Nubank Platinum', status: 'active' })
+  await mockCreditCardsApi(page, { cards: [card], purchases: [purchase], statements: [card.current_statement], statement })
+
+  await page.setViewportSize({ width: 320, height: 900 })
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await page.goto('/app/credit-cards/41')
+
+  await expect(page.locator('[data-test="credit-card-current-statement"]')).toContainText('Closed')
+  await expect(page.locator('[data-test="credit-card-purchase-301"]')).toContainText('Headphones')
+  await expect(page.locator('[data-test="credit-card-purchase-actions-301"]')).toHaveAccessibleName('Purchase actions')
+  await expect(page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).resolves.toBe(true)
+
+  await page.locator('[data-test="credit-card-current-statement-open"]').click()
+  await expect(page).toHaveURL(/\/app\/credit-card-statements\/72$/)
 })
 
 test('owner cannot archive a card while it still has an obligation or card credit', async ({ page }) => {
@@ -429,7 +462,8 @@ async function mockCreditCardsApi(page, options) {
       return route.fulfill({ status: 201, json: { data: purchase }, headers: apiHeaders() })
     }
     if (action === 'statements' && request.method() === 'GET') {
-      return route.fulfill({ json: { data: [], meta: { current_page: 1, last_page: 1, per_page: 50, total: 0 } }, headers: apiHeaders() })
+      const statements = options.statements ?? []
+      return route.fulfill({ json: { data: statements, meta: { current_page: 1, last_page: 1, per_page: 50, total: statements.length } }, headers: apiHeaders() })
     }
     if (action === 'archive' && request.method() === 'POST') {
       if (options.archiveError) {
