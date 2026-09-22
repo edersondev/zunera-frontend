@@ -33,12 +33,6 @@ const navigationItems = computed(() => [
         label: t('app.categories'),
         icon: CollectionTag,
       },
-      {
-        routeName: 'credit-cards',
-        activeRouteNames: ['credit-cards', 'credit-cards-archived', 'credit-card-detail'],
-        label: t('app.creditCards'),
-        icon: Money,
-      },
     ],
   },
   {
@@ -50,6 +44,13 @@ const navigationItems = computed(() => [
       { routeName: 'recurring-transactions', label: t('recurringTransactions.nav'), icon: Calendar },
       { routeName: 'transactions-removed', label: t('app.removedTransactions'), icon: Delete },
     ],
+  },
+  {
+    id: 'credit-cards',
+    routeName: 'credit-cards',
+    activeRouteNames: ['credit-cards', 'credit-cards-archived', 'credit-card-detail'],
+    label: t('app.creditCards'),
+    icon: Money,
   },
 ])
 
