@@ -88,7 +88,7 @@ function stubs() {
       PageHeader: {
         props: ['title', 'description'],
         template:
-          '<header><h1>{{ title }}</h1><p>{{ description }}</p><slot name="actions" /></header>',
+          '<header><h1>{{ title }}</h1><p>{{ description }}</p><slot name="context" /><slot name="actions" /></header>',
       },
       ElDropdown: {
         name: 'ElDropdown',
@@ -102,9 +102,9 @@ function stubs() {
       },
       TransactionFilterBar: {
         props: ['filters', 'accounts', 'categories', 'month', 'loading'],
-        emits: ['apply', 'clear', 'change-month'],
+        emits: ['apply', 'clear'],
         template:
-          '<div><p data-test="selected-month">{{ month.year }}-{{ month.month }}</p><p v-if="filters.q" data-test="active-criteria">Busca: {{ filters.q }}</p><button data-test="apply-filter" @click="$emit(\'apply\', { q: \'almoço\', type: \'expense\' })">apply</button><button data-test="clear-filter" @click="$emit(\'clear\')">clear</button><button data-test="change-month" @click="$emit(\'change-month\', { year: 2026, month: 10 })">next</button></div>',
+          '<div><p v-if="filters.q" data-test="active-criteria">Busca: {{ filters.q }}</p><button data-test="apply-filter" @click="$emit(\'apply\', { q: \'almoço\', type: \'expense\' })">apply</button><button data-test="clear-filter" @click="$emit(\'clear\')">clear</button></div>',
       },
       TransactionFormDialog: {
         props: ['modelValue', 'initialType', 'transfer'],
@@ -213,18 +213,18 @@ describe('TransactionsListView', () => {
     )
   })
 
-  it('moves to the month chosen in the navigator and keeps the other criteria', async () => {
+  it('moves to the month chosen in the header navigator and keeps the other criteria', async () => {
     route.query = { q: 'almoço' }
     const wrapper = mount(TransactionsListView, { global: stubs() })
     await flushPromises()
 
-    await wrapper.get('[data-test="change-month"]').trigger('click')
+    await wrapper.get('[data-test="month-next"]').trigger('click')
     await flushPromises()
 
     expect(store.setFilters).toHaveBeenLastCalledWith(
       expect.objectContaining({ q: 'almoço', from: '2026-10-01', to: '2026-10-31' }),
     )
-    expect(wrapper.get('[data-test="selected-month"]').text()).toBe('2026-10')
+    expect(wrapper.get('[data-test="transaction-month-navigator"]').text()).toContain('outubro')
     expect(routerReplace).toHaveBeenLastCalledWith({
       query: expect.objectContaining({ q: 'almoço', from: '2026-10-01', to: '2026-10-31' }),
     })
@@ -234,7 +234,7 @@ describe('TransactionsListView', () => {
     route.query = {}
     const wrapper = mount(TransactionsListView, { global: stubs() })
     await flushPromises()
-    await wrapper.get('[data-test="change-month"]').trigger('click')
+    await wrapper.get('[data-test="month-next"]').trigger('click')
     await flushPromises()
     store.setFilters.mockClear()
 

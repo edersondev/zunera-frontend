@@ -2,7 +2,6 @@
 import { computed, reactive, shallowRef, watch } from 'vue'
 import { Close, Filter, Search } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
-import MonthNavigator from '@/components/common/MonthNavigator.vue'
 import { monthBounds } from '@/utils/common/monthFormatters'
 import { formatTransactionDate } from '@/utils/transactions/transactionFormatters'
 
@@ -10,18 +9,16 @@ const props = defineProps({
   filters: { type: Object, required: true },
   accounts: { type: Array, required: true },
   categories: { type: Array, required: true },
+  // Baseline month owned by the page header navigator; the period criterion only
+  // shows while the active range differs from it.
   month: { type: Object, required: true },
   loading: Boolean,
 })
-const emit = defineEmits(['apply', 'clear', 'change-month'])
+const emit = defineEmits(['apply', 'clear'])
 const { t } = useI18n()
 const dialogVisible = shallowRef(false)
 const form = reactive(blankFilters(props.filters))
 
-/**
- * The month navigator owns the baseline period, so the strip only shows a period
- * criterion while the active range differs from the navigator's month.
- */
 const hasCustomPeriod = computed(() => {
   const bounds = monthBounds(props.month)
 
@@ -164,31 +161,23 @@ function removeFilter(key) {
   <section class="filter-bar" aria-labelledby="transaction-search-label">
     <span id="transaction-search-label" class="sr-only">{{ t('transactions.searchLabel') }}</span>
     <form class="search-row" data-test="transaction-search-form" @submit.prevent="applySearch">
-      <div class="search-controls">
-        <ElInput
-          v-model="form.q"
-          clearable
-          :placeholder="t('transactions.searchPlaceholder')"
-          :aria-label="t('transactions.searchLabel')"
-          data-test="filter-search"
-        >
-          <template #prefix>
-            <ElIcon><Search /></ElIcon>
-          </template>
-        </ElInput>
-        <ElButton native-type="submit" :icon="Search" :loading="loading" data-test="apply-search">
-          {{ t('transactions.search') }}
-        </ElButton>
-        <ElButton :icon="Filter" data-test="open-filters" @click="openDialog">
-          {{ t('transactions.filters') }}
-        </ElButton>
-      </div>
-      <MonthNavigator
-        :month="props.month"
-        :loading="props.loading"
-        data-test="transaction-month-navigator"
-        @change-month="emit('change-month', $event)"
-      />
+      <ElInput
+        v-model="form.q"
+        clearable
+        :placeholder="t('transactions.searchPlaceholder')"
+        :aria-label="t('transactions.searchLabel')"
+        data-test="filter-search"
+      >
+        <template #prefix>
+          <ElIcon><Search /></ElIcon>
+        </template>
+      </ElInput>
+      <ElButton native-type="submit" :icon="Search" :loading="loading" data-test="apply-search">
+        {{ t('transactions.search') }}
+      </ElButton>
+      <ElButton :icon="Filter" data-test="open-filters" @click="openDialog">
+        {{ t('transactions.filters') }}
+      </ElButton>
     </form>
 
     <div v-if="activeFilters.length" class="active-filters" data-test="active-criteria">
@@ -308,13 +297,6 @@ function removeFilter(key) {
 
 .search-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-}
-
-.search-controls {
-  display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 8px;
 }
@@ -356,14 +338,10 @@ function removeFilter(key) {
 
 @media (max-width: 639px) {
   .search-row {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .search-controls {
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
-  .search-controls :deep(.el-button:first-of-type) {
+  .search-row :deep(.el-button:first-of-type) {
     display: none;
   }
 

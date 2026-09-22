@@ -205,22 +205,15 @@ describe('TransactionFilterBar', () => {
     expect(wrapper.get('[data-test="dialog-filter-search"] input').element.value).toBe('novo')
   })
 
-  it('places the month navigator beside the search and filter controls', async () => {
+  it('keeps the search row limited to the search and filter controls', () => {
     const wrapper = mountBar()
     const row = wrapper.get('[data-test="transaction-search-form"]')
-    const controls = row.get('.search-controls')
 
-    expect(controls.get('[data-test="filter-search"]').exists()).toBe(true)
-    expect(controls.get('[data-test="open-filters"]').text()).toContain('Filtros')
-    expect(row.get('[data-test="month-label"]').text()).toBe('setembro de 2026')
-  })
-
-  it('emits the month the navigator moves to', async () => {
-    const wrapper = mountBar()
-
-    await wrapper.get('[data-test="month-next"]').trigger('click')
-
-    expect(wrapper.emitted('change-month')).toEqual([[{ year: 2026, month: 10 }]])
+    expect(row.get('[data-test="filter-search"]').exists()).toBe(true)
+    expect(row.get('[data-test="apply-search"]').exists()).toBe(true)
+    expect(row.get('[data-test="open-filters"]').text()).toContain('Filtros')
+    // The month navigator lives in the page header and is not a filter-row control.
+    expect(row.find('[data-test="month-label"]').exists()).toBe(false)
   })
 
   it('keeps the period out of the criteria strip while the navigator month is active', async () => {

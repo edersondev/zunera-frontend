@@ -3,6 +3,7 @@ import { computed, onMounted, shallowRef } from 'vue'
 import { ArrowDown, Delete, Plus } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import MonthNavigator from '@/components/common/MonthNavigator.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import TransactionDetailDrawer from '@/components/transactions/TransactionDetailDrawer.vue'
 import TransactionFilterBar from '@/components/transactions/TransactionFilterBar.vue'
@@ -258,6 +259,14 @@ function updateDialog(visible) {
 <template>
   <div class="transactions-view">
     <PageHeader :title="t('transactions.title')" :description="t('transactions.description')">
+      <template #context>
+        <MonthNavigator
+          :month="selectedMonth"
+          :loading="store.loading"
+          data-test="transaction-month-navigator"
+          @change-month="changeMonth"
+        />
+      </template>
       <template #actions>
         <ElDropdown trigger="click" @command="handleHeaderAction">
           <ElButton type="primary" :icon="Plus" data-test="transactions-header-menu">
@@ -340,7 +349,6 @@ function updateDialog(visible) {
       :loading="store.loading"
       @apply="applyFilters"
       @clear="clearFilters"
-      @change-month="changeMonth"
     />
     <TransactionHistoryList
       :items="store.items"
