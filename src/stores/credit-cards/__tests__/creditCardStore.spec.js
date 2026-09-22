@@ -188,6 +188,10 @@ describe('creditCardStore', () => {
     expect(store.mutationError).toMatchObject({
       errors: { category_id: ['Choose an owned expense category.'] },
     })
+
+    store.dismissMutationError()
+
+    expect(store.mutationError).toBeNull()
   })
 
   it('keeps mutation failures as typed errors instead of dropping them', async () => {

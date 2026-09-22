@@ -24,7 +24,7 @@ const props = defineProps({
   mutationError: { type: Object, default: null },
 })
 
-const emit = defineEmits(['update:visible', 'submit'])
+const emit = defineEmits(['update:visible', 'submit', 'dismiss-mutation-error'])
 const { t } = useI18n()
 const formRef = shallowRef(null)
 const accounts = shallowRef([])
@@ -83,6 +83,7 @@ function resetForm() {
 
 function close() {
   formRef.value?.clearValidate?.()
+  emit('dismiss-mutation-error')
   emit('update:visible', false)
 }
 

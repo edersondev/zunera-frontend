@@ -192,6 +192,7 @@ function openStatement(statement) {
       @submit="submitPurchase"
       @confirm-over-limit="confirmOverLimit"
       @dismiss-over-limit="store.dismissOverLimit()"
+      @dismiss-mutation-error="store.dismissMutationError"
     />
 
     <CreditCardCorrectionDialog
@@ -200,6 +201,7 @@ function openStatement(statement) {
       :submitting="store.submitting"
       :mutation-error="store.mutationError"
       @submit="submitCorrection"
+      @dismiss-mutation-error="store.dismissMutationError"
     />
 
     <CreditCardCreditEventDialog
@@ -208,6 +210,7 @@ function openStatement(statement) {
       :submitting="store.submitting"
       :mutation-error="store.mutationError"
       @submit="submitCreditEvent"
+      @dismiss-mutation-error="store.dismissMutationError"
     />
   </section>
 </template>

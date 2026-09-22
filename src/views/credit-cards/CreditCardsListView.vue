@@ -151,6 +151,7 @@ async function confirmArchive() {
       :submitting="store.submitting"
       :mutation-error="store.mutationError"
       @submit="createCard"
+      @dismiss-mutation-error="store.dismissMutationError"
     />
     <CreditCardForm
       v-model:visible="editDialogVisible"
@@ -158,6 +159,7 @@ async function confirmArchive() {
       :submitting="store.submitting"
       :mutation-error="store.mutationError"
       @submit="updateCard"
+      @dismiss-mutation-error="store.dismissMutationError"
     />
 
     <ElDialog

@@ -240,6 +240,10 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
     pendingOverLimit.value = null
   }
 
+  function dismissMutationError() {
+    mutationError.value = null
+  }
+
   async function submitPayment(statementId, payload) {
     return runMutation(async () => {
       const result = await createPayment(statementId, payload, newIdempotencyKey())
@@ -361,6 +365,7 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
     submitPurchase,
     submitOverLimit,
     dismissOverLimit,
+    dismissMutationError,
     submitPayment,
     editPayment,
     removeStatementPayment,

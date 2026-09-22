@@ -147,6 +147,7 @@ async function restorePayment(payment) {
       :submitting="store.submitting"
       :mutation-error="store.mutationError"
       @submit="submitPayment"
+      @dismiss-mutation-error="store.dismissMutationError"
     />
   </section>
 </template>

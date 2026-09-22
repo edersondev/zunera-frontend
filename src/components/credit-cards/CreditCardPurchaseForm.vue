@@ -34,7 +34,13 @@ const props = defineProps({
   createdPurchase: { type: Object, default: null },
 })
 
-const emit = defineEmits(['update:visible', 'submit', 'confirm-over-limit', 'dismiss-over-limit'])
+const emit = defineEmits([
+  'update:visible',
+  'submit',
+  'confirm-over-limit',
+  'dismiss-over-limit',
+  'dismiss-mutation-error',
+])
 const { t } = useI18n()
 const formRef = shallowRef(null)
 const categories = shallowRef([])
@@ -88,6 +94,8 @@ function resetForm() {
 
 function close() {
   formRef.value?.clearValidate?.()
+  emit('dismiss-over-limit')
+  emit('dismiss-mutation-error')
   emit('update:visible', false)
 }
 

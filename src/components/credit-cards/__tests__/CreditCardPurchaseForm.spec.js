@@ -9,6 +9,7 @@ const { listCategories } = await import('@/services/categoryService')
 
 const stubs = {
   ElDialog: {
+    name: 'ElDialog',
     props: ['modelValue', 'title'],
     emits: ['close'],
     template:
@@ -206,5 +207,16 @@ describe('CreditCardPurchaseForm', () => {
 
     expect(wrapper.text()).toContain('Choose an owned expense category.')
     expect(wrapper.text()).toContain('Amount must be positive.')
+  })
+
+  it('dismisses server validation feedback when the dialog closes', async () => {
+    const wrapper = factory({
+      mutationError: { errors: { category_id: ['Choose an owned expense category.'] } },
+    })
+
+    await wrapper.findComponent({ name: 'ElDialog' }).vm.$emit('close')
+
+    expect(wrapper.emitted('dismiss-mutation-error')).toHaveLength(1)
+    expect(wrapper.emitted('update:visible')).toContainEqual([false])
   })
 })
