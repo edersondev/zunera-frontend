@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
-import { formatBudgetMonth, shiftMonth } from '@/utils/budgets/budgetFormatters'
+import { formatMonth, shiftMonth } from '@/utils/common/monthFormatters'
 
 const props = defineProps({
   month: { type: Object, required: true },
@@ -11,7 +11,7 @@ const props = defineProps({
 const emit = defineEmits(['change-month'])
 const { t, locale } = useI18n()
 
-const label = computed(() => formatBudgetMonth(props.month.year, props.month.month, locale.value))
+const label = computed(() => formatMonth(props.month.year, props.month.month, locale.value))
 
 function shift(offset) {
   emit('change-month', shiftMonth(props.month, offset))
@@ -19,20 +19,20 @@ function shift(offset) {
 </script>
 
 <template>
-  <div class="budget-month-navigator">
+  <div class="month-navigator">
     <ElButton
-      data-test="budget-month-previous"
+      data-test="month-previous"
       :disabled="props.loading"
-      :aria-label="t('budgets.month.previous')"
+      :aria-label="t('common.month.previous')"
       @click="shift(-1)"
     >
       <ElIcon><ArrowLeft /></ElIcon>
     </ElButton>
-    <p class="budget-month-label" data-test="budget-month-label" aria-live="polite">{{ label }}</p>
+    <p class="month-navigator-label" data-test="month-label" aria-live="polite">{{ label }}</p>
     <ElButton
-      data-test="budget-month-next"
+      data-test="month-next"
       :disabled="props.loading"
-      :aria-label="t('budgets.month.next')"
+      :aria-label="t('common.month.next')"
       @click="shift(1)"
     >
       <ElIcon><ArrowRight /></ElIcon>
@@ -41,7 +41,7 @@ function shift(offset) {
 </template>
 
 <style scoped>
-.budget-month-navigator {
+.month-navigator {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -52,12 +52,27 @@ function shift(offset) {
   background: var(--color-surface);
 }
 
-.budget-month-label {
+.month-navigator-label {
   min-width: 12rem;
   margin: 0;
   color: var(--color-text);
   font-weight: 600;
   text-align: center;
   text-transform: capitalize;
+}
+
+@media (max-width: 639px) {
+  /* Grid keeps the label readable when a hosting header stretches buttons to
+     full width on narrow screens. */
+  .month-navigator {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .month-navigator-label {
+    min-width: 0;
+    font-size: 14px;
+  }
 }
 </style>

@@ -3,6 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import ElementPlus from 'element-plus'
 import TransactionsListView from '../TransactionsListView.vue'
 import { i18n } from '@/i18n'
+import { businessMonth, monthBounds } from '@/utils/common/monthFormatters'
 
 const store = vi.hoisted(() => ({
   items: [],
@@ -100,10 +101,10 @@ function stubs() {
         template: '<button type="button" :data-command="command"><slot /></button>',
       },
       TransactionFilterBar: {
-        props: ['filters', 'accounts', 'categories', 'loading'],
-        emits: ['apply', 'clear'],
+        props: ['filters', 'accounts', 'categories', 'month', 'loading'],
+        emits: ['apply', 'clear', 'change-month'],
         template:
-          '<div><p v-if="filters.q" data-test="active-criteria">Busca: {{ filters.q }}</p><button data-test="apply-filter" @click="$emit(\'apply\', { q: \'almoço\', type: \'expense\' })">apply</button><button data-test="clear-filter" @click="$emit(\'clear\')">clear</button></div>',
+          '<div><p data-test="selected-month">{{ month.year }}-{{ month.month }}</p><p v-if="filters.q" data-test="active-criteria">Busca: {{ filters.q }}</p><button data-test="apply-filter" @click="$emit(\'apply\', { q: \'almoço\', type: \'expense\' })">apply</button><button data-test="clear-filter" @click="$emit(\'clear\')">clear</button><button data-test="change-month" @click="$emit(\'change-month\', { year: 2026, month: 10 })">next</button></div>',
       },
       TransactionFormDialog: {
         props: ['modelValue', 'initialType', 'transfer'],
@@ -178,7 +179,7 @@ describe('TransactionsListView', () => {
     route.query = {}
   })
 
-  it('loads the history with the route criteria and shows the matching count', async () => {
+  it('loads the history with the route criteria and the current business month', async () => {
     route.query = { q: 'almoço', per_page: '25' }
     store.meta = { total: 3, current_page: 1, last_page: 2, per_page: 25 }
     store.hasMore = true
@@ -187,16 +188,93 @@ describe('TransactionsListView', () => {
     const wrapper = mount(TransactionsListView, { global: stubs() })
     await flushPromises()
 
-    expect(store.setFilters).toHaveBeenCalledWith({
-      q: 'almoço',
-      per_page: 25,
-      view: 'active',
-    })
+    expect(store.setFilters).toHaveBeenCalledWith(
+      expect.objectContaining({
+        q: 'almoço',
+        per_page: 25,
+        view: 'active',
+        ...monthBounds(businessMonth()),
+      }),
+    )
     expect(accounts.fetchAccounts).toHaveBeenCalled()
     expect(categories.fetchCategories).toHaveBeenCalledWith('active')
     expect(wrapper.get('[data-test="transaction-count"]').text()).toBe('3 transações')
     expect(wrapper.get('[data-test="active-criteria"]').text()).toContain('Busca: almoço')
     expect(wrapper.get('.el-table__row').text()).toContain('Almoço')
+  })
+
+  it('restores the month from the address period instead of the current month', async () => {
+    route.query = { from: '2026-05-01', to: '2026-05-31' }
+    mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+
+    expect(store.setFilters).toHaveBeenCalledWith(
+      expect.objectContaining({ from: '2026-05-01', to: '2026-05-31' }),
+    )
+  })
+
+  it('moves to the month chosen in the navigator and keeps the other criteria', async () => {
+    route.query = { q: 'almoço' }
+    const wrapper = mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+
+    await wrapper.get('[data-test="change-month"]').trigger('click')
+    await flushPromises()
+
+    expect(store.setFilters).toHaveBeenLastCalledWith(
+      expect.objectContaining({ q: 'almoço', from: '2026-10-01', to: '2026-10-31' }),
+    )
+    expect(wrapper.get('[data-test="selected-month"]').text()).toBe('2026-10')
+    expect(routerReplace).toHaveBeenLastCalledWith({
+      query: expect.objectContaining({ q: 'almoço', from: '2026-10-01', to: '2026-10-31' }),
+    })
+  })
+
+  it('keeps the selected month when the criteria are cleared', async () => {
+    route.query = {}
+    const wrapper = mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+    await wrapper.get('[data-test="change-month"]').trigger('click')
+    await flushPromises()
+    store.setFilters.mockClear()
+
+    await wrapper.get('[data-test="clear-filter"]').trigger('click')
+    await flushPromises()
+
+    expect(store.setFilters).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from: '2026-10-01',
+        to: '2026-10-31',
+        q: undefined,
+        type: undefined,
+      }),
+    )
+  })
+
+  it('keeps the empty state unfiltered while only the navigator month is applied', async () => {
+    store.filters = { view: 'active', per_page: 50, ...monthBounds(businessMonth()) }
+    const wrapper = mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+
+    expect(wrapper.get('[data-test="transaction-empty"]').text()).toContain(
+      'Nenhuma transação cadastrada ainda.',
+    )
+    expect(wrapper.find('[data-test="empty-clear-filters"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="empty-create-transaction"]').exists()).toBe(true)
+  })
+
+  it('treats a custom period as an active criterion', async () => {
+    route.query = { from: '2026-09-05', to: '2026-09-20' }
+    store.filters = {
+      view: 'active',
+      per_page: 50,
+      from: '2026-09-05',
+      to: '2026-09-20',
+    }
+    const wrapper = mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+
+    expect(wrapper.find('[data-test="empty-clear-filters"]').exists()).toBe(true)
   })
 
   it('clears stale feedback left by removed movements before showing active history', async () => {
@@ -426,7 +504,9 @@ describe('TransactionsListView', () => {
     await wrapper.get('[data-test="clear-filter"]').trigger('click')
     await flushPromises()
 
-    expect(routerReplace).toHaveBeenLastCalledWith({ query: { view: 'active', per_page: 50 } })
+    expect(routerReplace).toHaveBeenLastCalledWith({
+      query: { view: 'active', per_page: 50, ...monthBounds(businessMonth()) },
+    })
     expect(store.setFilters).toHaveBeenLastCalledWith(
       expect.objectContaining({
         include: undefined,

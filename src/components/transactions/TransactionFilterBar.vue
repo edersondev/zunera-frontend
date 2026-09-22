@@ -2,18 +2,34 @@
 import { computed, reactive, shallowRef, watch } from 'vue'
 import { Close, Filter, Search } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
+import MonthNavigator from '@/components/common/MonthNavigator.vue'
+import { monthBounds } from '@/utils/common/monthFormatters'
 import { formatTransactionDate } from '@/utils/transactions/transactionFormatters'
 
 const props = defineProps({
   filters: { type: Object, required: true },
   accounts: { type: Array, required: true },
   categories: { type: Array, required: true },
+  month: { type: Object, required: true },
   loading: Boolean,
 })
-const emit = defineEmits(['apply', 'clear'])
+const emit = defineEmits(['apply', 'clear', 'change-month'])
 const { t } = useI18n()
 const dialogVisible = shallowRef(false)
 const form = reactive(blankFilters(props.filters))
+
+/**
+ * The month navigator owns the baseline period, so the strip only shows a period
+ * criterion while the active range differs from the navigator's month.
+ */
+const hasCustomPeriod = computed(() => {
+  const bounds = monthBounds(props.month)
+
+  return (
+    (hasValue(props.filters.from) || hasValue(props.filters.to)) &&
+    (props.filters.from !== bounds.from || props.filters.to !== bounds.to)
+  )
+})
 
 const dateRange = computed({
   get: () => (form.from || form.to ? [form.from, form.to] : undefined),
@@ -59,7 +75,7 @@ const activeFilters = computed(() => {
       value: optionLabel(props.categories, props.filters.category_id),
     })
   }
-  if (hasValue(props.filters.from) || hasValue(props.filters.to)) {
+  if (hasCustomPeriod.value) {
     filters.push({
       key: 'period',
       label: t('transactions.period'),
@@ -134,8 +150,7 @@ function removeFilter(key) {
   const next = blankFilters(props.filters)
 
   if (key === 'period') {
-    next.from = undefined
-    next.to = undefined
+    Object.assign(next, monthBounds(props.month))
   } else {
     next[key] = undefined
   }
@@ -149,23 +164,31 @@ function removeFilter(key) {
   <section class="filter-bar" aria-labelledby="transaction-search-label">
     <span id="transaction-search-label" class="sr-only">{{ t('transactions.searchLabel') }}</span>
     <form class="search-row" data-test="transaction-search-form" @submit.prevent="applySearch">
-      <ElInput
-        v-model="form.q"
-        clearable
-        :placeholder="t('transactions.searchPlaceholder')"
-        :aria-label="t('transactions.searchLabel')"
-        data-test="filter-search"
-      >
-        <template #prefix>
-          <ElIcon><Search /></ElIcon>
-        </template>
-      </ElInput>
-      <ElButton native-type="submit" :icon="Search" :loading="loading" data-test="apply-search">
-        {{ t('transactions.search') }}
-      </ElButton>
-      <ElButton :icon="Filter" data-test="open-filters" @click="openDialog">
-        {{ t('transactions.filters') }}
-      </ElButton>
+      <div class="search-controls">
+        <ElInput
+          v-model="form.q"
+          clearable
+          :placeholder="t('transactions.searchPlaceholder')"
+          :aria-label="t('transactions.searchLabel')"
+          data-test="filter-search"
+        >
+          <template #prefix>
+            <ElIcon><Search /></ElIcon>
+          </template>
+        </ElInput>
+        <ElButton native-type="submit" :icon="Search" :loading="loading" data-test="apply-search">
+          {{ t('transactions.search') }}
+        </ElButton>
+        <ElButton :icon="Filter" data-test="open-filters" @click="openDialog">
+          {{ t('transactions.filters') }}
+        </ElButton>
+      </div>
+      <MonthNavigator
+        :month="props.month"
+        :loading="props.loading"
+        data-test="transaction-month-navigator"
+        @change-month="emit('change-month', $event)"
+      />
     </form>
 
     <div v-if="activeFilters.length" class="active-filters" data-test="active-criteria">
@@ -285,6 +308,13 @@ function removeFilter(key) {
 
 .search-row {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.search-controls {
+  display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 8px;
 }
@@ -326,10 +356,14 @@ function removeFilter(key) {
 
 @media (max-width: 639px) {
   .search-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .search-controls {
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
-  .search-row :deep(.el-button:first-of-type) {
+  .search-controls :deep(.el-button:first-of-type) {
     display: none;
   }
 

@@ -57,4 +57,23 @@ describe('TransactionFinancialSummary', () => {
 
     expect(wrapper.find('[data-test="history-totals"]').exists()).toBe(false)
   })
+
+  it('reports a month without qualifying movements as zero realized values', () => {
+    const wrapper = mount(TransactionFinancialSummary, {
+      props: {
+        totals: {
+          income_centavos: 0,
+          expense_centavos: 0,
+          financial_result_centavos: 0,
+          currency_code: 'BRL',
+        },
+      },
+      global: { plugins: [i18n] },
+    })
+
+    // Intl inserts a non-breaking space between the symbol and the amount.
+    expect(wrapper.get('[data-test="history-total-income"]').text()).toBe('+ R$\u00A00,00')
+    expect(wrapper.get('[data-test="history-total-expense"]').text()).toBe('− R$\u00A00,00')
+    expect(wrapper.get('[data-test="history-total-result"]').text()).toBe('R$\u00A00,00')
+  })
 })

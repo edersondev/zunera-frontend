@@ -3,12 +3,12 @@ import { computed, onMounted, shallowRef, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import BudgetEmptyState from '@/components/budgets/BudgetEmptyState.vue'
-import BudgetMonthNavigator from '@/components/budgets/BudgetMonthNavigator.vue'
 import BudgetPlanFormDialog from '@/components/budgets/BudgetPlanFormDialog.vue'
 import BudgetPlanList from '@/components/budgets/BudgetPlanList.vue'
 import BudgetSummary from '@/components/budgets/BudgetSummary.vue'
 import CopyBudgetDialog from '@/components/budgets/CopyBudgetDialog.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import MonthNavigator from '@/components/common/MonthNavigator.vue'
 import RemoveBudgetPlanDialog from '@/components/budgets/RemoveBudgetPlanDialog.vue'
 import { useBudgetStore } from '@/stores/budgets/budgetStore'
 
@@ -127,7 +127,7 @@ onMounted(reload)
   <div class="grid gap-5">
     <PageHeader :title="t('budgets.title')" :description="t('budgets.description')">
       <template #actions>
-        <BudgetMonthNavigator
+        <MonthNavigator
           :month="store.selectedMonth"
           :loading="isLoading"
           @change-month="changeMonth"
