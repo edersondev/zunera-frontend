@@ -13,7 +13,11 @@ const stubs = {
   ElDatePicker: { props: ['modelValue'], emits: ['update:modelValue'], template: '<input type="date" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />' },
   ElInput: { props: ['modelValue'], emits: ['update:modelValue'], template: '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />' },
   ElAlert: { props: ['title'], template: '<aside role="alert">{{ title }}</aside>' },
-  ElButton: { emits: ['click'], template: '<button @click="$emit(\'click\')"><slot /></button>' },
+  ElButton: {
+    props: ['icon'],
+    emits: ['click'],
+    template: '<button :data-icon="icon ? \'present\' : \'missing\'" @click="$emit(\'click\')"><slot /></button>',
+  },
 }
 
 const purchase = {
@@ -51,5 +55,12 @@ describe('CreditCardCreditEventDialog', () => {
     const wrapper = factory({ mutationError: { errors: { amount_centavos: ['Amount exceeds the uncredited purchase value.'] } } })
 
     expect(wrapper.text()).toContain('Amount exceeds the uncredited purchase value.')
+  })
+
+  it('shows icons on refund dialog footer actions', () => {
+    const wrapper = factory()
+
+    expect(wrapper.get('[data-test="credit-card-credit-event-cancel"]').attributes('data-icon')).toBe('present')
+    expect(wrapper.get('[data-test="credit-card-credit-event-submit"]').attributes('data-icon')).toBe('present')
   })
 })

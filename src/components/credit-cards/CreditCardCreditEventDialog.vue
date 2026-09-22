@@ -11,6 +11,7 @@ import {
   ElOption,
   ElSelect,
 } from 'element-plus'
+import { Check, Close } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import CurrencyAmountInput from '@/components/common/CurrencyAmountInput.vue'
 import { businessToday, formatBRL } from '@/utils/credit-cards/creditCardFormatters'
@@ -140,11 +141,15 @@ function close() {
     <p class="credit-event__hint">{{ t('creditCards.creditEvent.hint') }}</p>
 
     <template #footer>
-      <ElButton type="danger" data-test="credit-card-credit-event-cancel" @click="close">{{
-        t('common.cancel')
-      }}</ElButton>
+      <ElButton
+        :icon="Close"
+        type="danger"
+        data-test="credit-card-credit-event-cancel"
+        @click="close"
+      >{{ t('common.cancel') }}</ElButton>
       <ElButton
         type="primary"
+        :icon="Check"
         :loading="submitting"
         data-test="credit-card-credit-event-submit"
         @click="submit"
