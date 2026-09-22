@@ -1,9 +1,15 @@
 <script setup>
 import { computed } from 'vue'
 import { ArrowRight, Edit, FolderDelete } from '@element-plus/icons-vue'
-import { ElButton, ElTag } from 'element-plus'
+import { ElButton, ElIcon, ElTag } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import CreditCardUtilizationProgress from '@/components/dashboard/CreditCardUtilizationProgress.vue'
+import {
+  CREDIT_CARD_ICON_COMPONENTS,
+  creditCardColorLabel,
+  creditCardColorStyle,
+  creditCardIconLabel,
+} from '@/utils/credit-cards/creditCardAppearance'
 import {
   availableCreditPresentation,
   cardIdentityLabel,
@@ -30,15 +36,33 @@ const outstandingCentavos = computed(() => statement.value?.outstanding_amount?.
 const available = computed(() => availableCreditPresentation(availableCentavos.value, props.locale))
 const status = computed(() => statementStatus(statement.value?.status))
 const identity = computed(() => cardIdentityLabel(props.card))
+const appearanceColor = computed(() => props.card.color ?? 'violet')
+const appearanceIcon = computed(() => props.card.icon ?? 'credit_card')
+const appearanceLabel = computed(() =>
+  `${creditCardColorLabel(appearanceColor.value, t)}, ${creditCardIconLabel(appearanceIcon.value, t)}`,
+)
 
 </script>
 
 <template>
   <article class="management-card" :data-test="`credit-card-${props.card.id}`">
     <header class="management-card-header">
-      <div class="card-identity">
-        <h2>{{ props.card.name }}</h2>
-        <p v-if="identity">{{ identity }}</p>
+      <div class="card-heading">
+        <span
+          class="card-appearance"
+          :style="creditCardColorStyle(appearanceColor)"
+          :aria-label="appearanceLabel"
+          role="img"
+          data-test="credit-card-appearance"
+        >
+          <ElIcon :size="18" aria-hidden="true">
+            <component :is="CREDIT_CARD_ICON_COMPONENTS[appearanceIcon]" />
+          </ElIcon>
+        </span>
+        <div class="card-identity">
+          <h2>{{ props.card.name }}</h2>
+          <p v-if="identity">{{ identity }}</p>
+        </div>
       </div>
       <ElTag v-if="props.card.summary?.is_over_limit" type="danger" size="small">
         {{ t('creditCards.summary.overLimitTag') }}
@@ -143,6 +167,23 @@ const identity = computed(() => cardIdentityLabel(props.card))
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.card-heading {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+}
+
+.card-appearance {
+  display: grid;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: var(--radius-md);
+  color: var(--color-surface);
 }
 
 .card-identity,

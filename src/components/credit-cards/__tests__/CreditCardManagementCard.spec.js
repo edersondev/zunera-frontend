@@ -9,6 +9,8 @@ const card = {
   name: 'Nubank Platinum',
   institution_name: 'Nubank',
   last_four: '1234',
+  color: 'violet',
+  icon: 'credit_card',
   summary: {
     credit_limit: money(500_000),
     used_credit: money(125_000),
@@ -26,6 +28,7 @@ const card = {
 
 const stubs = {
   ElButton: { emits: ['click'], template: '<button @click="$emit(\'click\')"><slot /></button>' },
+  ElIcon: { template: '<i><slot /></i>' },
   ElTag: { template: '<span><slot /></span>' },
 }
 
@@ -40,6 +43,10 @@ describe('CreditCardManagementCard', () => {
     expect(wrapper.get('[data-test="credit-card-available-41"]').text()).toContain('3.750,00')
     expect(wrapper.get('[data-test="credit-card-current-statement-41"]').text()).toContain('400,00')
     expect(wrapper.get('[data-test="credit-utilization-percent"]').text()).toBe('25%')
+    expect(wrapper.get('[data-test="credit-card-appearance"]').attributes('style')).toContain(
+      'var(--chart-violet',
+    )
+    expect(wrapper.get('[data-test="credit-card-appearance"]').attributes('aria-label')).toContain('Violet')
 
     await wrapper.get('[data-test="credit-card-open-41"]').trigger('click')
     await wrapper.get('[data-test="credit-card-edit"]').trigger('click')

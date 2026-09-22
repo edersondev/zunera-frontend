@@ -16,6 +16,7 @@ import {
 import { Check, Close } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import CurrencyAmountInput from '@/components/common/CurrencyAmountInput.vue'
+import { CREDIT_CARD_COLORS, CREDIT_CARD_ICONS } from '@/utils/credit-cards/creditCardAppearance'
 import { availableCreditPresentation } from '@/utils/credit-cards/creditCardFormatters'
 
 const props = defineProps({
@@ -29,9 +30,6 @@ const emit = defineEmits(['update:visible', 'submit'])
 const { t } = useI18n()
 const formRef = shallowRef(null)
 const isEditing = computed(() => props.card !== null)
-const COLORS = ['teal', 'blue', 'violet', 'amber', 'rose', 'cyan']
-const ICONS = ['credit_card', 'bank', 'wallet', 'smartphone', 'circle']
-
 const form = reactive({
   name: '',
   institution_name: '',
@@ -199,7 +197,7 @@ defineExpose({ resetCreateForm })
           <ElFormItem :label="t('creditCards.form.color')" :error="fieldErrors.color?.[0]">
             <ElSelect v-model="form.color" data-test="credit-card-color">
               <ElOption
-                v-for="color in COLORS"
+                v-for="color in CREDIT_CARD_COLORS"
                 :key="color"
                 :label="t(`creditCards.colors.${color}`)"
                 :value="color"
@@ -212,7 +210,7 @@ defineExpose({ resetCreateForm })
           <ElFormItem :label="t('creditCards.form.icon')" :error="fieldErrors.icon?.[0]">
             <ElSelect v-model="form.icon" data-test="credit-card-icon">
               <ElOption
-                v-for="icon in ICONS"
+                v-for="icon in CREDIT_CARD_ICONS"
                 :key="icon"
                 :label="t(`creditCards.icons.${icon}`)"
                 :value="icon"
