@@ -244,6 +244,118 @@ test('statement dashboard remains readable on a narrow dark screen', async ({ pa
   await expect(page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).resolves.toBe(true)
 })
 
+test('statement installments expand by keyboard one at a time without narrow-screen overflow', async ({ page }) => {
+  const card = creditCard(41, 'Nubank Platinum')
+  const statement = statementFixture(card)
+  statement.installments = [
+    {
+      id: 721,
+      purchase_id: 301,
+      description: 'A very long grocery purchase description from the neighborhood market',
+      purchase_date: '2026-09-05',
+      sequence: 1,
+      total_count: 2,
+      amount: money(3_334),
+      credit_adjustment: money(1_000),
+      recognized_amount: money(2_334),
+      purchase_total_amount: money(6_667),
+      recognition_status: 'effective',
+      is_directly_editable: false,
+      category: { id: 18, name: 'Groceries', icon: 'shopping_bag', color: 'teal' },
+    },
+    {
+      id: 722,
+      purchase_id: 302,
+      description: 'Pharmacy',
+      purchase_date: '2026-09-06',
+      sequence: 1,
+      total_count: 1,
+      amount: money(6_666),
+      credit_adjustment: money(0),
+      recognized_amount: money(6_666),
+      recognition_status: 'effective',
+      is_directly_editable: false,
+    },
+  ]
+  await mockCreditCardsApi(page, { cards: [card], statement })
+  await page.setViewportSize({ width: 320, height: 900 })
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await page.goto('/app/credit-card-statements/72')
+
+  const first = page.locator('[data-test="credit-card-line-toggle-721"]')
+  const second = page.locator('[data-test="credit-card-line-toggle-722"]')
+  await expect(first).toHaveAttribute('aria-expanded', 'false')
+  await first.focus()
+  await page.keyboard.press('Enter')
+  await expect(first).toHaveAttribute('aria-expanded', 'true')
+  await expect(page.locator('[data-test="credit-card-line-details-721"]')).toContainText('23,34')
+  await expect(page.locator('[data-test="credit-card-line-details-721"]')).toContainText('10,00')
+  await second.focus()
+  await page.keyboard.press('Space')
+  await expect(first).toHaveAttribute('aria-expanded', 'false')
+  await expect(second).toHaveAttribute('aria-expanded', 'true')
+  await expect(page.locator('[data-test="credit-card-line-details-721"]')).toBeHidden()
+  await expect(page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).resolves.toBe(true)
+})
+
+test('statement purchase actions reuse correction and refund dialogs', async ({ page }) => {
+  const card = creditCard(41, 'Nubank Platinum')
+  const purchase = purchaseFixture(card, {
+    category_id: 18,
+    description: 'Groceries',
+    purchase_date: '2026-09-05',
+    total_amount_centavos: 10_000,
+    installment_count: 1,
+  }, 301)
+  const statement = statementFixture(card)
+  statement.status = 'open'
+  statement.installments = [{
+    id: 721,
+    purchase_id: 301,
+    description: 'Groceries',
+    purchase_date: '2026-09-05',
+    sequence: 1,
+    total_count: 1,
+    amount: money(10_000),
+    credit_adjustment: money(0),
+    recognized_amount: money(10_000),
+    purchase_total_amount: money(10_000),
+    recognition_status: 'pending',
+    is_directly_editable: true,
+    category: { id: 18, name: 'Groceries', icon: 'shopping_bag', color: 'teal' },
+  }]
+  await mockCreditCardsApi(page, {
+    cards: [card],
+    purchases: [purchase],
+    statement,
+    onCorrection({ payload }) {
+      statement.installments[0].description = payload.description
+    },
+    onCreditEvent({ payload }) {
+      statement.installments[0].credit_adjustment = money(payload.amount_centavos)
+      statement.installments[0].recognized_amount = money(10_000 - payload.amount_centavos)
+      statement.credit_adjustments = money(payload.amount_centavos)
+      statement.net_amount = money(10_000 - payload.amount_centavos)
+      statement.outstanding_amount = money(10_000 - payload.amount_centavos)
+    },
+  })
+  await page.goto('/app/credit-card-statements/72')
+  await page.locator('[data-test="credit-card-line-toggle-721"]').click()
+  await page.locator('[data-test="credit-card-line-correct-721"]').click()
+  const correction = page.getByRole('dialog', { name: 'Correct purchase' })
+  await correction.getByLabel('Description').fill('Updated groceries')
+  await correction.getByRole('button', { name: 'Save' }).click()
+  await expect(page.locator('[data-test="credit-card-line-721"]')).toContainText('Updated groceries')
+  await expect(page.locator('[data-test="credit-card-statement-outstanding"]')).toContainText('100,00')
+
+  await page.locator('[data-test="credit-card-line-refund-721"]').click()
+  const refund = page.getByRole('dialog', { name: 'Refund, cancellation, or correction' })
+  await setCurrency(refund.getByLabel('Amount'), '2500')
+  await refund.getByRole('button', { name: 'Save' }).click()
+  await expect(page.locator('[data-test="credit-card-line-details-721"]')).toContainText('25,00')
+  await expect(page.locator('[data-test="credit-card-statement-outstanding"]')).toContainText('75,00')
+})
+
 test('history identifies recognized card spending and recurring rules guide manual card purchases', async ({ page }) => {
   await mockCreditCardsApi(page, { cards: [] })
   await page.route(/\/api\/v1\/financial-accounts(?:\?[^/]*)?$/, (route) =>
@@ -606,13 +718,14 @@ async function mockCreditCardsApi(page, options) {
     purchase.credit_events ??= []
     purchase.credit_events.push(event)
     options.cards[0].summary.card_credit = money(payload.amount_centavos)
+    options.onCreditEvent?.({ purchase, payload })
     return route.fulfill({ status: 201, json: { data: { credit_event: event, card: options.cards[0], applications: [] } }, headers: apiHeaders() })
   })
   await page.route(/\/api\/v1\/credit-card-purchases\/(\d+)$/, (route) => {
-    if (route.request().method() !== 'PATCH') return route.continue()
-
     const purchase = (options.purchases ?? []).find((item) => item.id === Number(new URL(route.request().url()).pathname.match(/credit-card-purchases\/(\d+)/)?.[1]))
     if (!purchase) return route.fulfill({ status: 404, json: { message: 'Not found' }, headers: apiHeaders() })
+    if (route.request().method() === 'GET') return route.fulfill({ json: { data: purchase }, headers: apiHeaders() })
+    if (route.request().method() !== 'PATCH') return route.continue()
     const payload = route.request().postDataJSON()
     Object.assign(purchase, {
       category: { id: payload.category_id, name: 'Groceries', classification: 'expense', status: 'active' },
@@ -621,6 +734,7 @@ async function mockCreditCardsApi(page, options) {
       total_amount: money(payload.total_amount_centavos),
       installment_count: payload.installment_count,
     })
+    options.onCorrection?.({ purchase, payload })
     return route.fulfill({ json: { data: purchase }, headers: apiHeaders() })
   })
 }

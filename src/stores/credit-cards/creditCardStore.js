@@ -7,6 +7,7 @@ import {
   createPayment,
   createPurchase,
   getCard,
+  getPurchase,
   getDashboardCards,
   getStatement,
   isOverLimitConfirmation,
@@ -158,6 +159,17 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
       error.value = requestError
 
       return { purchases: [], meta: null }
+    }
+  }
+
+  async function fetchPurchase(purchaseId) {
+    error.value = null
+
+    try {
+      return await getPurchase(purchaseId)
+    } catch (requestError) {
+      error.value = requestError
+      return null
     }
   }
 
@@ -361,6 +373,7 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
     fetchStatements,
     fetchStatement,
     fetchPurchases,
+    fetchPurchase,
     fetchDashboard,
     submitPurchase,
     submitOverLimit,
