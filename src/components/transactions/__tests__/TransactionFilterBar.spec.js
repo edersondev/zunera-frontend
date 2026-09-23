@@ -44,12 +44,13 @@ const stubs = {
   },
 }
 
-function mountBar(filters = { view: 'active', per_page: 50 }) {
+function mountBar(filters = { view: 'active', per_page: 50 }, month = { year: 2026, month: 9 }) {
   return mount(TransactionFilterBar, {
     props: {
       filters,
       accounts: [{ id: 1, name: 'Conta principal' }],
       categories: [{ id: 2, name: 'Salário' }],
+      month,
     },
     global: { plugins: [i18n], stubs },
   })
@@ -86,7 +87,6 @@ describe('TransactionFilterBar', () => {
     const controls = wrapper.findAll('[data-test]').map((node) => node.attributes('data-test'))
     expect(controls).toEqual(
       expect.arrayContaining([
-        'dialog-filter-search',
         'filter-type',
         'filter-status',
         'filter-account',
@@ -96,16 +96,17 @@ describe('TransactionFilterBar', () => {
         'apply-filters',
       ]),
     )
+    // Search stays in the filter row; the dialog only carries advanced criteria.
+    expect(wrapper.find('[data-test="dialog-filter-search"]').exists()).toBe(false)
     expect(wrapper.text()).toContain('Conta principal')
     expect(wrapper.text()).toContain('Salário')
   })
 
-  it('shares search state between page and dialog and applies combined criteria', async () => {
+  it('keeps the typed search when the dialog applies advanced criteria', async () => {
     const wrapper = mountBar()
 
     await wrapper.get('[data-test="filter-search"] input').setValue('almoço')
     await openFilters(wrapper)
-    expect(wrapper.get('[data-test="dialog-filter-search"] input').element.value).toBe('almoço')
 
     await wrapper.get('[data-test="filter-type"]').setValue('expense')
     await wrapper.get('[data-test="filter-status"]').setValue('pending')
@@ -158,13 +159,13 @@ describe('TransactionFilterBar', () => {
   })
 
   it('discards unapplied dialog edits on cancel', async () => {
-    const wrapper = mountBar({ view: 'active', per_page: 50, q: 'aplicado' })
+    const wrapper = mountBar({ view: 'active', per_page: 50, q: 'aplicado', type: 'income' })
     await openFilters(wrapper)
-    await wrapper.get('[data-test="dialog-filter-search"] input').setValue('rascunho')
+    await wrapper.get('[data-test="filter-type"]').setValue('expense')
     await wrapper.get('[data-test="cancel-filters"]').trigger('click')
     await openFilters(wrapper)
 
-    expect(wrapper.get('[data-test="dialog-filter-search"] input').element.value).toBe('aplicado')
+    expect(wrapper.get('[data-test="filter-type"]').element.value).toBe('income')
     expect(wrapper.emitted('apply')).toBeUndefined()
   })
 
@@ -175,8 +176,8 @@ describe('TransactionFilterBar', () => {
       q: 'almoço',
       type: 'income',
       financial_account_id: 1,
-      from: '2026-09-01',
-      to: '2026-09-30',
+      from: '2026-09-05',
+      to: '2026-09-20',
     })
 
     expect(wrapper.get('[data-test="active-filter-type"]').text()).toContain('Receita')
@@ -194,13 +195,48 @@ describe('TransactionFilterBar', () => {
     })
   })
 
-  it('keeps visible and dialog search synced when applied criteria change outside', async () => {
+  it('keeps the visible search synced when applied criteria change outside', async () => {
     const wrapper = mountBar({ view: 'active', per_page: 50, q: 'antigo' })
 
     await wrapper.setProps({ filters: { view: 'active', per_page: 50, q: 'novo' } })
     expect(wrapper.get('[data-test="filter-search"] input').element.value).toBe('novo')
+  })
 
-    await openFilters(wrapper)
-    expect(wrapper.get('[data-test="dialog-filter-search"] input').element.value).toBe('novo')
+  it('keeps the search row limited to the search and filter controls', () => {
+    const wrapper = mountBar()
+    const row = wrapper.get('[data-test="transaction-search-form"]')
+
+    expect(row.get('[data-test="filter-search"]').exists()).toBe(true)
+    expect(row.get('[data-test="apply-search"]').exists()).toBe(true)
+    expect(row.get('[data-test="open-filters"]').text()).toContain('Filtros')
+    // The month navigator lives in the page header and is not a filter-row control.
+    expect(row.find('[data-test="month-label"]').exists()).toBe(false)
+  })
+
+  it('keeps the period out of the criteria strip while the navigator month is active', async () => {
+    const wrapper = mountBar({ view: 'active', per_page: 50, from: '2026-09-01', to: '2026-09-30' })
+
+    expect(wrapper.find('[data-test="active-filter-period"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="active-criteria"]').exists()).toBe(false)
+  })
+
+  it('shows the period criterion for a custom range and returns to the navigator month when removed', async () => {
+    const wrapper = mountBar({
+      view: 'active',
+      per_page: 50,
+      q: 'mercado',
+      from: '2026-09-05',
+      to: '2026-09-20',
+    })
+
+    expect(wrapper.get('[data-test="active-filter-period"]').text()).toContain('set.')
+
+    await wrapper.get('[data-test="active-filter-period"]').trigger('click')
+
+    expect(wrapper.emitted('apply').at(-1)[0]).toMatchObject({
+      q: 'mercado',
+      from: '2026-09-01',
+      to: '2026-09-30',
+    })
   })
 })

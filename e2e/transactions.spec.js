@@ -24,6 +24,42 @@ async function openTransactionFilters(page) {
   return dialog
 }
 
+function businessMonth() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: 'numeric',
+  })
+    .formatToParts(new Date())
+    .reduce((values, part) => ({ ...values, [part.type]: part.value }), {})
+
+  return { year: Number(parts.year), month: Number(parts.month) }
+}
+
+function shiftMonth({ year, month }, offset) {
+  const cursor = new Date(Date.UTC(year, month - 1 + offset, 1))
+
+  return { year: cursor.getUTCFullYear(), month: cursor.getUTCMonth() + 1 }
+}
+
+function dayInMonth({ year, month }, day) {
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+function monthBounds({ year, month }) {
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate()
+
+  return { from: dayInMonth({ year, month }, 1), to: dayInMonth({ year, month }, lastDay) }
+}
+
+function monthLabel({ year, month }) {
+  return new Intl.DateTimeFormat('pt-BR', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(year, month - 1, 1)))
+}
+
 function transaction({
   id,
   description,
@@ -336,7 +372,11 @@ function fulfillHistory(route, state) {
     category: item.category,
   }))
   const effective = state.transactions.filter(
-    (item) => item.removed_at === null && item.status === 'effective',
+    (item) =>
+      item.removed_at === null &&
+      item.status === 'effective' &&
+      (!query.get('from') || item.transaction_date >= query.get('from')) &&
+      (!query.get('to') || item.transaction_date <= query.get('to')),
   )
   const income = effective
     .filter((item) => item.type === 'income')
@@ -496,8 +536,9 @@ test('history is newest first with details, empty state, and no foreign transact
   await page.keyboard.press('Escape')
   await expect(drawer).toBeHidden()
 
+  // Element Plus forwards data-test to the native input of the search field.
+  await page.locator('[data-test="filter-search"]').fill('inexistente')
   const filterDialog = await openTransactionFilters(page)
-  await filterDialog.getByLabel('Buscar').fill('inexistente')
   await filterDialog.locator('[data-test="apply-filters"]').click()
   await expect(page.getByText('Nenhuma transação corresponde aos filtros atuais.')).toBeVisible()
   await expect(page.getByText('0 transações')).toBeVisible()
@@ -617,8 +658,8 @@ test('owner combines filters and search and clears the criteria', async ({ page 
   await page.goto('/app/transactions')
   await expect(page.locator('.history-item')).toHaveCount(4)
 
+  await page.locator('[data-test="filter-search"]').fill('salario')
   const filterDialog = await openTransactionFilters(page)
-  await filterDialog.getByLabel('Buscar').fill('salario')
   await filterDialog.locator('[data-test="filter-type"]').click()
   await page.getByRole('option', { name: 'Receita', exact: true }).click()
   await filterDialog.locator('[data-test="filter-status"]').click()
@@ -723,7 +764,9 @@ test('mobile uses the compact history list without horizontal page overflow', as
     .toBe(true)
 
   const filterDialog = await openTransactionFilters(page)
-  await expect(filterDialog.getByLabel('Buscar')).toBeVisible()
+  // Search lives in the filter row; the dialog only carries advanced criteria.
+  await expect(filterDialog.locator('[data-test="filter-type"]')).toBeVisible()
+  await expect(filterDialog.getByLabel('Buscar')).toHaveCount(0)
   await page.keyboard.press('Escape')
   await expect(filterDialog).toBeHidden()
 })
@@ -788,4 +831,69 @@ test('month navigation changes year, period totals, grouping, and expanded row',
   await page.locator('[data-test="transaction-month-next"]').click()
   await expect(page).toHaveURL(/from=2027-01-01/)
   await expect(page.locator('[data-test="transaction-custom-period"]')).toHaveCount(0)
+})
+
+test('current month scopes activity and stays keyboard accessible at 320px', async ({ page }) => {
+  const current = businessMonth()
+  const previous = shiftMonth(current, -1)
+  const next = shiftMonth(current, 1)
+  const account = { id: 1, name: 'Conta principal', status: 'active', current_balance_centavos: 0 }
+  const income = { id: 2, name: 'Salário', status: 'active', classification: 'income' }
+  const expense = { id: 3, name: 'Alimentação', status: 'active', classification: 'expense' }
+  await mockApi(page, {
+    accounts: [account],
+    categories: [income, expense],
+    transactions: [
+      transaction({
+        id: 81,
+        description: 'Salário do mês',
+        type: 'income',
+        amount: 250_000,
+        date: dayInMonth(current, 5),
+        account,
+        category: income,
+      }),
+      transaction({
+        id: 82,
+        description: 'Mercado do mês passado',
+        amount: 3_500,
+        date: dayInMonth(previous, 15),
+        account,
+        category: expense,
+      }),
+    ],
+  })
+  await page.setViewportSize({ width: 320, height: 900 })
+  await page.goto('/app/transactions')
+
+  const list = page.locator('[data-test="transaction-history-list"]')
+  await expect(page.locator('[data-test="transaction-month-label"]')).toHaveText(
+    monthLabel(current),
+  )
+  await expect(list.getByText('Salário do mês')).toBeVisible()
+  await expect(list.getByText('Mercado do mês passado')).toHaveCount(0)
+  await expect(page.locator('[data-test="history-total-income"]')).toContainText('R$ 2.500,00')
+
+  await page.locator('[data-test="transaction-month-previous"]').click()
+  await expect(page.locator('[data-test="transaction-month-label"]')).toHaveText(
+    monthLabel(previous),
+  )
+  await expect(list.getByText('Mercado do mês passado')).toBeVisible()
+  await expect(page.locator('[data-test="history-total-expense"]')).toContainText('R$ 35,00')
+  await expect(page).toHaveURL(new RegExp(`from=${monthBounds(previous).from}`))
+
+  const nextButton = page.locator('[data-test="transaction-month-next"]')
+  await nextButton.focus()
+  await page.keyboard.press('Enter')
+  await page.keyboard.press('Enter')
+  await expect(page.locator('[data-test="transaction-month-label"]')).toHaveText(monthLabel(next))
+  await expect(page.locator('[data-test="transaction-empty"]')).toBeVisible()
+  await expect(page.locator('[data-test="history-total-income"]')).toContainText('R$ 0,00')
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    )
+    .toBe(true)
 })

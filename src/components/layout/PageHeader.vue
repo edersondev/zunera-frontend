@@ -20,6 +20,9 @@ defineProps({
     <div v-if="$slots.center" class="page-center">
       <slot name="center" />
     </div>
+    <div v-else-if="$slots.context" class="page-context flex shrink-0 items-center">
+      <slot name="context" />
+    </div>
     <div v-if="$slots.actions" class="page-actions">
       <slot name="actions" />
     </div>

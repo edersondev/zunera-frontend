@@ -3,8 +3,8 @@ import { computed, onMounted, shallowRef, watch } from 'vue'
 import { ArrowDown, Delete, Plus } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import PageHeader from '@/components/layout/PageHeader.vue'
 import MonthNavigator from '@/components/common/MonthNavigator.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
 import TransactionDetailDrawer from '@/components/transactions/TransactionDetailDrawer.vue'
 import TransactionFilterBar from '@/components/transactions/TransactionFilterBar.vue'
 import TransactionFinancialSummary from '@/components/transactions/TransactionFinancialSummary.vue'
@@ -19,7 +19,11 @@ import { useCategoryStore } from '@/stores/categories/categoryStore'
 import { formatCentavos } from '@/utils/transfers/transferFormatters'
 import { getDashboardSummary } from '@/services/dashboardService'
 import { listFinancialHistory } from '@/services/transactionService'
-import { hasNonDateFilters, monthBounds, periodFromBounds } from '@/utils/transactions/transactionPeriod'
+import {
+  hasNonDateFilters,
+  monthBounds,
+  periodFromBounds,
+} from '@/utils/transactions/transactionPeriod'
 
 const store = useTransactionStore()
 const transferStore = useTransferStore()
@@ -59,8 +63,11 @@ const clearedFilters = {
 
 const period = computed(() => periodFromBounds(store.filters.from, store.filters.to))
 const hasActiveFilters = computed(() => hasNonDateFilters(store.filters) || period.value.custom)
-const summaryEligible = computed(() =>
-  !hasNonDateFilters(store.filters) && Boolean(store.filters.from && store.filters.to) && store.filters.view !== 'removed',
+const summaryEligible = computed(
+  () =>
+    !hasNonDateFilters(store.filters) &&
+    Boolean(store.filters.from && store.filters.to) &&
+    store.filters.view !== 'removed',
 )
 const listResetKey = computed(() => JSON.stringify({ ...store.filters, page: 1 }))
 
@@ -74,7 +81,8 @@ async function loadSummary(filters) {
   const request = ++summaryRequest
   periodSummary.value = null
   summaryError.value = false
-  if (hasNonDateFilters(filters) || !filters.from || !filters.to || filters.view === 'removed') return
+  if (hasNonDateFilters(filters) || !filters.from || !filters.to || filters.view === 'removed')
+    return
 
   try {
     const data = await getDashboardSummary({ preset: 'custom', from: filters.from, to: filters.to })
@@ -105,11 +113,15 @@ async function loadEmptyKind(filters) {
 async function syncRoute(query) {
   const { highlight, ...routeFilters } = query
   const resolved = periodFromBounds(routeFilters.from, routeFilters.to)
-  const bounds = resolved.missing ? monthBounds(resolved.month) : { from: routeFilters.from, to: routeFilters.to }
+  const bounds = resolved.missing
+    ? monthBounds(resolved.month)
+    : { from: routeFilters.from, to: routeFilters.to }
   const normalized = { ...routeFilters, ...bounds }
-  const signature = JSON.stringify(Object.entries(normalized)
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([key, value]) => [key, value == null ? null : String(value)]))
+  const signature = JSON.stringify(
+    Object.entries(normalized)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, value]) => [key, value == null ? null : String(value)]),
+  )
   if (signature === lastQuerySignature.value) return
   lastQuerySignature.value = signature
   if (resolved.missing) await router.replace({ query: { ...query, ...bounds } })
@@ -154,7 +166,12 @@ onMounted(async () => {
   }
 })
 
-watch(() => route.query, (query) => { syncRoute(query) })
+watch(
+  () => route.query,
+  (query) => {
+    syncRoute(query)
+  },
+)
 
 async function save({ kind, payload }) {
   try {
@@ -258,11 +275,16 @@ async function remove() {
 }
 
 async function applyFilters(filters) {
-  const next = { ...filters, include: Object.hasOwn(filters, 'include') ? filters.include : store.filters.include }
+  const next = {
+    ...filters,
+    include: Object.hasOwn(filters, 'include') ? filters.include : store.filters.include,
+  }
   if (!next.from && !next.to) Object.assign(next, monthBounds(period.value.month))
-  const query = Object.fromEntries(Object.entries(next).filter(
-    ([, value]) => value !== undefined && value !== null && value !== '',
-  ))
+  const query = Object.fromEntries(
+    Object.entries(next).filter(
+      ([, value]) => value !== undefined && value !== null && value !== '',
+    ),
+  )
   await router.replace({ query })
 
   return syncRoute(query)
@@ -317,7 +339,9 @@ function updateDialog(visible) {
             test-prefix="transaction-month"
             @change-month="changeMonth"
           />
-          <span v-if="period.custom" class="custom-period" data-test="transaction-custom-period">{{ t('transactions.customPeriod') }}</span>
+          <span v-if="period.custom" class="custom-period" data-test="transaction-custom-period">{{
+            t('transactions.customPeriod')
+          }}</span>
         </div>
       </template>
       <template #actions>
@@ -394,13 +418,18 @@ function updateDialog(visible) {
     />
 
     <TransactionFinancialSummary v-if="summaryEligible" :totals="periodSummary" />
-    <ElAlert v-if="summaryError && summaryEligible" type="info" :title="t('transactions.summary.unavailable')" :closable="false" />
+    <ElAlert
+      v-if="summaryError && summaryEligible"
+      type="info"
+      :title="t('transactions.summary.unavailable')"
+      :closable="false"
+    />
     <TransactionFilterBar
       :filters="store.filters"
       :accounts="accounts.accounts"
       :categories="categories.categories"
+      :month="period.month"
       :loading="store.loading"
-      :show-period-chip="period.custom"
       @apply="applyFilters"
       @clear="clearFilters"
     />
@@ -487,5 +516,4 @@ function updateDialog(visible) {
   font-size: 12px;
   line-height: 16px;
 }
-
 </style>

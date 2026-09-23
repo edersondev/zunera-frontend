@@ -2,18 +2,19 @@
 import { computed } from 'vue'
 import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
-import { formatBudgetMonth, shiftMonth } from '@/utils/budgets/budgetFormatters'
+import { formatMonth, shiftMonth } from '@/utils/common/monthFormatters'
 
 const props = defineProps({
   month: { type: Object, required: true },
   loading: { type: Boolean, default: false },
-  previousLabel: { type: String, required: true },
-  nextLabel: { type: String, required: true },
-  testPrefix: { type: String, required: true },
+  previousLabel: { type: String, default: '' },
+  nextLabel: { type: String, default: '' },
+  testPrefix: { type: String, default: 'month' },
 })
 const emit = defineEmits(['change-month'])
-const { locale } = useI18n()
-const label = computed(() => formatBudgetMonth(props.month.year, props.month.month, locale.value))
+const { t, locale } = useI18n()
+
+const label = computed(() => formatMonth(props.month.year, props.month.month, locale.value))
 
 function shift(offset) {
   emit('change-month', shiftMonth(props.month, offset))
@@ -21,43 +22,31 @@ function shift(offset) {
 </script>
 
 <template>
-  <div class="month-navigator">
+  <div
+    class="flex items-center justify-center gap-3 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-2 max-sm:grid max-sm:grid-cols-[auto_minmax(0,1fr)_auto] max-sm:gap-2"
+  >
     <ElButton
       :data-test="`${testPrefix}-previous`"
-      :disabled="loading"
-      :aria-label="previousLabel"
+      :disabled="props.loading"
+      :aria-label="previousLabel || t('common.month.previous')"
       @click="shift(-1)"
-    ><ElIcon><ArrowLeft /></ElIcon></ElButton>
-    <p class="month-label" :data-test="`${testPrefix}-label`" aria-live="polite">{{ label }}</p>
+    >
+      <ElIcon><ArrowLeft /></ElIcon>
+    </ElButton>
+    <p
+      class="m-0 min-w-48 text-center font-semibold text-[var(--color-text)] capitalize max-sm:min-w-0 max-sm:text-sm"
+      :data-test="`${testPrefix}-label`"
+      aria-live="polite"
+    >
+      {{ label }}
+    </p>
     <ElButton
       :data-test="`${testPrefix}-next`"
-      :disabled="loading"
-      :aria-label="nextLabel"
+      :disabled="props.loading"
+      :aria-label="nextLabel || t('common.month.next')"
       @click="shift(1)"
-    ><ElIcon><ArrowRight /></ElIcon></ElButton>
+    >
+      <ElIcon><ArrowRight /></ElIcon>
+    </ElButton>
   </div>
 </template>
-
-<style scoped>
-.month-navigator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 8px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
-}
-.month-label {
-  min-width: 12rem;
-  margin: 0;
-  color: var(--color-text);
-  font-weight: 600;
-  text-align: center;
-  text-transform: capitalize;
-}
-@media (max-width: 639px) {
-  .month-label { min-width: 8rem; flex: 1; }
-}
-</style>

@@ -2,19 +2,31 @@
 import { computed, reactive, shallowRef, watch } from 'vue'
 import { Close, Filter, Search } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
+import { monthBounds } from '@/utils/common/monthFormatters'
 import { formatTransactionDate } from '@/utils/transactions/transactionFormatters'
 
 const props = defineProps({
   filters: { type: Object, required: true },
   accounts: { type: Array, required: true },
   categories: { type: Array, required: true },
+  // Baseline month owned by the page header navigator; the period criterion only
+  // shows while the active range differs from it.
+  month: { type: Object, required: true },
   loading: Boolean,
-  showPeriodChip: { type: Boolean, default: true },
 })
 const emit = defineEmits(['apply', 'clear'])
 const { t } = useI18n()
 const dialogVisible = shallowRef(false)
 const form = reactive(blankFilters(props.filters))
+
+const hasCustomPeriod = computed(() => {
+  const bounds = monthBounds(props.month)
+
+  return (
+    (hasValue(props.filters.from) || hasValue(props.filters.to)) &&
+    (props.filters.from !== bounds.from || props.filters.to !== bounds.to)
+  )
+})
 
 const dateRange = computed({
   get: () => (form.from || form.to ? [form.from, form.to] : undefined),
@@ -60,7 +72,7 @@ const activeFilters = computed(() => {
       value: optionLabel(props.categories, props.filters.category_id),
     })
   }
-  if (props.showPeriodChip && (hasValue(props.filters.from) || hasValue(props.filters.to))) {
+  if (hasCustomPeriod.value) {
     filters.push({
       key: 'period',
       label: t('transactions.period'),
@@ -135,8 +147,7 @@ function removeFilter(key) {
   const next = blankFilters(props.filters)
 
   if (key === 'period') {
-    next.from = undefined
-    next.to = undefined
+    Object.assign(next, monthBounds(props.month))
   } else {
     next[key] = undefined
   }
@@ -202,18 +213,6 @@ function removeFilter(key) {
         data-test="transaction-filters"
         @submit.prevent="apply"
       >
-        <ElFormItem :label="t('transactions.searchLabel')" class="filter-span-full">
-          <ElInput
-            v-model="form.q"
-            clearable
-            :placeholder="t('transactions.searchPlaceholder')"
-            data-test="dialog-filter-search"
-          >
-            <template #prefix>
-              <ElIcon><Search /></ElIcon>
-            </template>
-          </ElInput>
-        </ElFormItem>
         <ElFormItem :label="t('transactions.type')">
           <ElSelect v-model="form.type" clearable data-test="filter-type">
             <ElOption :label="t('transactions.income')" value="income" />
