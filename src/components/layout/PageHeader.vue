@@ -17,6 +17,9 @@ defineProps({
       <h1>{{ title }}</h1>
       <p v-if="description" class="page-description">{{ description }}</p>
     </div>
+    <div v-if="$slots.context" class="page-context flex shrink-0 items-center">
+      <slot name="context" />
+    </div>
     <div v-if="$slots.actions" class="page-actions">
       <slot name="actions" />
     </div>

@@ -14,6 +14,7 @@ export const messages = {
       currentUser: 'usuário atual',
       edit: 'Editar',
       retry: 'Tentar novamente',
+      month: { previous: 'Mês anterior', next: 'Próximo mês' },
     },
     auth: {
       createAccount: 'Criar conta',
@@ -94,7 +95,6 @@ export const messages = {
       title: 'Orçamentos',
       description:
         'Planeje quanto pretende gastar em cada categoria e compare com os gastos reais do mês.',
-      month: { previous: 'Mês anterior', next: 'Próximo mês' },
       notApplicable: 'Não aplicável',
       excess: 'Excedeu {amount}',
       projected: 'Projetado: {amount}',
@@ -957,6 +957,7 @@ export const messages = {
       currentUser: 'current user',
       edit: 'Edit',
       retry: 'Try again',
+      month: { previous: 'Previous month', next: 'Next month' },
     },
     auth: {
       createAccount: 'Create account',
@@ -1036,7 +1037,6 @@ export const messages = {
       title: 'Budgets',
       description:
         'Plan how much you intend to spend per category and compare it with the month’s real spending.',
-      month: { previous: 'Previous month', next: 'Next month' },
       notApplicable: 'Not applicable',
       excess: 'Over plan by {amount}',
       projected: 'Projected: {amount}',

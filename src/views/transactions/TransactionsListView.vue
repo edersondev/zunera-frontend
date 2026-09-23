@@ -3,6 +3,7 @@ import { computed, onMounted, shallowRef } from 'vue'
 import { ArrowDown, Delete, Plus } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import MonthNavigator from '@/components/common/MonthNavigator.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import TransactionDetailDrawer from '@/components/transactions/TransactionDetailDrawer.vue'
 import TransactionFilterBar from '@/components/transactions/TransactionFilterBar.vue'
@@ -15,6 +16,7 @@ import { useTransactionStore } from '@/stores/transactions/transactionStore'
 import { useTransferStore } from '@/stores/transfers/transferStore'
 import { useFinancialAccountStore } from '@/stores/financial-accounts/financialAccountStore'
 import { useCategoryStore } from '@/stores/categories/categoryStore'
+import { businessMonth, monthBounds, monthFromDate } from '@/utils/common/monthFormatters'
 import { formatCentavos } from '@/utils/transfers/transferFormatters'
 
 const store = useTransactionStore()
@@ -33,6 +35,10 @@ const detailOpen = shallowRef(false)
 const editing = shallowRef(null)
 const removeDialog = shallowRef(false)
 const removingTransaction = shallowRef(null)
+/** Selected calendar month; the page always lists one month at a time. */
+const selectedMonth = shallowRef(businessMonth())
+
+const monthScope = computed(() => monthBounds(selectedMonth.value))
 
 const clearedFilters = {
   include: undefined,
@@ -47,13 +53,20 @@ const clearedFilters = {
   to: undefined,
 }
 
-const hasActiveFilters = computed(() =>
-  ['q', 'type', 'status', 'financial_account_id', 'category_id', 'from', 'to'].some((key) => {
-    const value = store.filters[key]
+function hasValue(value) {
+  return value !== undefined && value !== null && value !== ''
+}
 
-    return value !== undefined && value !== null && value !== ''
-  }),
-)
+const hasActiveFilters = computed(() => {
+  const criteria = ['q', 'type', 'status', 'financial_account_id', 'category_id'].some((key) =>
+    hasValue(store.filters[key]),
+  )
+  const customPeriod =
+    (hasValue(store.filters.from) || hasValue(store.filters.to)) &&
+    (store.filters.from !== monthScope.value.from || store.filters.to !== monthScope.value.to)
+
+  return criteria || customPeriod
+})
 
 function impactMessage(impact) {
   const sign = impact.delta > 0 ? '+ ' : '− '
@@ -66,11 +79,20 @@ onMounted(async () => {
   transferStore.clearFeedback()
 
   const { highlight, ...routeFilters } = route.query
+  const periodFrom = routeFilters.from
+  const periodTo = routeFilters.to
+  const routeMonth = monthFromDate(periodFrom ?? periodTo)
+
+  selectedMonth.value = routeMonth ?? businessMonth()
+
   const query = {
     ...routeFilters,
     per_page: Number(routeFilters.per_page ?? 50),
     view: routeFilters.view ?? 'active',
   }
+
+  // Without an explicit period the page opens on the current business month.
+  if (routeMonth === null) Object.assign(query, monthBounds(selectedMonth.value))
 
   try {
     await Promise.all([
@@ -196,8 +218,14 @@ async function applyFilters(filters) {
   return store.setFilters(filters)
 }
 
+async function changeMonth(month) {
+  selectedMonth.value = month
+
+  return applyFilters({ ...store.filters, page: undefined, ...monthBounds(month) })
+}
+
 function clearFilters() {
-  return applyFilters(clearedFilters)
+  return applyFilters({ ...clearedFilters, ...monthScope.value })
 }
 
 function handleHeaderAction(command) {
@@ -231,6 +259,14 @@ function updateDialog(visible) {
 <template>
   <div class="transactions-view">
     <PageHeader :title="t('transactions.title')" :description="t('transactions.description')">
+      <template #context>
+        <MonthNavigator
+          :month="selectedMonth"
+          :loading="store.loading"
+          data-test="transaction-month-navigator"
+          @change-month="changeMonth"
+        />
+      </template>
       <template #actions>
         <ElDropdown trigger="click" @command="handleHeaderAction">
           <ElButton type="primary" :icon="Plus" data-test="transactions-header-menu">
@@ -309,6 +345,7 @@ function updateDialog(visible) {
       :filters="store.filters"
       :accounts="accounts.accounts"
       :categories="categories.categories"
+      :month="selectedMonth"
       :loading="store.loading"
       @apply="applyFilters"
       @clear="clearFilters"

@@ -1,32 +1,16 @@
+import { businessMonth, formatMonth, shiftMonth } from '@/utils/common/monthFormatters'
+
 const DEFAULT_LOCALE = 'pt-BR'
-const BUSINESS_TIME_ZONE = 'America/Sao_Paulo'
 
-export function businessMonth(date = new Date()) {
-  const values = new Intl.DateTimeFormat('en-US', {
-    timeZone: BUSINESS_TIME_ZONE,
-    year: 'numeric',
-    month: 'numeric',
-  })
-    .formatToParts(date)
-    .reduce((parts, part) => ({ ...parts, [part.type]: part.value }), {})
-
-  return { year: Number(values.year), month: Number(values.month) }
-}
+// Budget screens keep their historical names; the implementations are shared with
+// the transactions month navigator.
+export { businessMonth, shiftMonth }
+export const formatBudgetMonth = formatMonth
 
 export function formatBRL(amountCentavos, locale = DEFAULT_LOCALE) {
   const value = Number(amountCentavos ?? 0) / 100
 
   return new Intl.NumberFormat(locale, { style: 'currency', currency: 'BRL' }).format(value)
-}
-
-export function formatBudgetMonth(year, month, locale = DEFAULT_LOCALE) {
-  const date = new Date(Date.UTC(Number(year), Number(month) - 1, 1))
-
-  return new Intl.DateTimeFormat(locale, {
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(date)
 }
 
 export function formatPercent(value, locale = DEFAULT_LOCALE, notApplicable = '—') {
@@ -73,10 +57,4 @@ export function availabilityLabel(availableCentavos, locale, translate) {
 
 export function monthKey(year, month) {
   return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}`
-}
-
-export function shiftMonth({ year, month }, offset) {
-  const cursor = new Date(Date.UTC(Number(year), Number(month) - 1 + offset, 1))
-
-  return { year: cursor.getUTCFullYear(), month: cursor.getUTCMonth() + 1 }
 }
