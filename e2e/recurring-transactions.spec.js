@@ -475,6 +475,8 @@ test('generated occurrence shows its rule in history and links back to it', asyn
     'aria-label',
     /#61/,
   )
+  await page.locator('[data-test="transaction-recurrence-label"]').first().hover()
+  await expect(page.getByRole('tooltip')).toContainText('#61')
   await page.locator('.history-item').first().locator('.history-toggle').click()
   await page.locator('.history-item').first().getByRole('button', { name: 'Ver detalhes' }).click()
   await expect(page.locator('[data-test="transaction-recurrence-source"]')).toContainText('#61')

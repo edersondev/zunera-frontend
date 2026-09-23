@@ -153,17 +153,29 @@ async function mockApi(page, { accounts, categories, transactions, foreign = [] 
   )
   await page.route(/\/api\/v1\/financial-dashboard\/summary(?:\?[^/]*)?$/, (route) => {
     const query = new URL(route.request().url()).searchParams
-    const effective = state.transactions.filter((item) =>
-      item.removed_at === null && item.status === 'effective' &&
-      item.transaction_date >= query.get('from') && item.transaction_date <= query.get('to'),
+    const effective = state.transactions.filter(
+      (item) =>
+        item.removed_at === null &&
+        item.status === 'effective' &&
+        item.transaction_date >= query.get('from') &&
+        item.transaction_date <= query.get('to'),
     )
-    const income = effective.filter((item) => item.type === 'income').reduce((sum, item) => sum + item.amount_centavos, 0)
-    const expenses = effective.filter((item) => item.type === 'expense').reduce((sum, item) => sum + item.amount_centavos, 0)
-    return route.fulfill({ json: { data: {
-      realized_income: { amount_centavos: income },
-      realized_expenses: { amount_centavos: expenses },
-      financial_result: { amount_centavos: income - expenses },
-    } }, headers })
+    const income = effective
+      .filter((item) => item.type === 'income')
+      .reduce((sum, item) => sum + item.amount_centavos, 0)
+    const expenses = effective
+      .filter((item) => item.type === 'expense')
+      .reduce((sum, item) => sum + item.amount_centavos, 0)
+    return route.fulfill({
+      json: {
+        data: {
+          realized_income: { amount_centavos: income },
+          realized_expenses: { amount_centavos: expenses },
+          financial_result: { amount_centavos: income - expenses },
+        },
+      },
+      headers,
+    })
   })
 }
 
@@ -411,7 +423,9 @@ test('signed-in user records income and expense and sees the balance impact', as
 
   const table = page.locator('[data-test="transaction-history-list"]')
   await expect(table.locator('.history-toggle').getByText('Salário setembro')).toBeVisible()
-  await expect(table.locator('.history-toggle').getByText('Receita', { exact: true })).toHaveCount(0)
+  await expect(table.locator('.history-toggle').getByText('Receita', { exact: true })).toHaveCount(
+    0,
+  )
   await expect(table.locator('.amount-income')).toHaveText('+ R$ 250,00')
   await expect(page.locator('[data-test="balance-impact"]')).toContainText('R$ 350,00')
 
@@ -425,7 +439,9 @@ test('signed-in user records income and expense and sees the balance impact', as
   await dialog.getByRole('button', { name: 'Salvar' }).click()
 
   await expect(table.locator('.history-toggle').getByText('Almoço')).toBeVisible()
-  await expect(table.locator('.history-toggle').getByText('Despesa', { exact: true })).toHaveCount(0)
+  await expect(table.locator('.history-toggle').getByText('Despesa', { exact: true })).toHaveCount(
+    0,
+  )
   await expect(table.locator('.amount-expense')).toHaveText('− R$ 35,00')
   await expect(page.locator('[data-test="balance-impact"]')).toContainText('R$ 315,00')
 })
@@ -508,10 +524,24 @@ test('owner edits, removes, and restores a transaction with archived association
 
   await page.goto('/app/transactions')
   const table = page.locator('[data-test="transaction-history-list"]')
-  await expect(table.locator('.history-toggle').getByText('Conta encerrada (arquivada)')).toBeVisible()
-  await expect(table.locator('.history-toggle').getByText('Contas antigas (arquivada)')).toBeVisible()
+  await expect(
+    table.locator('.history-toggle').getByText('Conta encerrada (arquivada)'),
+  ).toBeVisible()
+  await expect(
+    table.locator('.history-toggle').getByText('Contas antigas (arquivada)'),
+  ).toBeVisible()
 
   await page.locator('.history-item').first().locator('.history-toggle').click()
+  const inlineActions = page
+    .locator('.history-item')
+    .first()
+    .locator('[data-test="transaction-inline-actions"]')
+  await expect(inlineActions.getByRole('button', { name: 'Editar' })).toBeVisible()
+  await expect(inlineActions.getByRole('button', { name: 'Pendente' })).toBeVisible()
+  await expect(inlineActions.getByRole('button', { name: 'Remover' })).toBeVisible()
+  await expect(
+    page.locator('.history-item').first().locator('[data-test="transaction-row-actions"]'),
+  ).toHaveCount(0)
   await page.locator('.history-item').first().getByRole('button', { name: 'Ver detalhes' }).click()
   await page
     .getByRole('dialog', { name: 'Conta de luz' })
@@ -672,6 +702,13 @@ test('mobile uses the compact history list without horizontal page overflow', as
   await page.goto('/app/transactions')
 
   const mobileList = page.locator('[data-test="transaction-history-list"]')
+  const headerBounds = await page.locator('.page-header').boundingBox()
+  const monthBounds = await page.locator('[data-test="transaction-month-label"]').boundingBox()
+  const actionBounds = await page.locator('[data-test="transactions-header-menu"]').boundingBox()
+  expect(
+    Math.abs(monthBounds.x + monthBounds.width / 2 - headerBounds.x - headerBounds.width / 2),
+  ).toBeLessThanOrEqual(2)
+  expect(actionBounds.y).toBeGreaterThan(monthBounds.y + monthBounds.height)
   await expect(mobileList).toBeVisible()
   await expect(page.locator('[data-test="transaction-table"]')).toHaveCount(0)
   await expect(mobileList.locator('.history-toggle').getByText('Compra no mercado')).toBeVisible()
@@ -691,16 +728,45 @@ test('mobile uses the compact history list without horizontal page overflow', as
   await expect(filterDialog).toBeHidden()
 })
 
-test('month navigation changes year, period totals, grouping, and expanded row', async ({ page }) => {
+test('month navigation changes year, period totals, grouping, and expanded row', async ({
+  page,
+}) => {
   const account = { id: 1, name: 'Conta principal', status: 'active', current_balance_centavos: 0 }
   const category = { id: 2, name: 'Salário', status: 'active', classification: 'income' }
-  await mockApi(page, { accounts: [account], categories: [category], transactions: [
-    transaction({ id: 71, description: 'Dezembro', type: 'income', amount: 10_000, date: '2026-12-15', account, category }),
-    transaction({ id: 72, description: 'Janeiro', type: 'income', amount: 20_000, date: '2027-01-15', account, category }),
-  ] })
+  await mockApi(page, {
+    accounts: [account],
+    categories: [category],
+    transactions: [
+      transaction({
+        id: 71,
+        description: 'Dezembro',
+        type: 'income',
+        amount: 10_000,
+        date: '2026-12-15',
+        account,
+        category,
+      }),
+      transaction({
+        id: 72,
+        description: 'Janeiro',
+        type: 'income',
+        amount: 20_000,
+        date: '2027-01-15',
+        account,
+        category,
+      }),
+    ],
+  })
 
   await page.goto('/app/transactions?from=2026-12-01&to=2026-12-31')
-  await expect(page.locator('[data-test="transaction-month-label"]')).toContainText('dezembro de 2026')
+  const headerBounds = await page.locator('.page-header').boundingBox()
+  const monthBounds = await page.locator('[data-test="transaction-month-label"]').boundingBox()
+  expect(
+    Math.abs(monthBounds.x + monthBounds.width / 2 - headerBounds.x - headerBounds.width / 2),
+  ).toBeLessThanOrEqual(2)
+  await expect(page.locator('[data-test="transaction-month-label"]')).toContainText(
+    'dezembro de 2026',
+  )
   await expect(page.locator('.history-item')).toHaveCount(1)
   await expect(page.locator('[data-test="history-total-income"]')).toContainText('100,00')
   const toggle = page.locator('[data-test="history-toggle-income-71"]')
@@ -709,7 +775,9 @@ test('month navigation changes year, period totals, grouping, and expanded row',
   await expect(toggle).toHaveAttribute('aria-expanded', 'true')
   await page.locator('[data-test="transaction-month-next"]').click()
   await expect(page).toHaveURL(/from=2027-01-01/)
-  await expect(page.locator('[data-test="transaction-month-label"]')).toContainText('janeiro de 2027')
+  await expect(page.locator('[data-test="transaction-month-label"]')).toContainText(
+    'janeiro de 2027',
+  )
   await expect(page.locator('.history-item')).toHaveCount(1)
   await expect(page.locator('.history-item')).toContainText('Janeiro')
   await expect(page.locator('[data-test="history-total-income"]')).toContainText('200,00')

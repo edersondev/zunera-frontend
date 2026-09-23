@@ -91,7 +91,7 @@ function stubs() {
       PageHeader: {
         props: ['title', 'description'],
         template:
-          '<header><h1>{{ title }}</h1><p>{{ description }}</p><slot name="actions" /></header>',
+          '<header><h1>{{ title }}</h1><p>{{ description }}</p><slot name="center" /><slot name="actions" /></header>',
       },
       ElDropdown: {
         name: 'ElDropdown',
@@ -505,7 +505,7 @@ describe('TransactionsListView', () => {
     const indicator = wrapper.get('[data-test="transaction-recurrence-label"]')
     expect(indicator.find('svg').exists()).toBe(true)
     expect(indicator.attributes('aria-label')).toContain('#61')
-    expect(indicator.text()).toContain('#61')
+    expect(indicator.text()).not.toContain('#61')
   })
 
   it('reports income and expense totals that a transfer never changes', async () => {

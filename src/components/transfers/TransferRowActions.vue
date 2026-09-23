@@ -6,6 +6,7 @@ import { useI18n } from 'vue-i18n'
 const props = defineProps({
   transfer: { type: Object, required: true },
   saving: { type: Boolean, default: false },
+  inline: { type: Boolean, default: false },
 })
 const emit = defineEmits(['edit', 'update-status', 'remove'])
 const { t } = useI18n()
@@ -22,7 +23,38 @@ function handleCommand(command) {
 </script>
 
 <template>
-  <ElDropdown trigger="click" @command="handleCommand">
+  <div v-if="inline" class="inline-actions" data-test="transfer-inline-actions" @click.stop>
+    <ElButton
+      size="small"
+      :icon="Edit"
+      :disabled="saving"
+      data-test="transfer-action-edit"
+      @click.stop="handleCommand('edit')"
+    >
+      {{ t('transfers.editAction') }}
+    </ElButton>
+    <ElButton
+      size="small"
+      :icon="nextStatusIcon"
+      :disabled="saving"
+      data-test="transfer-action-status"
+      @click.stop="handleCommand('status')"
+    >
+      {{ t(`transfers.${nextStatus}`) }}
+    </ElButton>
+    <ElButton
+      size="small"
+      type="danger"
+      plain
+      :icon="Delete"
+      :disabled="saving"
+      data-test="transfer-action-remove"
+      @click.stop="handleCommand('remove')"
+    >
+      {{ t('transfers.remove') }}
+    </ElButton>
+  </div>
+  <ElDropdown v-else trigger="click" @command="handleCommand">
     <ElButton
       circle
       type="info"
@@ -58,6 +90,16 @@ function handleCommand(command) {
 </template>
 
 <style scoped>
+.inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.inline-actions :deep(.el-button + .el-button) {
+  margin-left: 0;
+}
+
 .el-dropdown-menu__item {
   align-items: center;
   display: flex;

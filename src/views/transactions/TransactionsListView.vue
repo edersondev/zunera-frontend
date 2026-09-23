@@ -307,20 +307,21 @@ function updateDialog(visible) {
 <template>
   <div class="transactions-view">
     <PageHeader :title="t('transactions.title')" :description="t('transactions.description')">
+      <template #center>
+        <div class="period-control">
+          <MonthNavigator
+            :month="period.month"
+            :loading="store.loading"
+            :previous-label="t('transactions.monthPrevious')"
+            :next-label="t('transactions.monthNext')"
+            test-prefix="transaction-month"
+            @change-month="changeMonth"
+          />
+          <span v-if="period.custom" class="custom-period" data-test="transaction-custom-period">{{ t('transactions.customPeriod') }}</span>
+        </div>
+      </template>
       <template #actions>
-        <div class="header-actions">
-          <div class="period-control">
-            <MonthNavigator
-              :month="period.month"
-              :loading="store.loading"
-              :previous-label="t('transactions.monthPrevious')"
-              :next-label="t('transactions.monthNext')"
-              test-prefix="transaction-month"
-              @change-month="changeMonth"
-            />
-            <span v-if="period.custom" class="custom-period" data-test="transaction-custom-period">{{ t('transactions.customPeriod') }}</span>
-          </div>
-          <ElDropdown trigger="click" @command="handleHeaderAction">
+        <ElDropdown trigger="click" @command="handleHeaderAction">
           <ElButton type="primary" :icon="Plus" data-test="transactions-header-menu">
             {{ t('transactions.new') }}
             <ElIcon class="transactions-menu-chevron"><ArrowDown /></ElIcon>
@@ -337,8 +338,7 @@ function updateDialog(visible) {
               </ElDropdownItem>
             </ElDropdownMenu>
           </template>
-          </ElDropdown>
-        </div>
+        </ElDropdown>
       </template>
     </PageHeader>
 
@@ -476,12 +476,6 @@ function updateDialog(visible) {
   margin-left: 4px;
 }
 
-.header-actions {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-
 .period-control {
   display: grid;
   justify-items: center;
@@ -494,14 +488,4 @@ function updateDialog(visible) {
   line-height: 16px;
 }
 
-@media (max-width: 767px) {
-  .header-actions { flex-wrap: wrap; }
-}
-
-@media (max-width: 639px) {
-  .header-actions, .period-control { width: 100%; }
-  .header-actions { display: grid; }
-  .header-actions :deep(.el-dropdown),
-  .header-actions :deep(.el-dropdown .el-button) { width: 100%; }
-}
 </style>

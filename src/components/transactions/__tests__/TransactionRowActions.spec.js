@@ -23,9 +23,9 @@ const stubs = {
   ElIcon: { template: '<i><slot /></i>' },
 }
 
-function mountActions(status = 'effective', saving = false) {
+function mountActions(status = 'effective', saving = false, inline = false) {
   return mount(TransactionRowActions, {
-    props: { transaction: { ...transaction, status }, saving },
+    props: { transaction: { ...transaction, status }, saving, inline },
     global: { plugins: [i18n], stubs },
   })
 }
@@ -38,7 +38,9 @@ describe('TransactionRowActions', () => {
     expect(wrapper.get('[data-test="transaction-action-edit"]').text()).toBe('Editar')
     expect(wrapper.get('[data-test="transaction-action-status"]').text()).toBe('Pendente')
     expect(wrapper.get('[data-test="transaction-action-remove"]').text()).toBe('Remover')
-    expect(wrapper.get('[data-test="transaction-action-remove"]').classes()).toContain('transaction-remove-action')
+    expect(wrapper.get('[data-test="transaction-action-remove"]').classes()).toContain(
+      'transaction-remove-action',
+    )
     expect(wrapper.findAll('svg')).toHaveLength(4)
   })
 
@@ -59,8 +61,12 @@ describe('TransactionRowActions', () => {
     const wrapper = mountActions('effective', true)
     const dropdown = wrapper.getComponent({ name: 'ElDropdown' })
 
-    expect(wrapper.get('[data-test="transaction-row-actions"]').attributes('disabled')).toBeDefined()
-    expect(wrapper.get('[data-test="transaction-action-edit"]').attributes('aria-disabled')).toBe('true')
+    expect(
+      wrapper.get('[data-test="transaction-row-actions"]').attributes('disabled'),
+    ).toBeDefined()
+    expect(wrapper.get('[data-test="transaction-action-edit"]').attributes('aria-disabled')).toBe(
+      'true',
+    )
 
     dropdown.vm.$emit('command', 'status')
     expect(wrapper.emitted('update-status')).toBeUndefined()
@@ -76,5 +82,29 @@ describe('TransactionRowActions', () => {
 
     await wrapper.get('[data-test="transaction-row-actions"]').trigger('click')
     expect(onClick).not.toHaveBeenCalled()
+  })
+
+  it('shows inline actions and emits the same commands without a dropdown', async () => {
+    const wrapper = mountActions('pending', false, true)
+
+    expect(wrapper.findComponent({ name: 'ElDropdown' }).exists()).toBe(false)
+    expect(wrapper.findAll('[data-test="transaction-inline-actions"] button')).toHaveLength(3)
+    await wrapper.get('[data-test="transaction-action-edit"]').trigger('click')
+    await wrapper.get('[data-test="transaction-action-status"]').trigger('click')
+    await wrapper.get('[data-test="transaction-action-remove"]').trigger('click')
+
+    expect(wrapper.emitted('edit')).toEqual([[{ id: 7, status: 'pending' }]])
+    expect(wrapper.emitted('update-status')).toEqual([[{ id: 7, status: 'pending' }, 'effective']])
+    expect(wrapper.emitted('remove')).toEqual([[{ id: 7, status: 'pending' }]])
+  })
+
+  it('disables inline actions while saving', () => {
+    const wrapper = mountActions('effective', true, true)
+
+    expect(
+      wrapper
+        .findAll('[data-test="transaction-inline-actions"] button')
+        .every((button) => button.attributes('disabled') !== undefined),
+    ).toBe(true)
   })
 })
