@@ -151,6 +151,20 @@ async function mockApi(page, { accounts, categories, transactions, foreign = [] 
   await page.route(/\/api\/v1\/financial-history(?:\?[^/]*)?$/, (route) =>
     fulfillHistory(route, state),
   )
+  await page.route(/\/api\/v1\/financial-dashboard\/summary(?:\?[^/]*)?$/, (route) => {
+    const query = new URL(route.request().url()).searchParams
+    const effective = state.transactions.filter((item) =>
+      item.removed_at === null && item.status === 'effective' &&
+      item.transaction_date >= query.get('from') && item.transaction_date <= query.get('to'),
+    )
+    const income = effective.filter((item) => item.type === 'income').reduce((sum, item) => sum + item.amount_centavos, 0)
+    const expenses = effective.filter((item) => item.type === 'expense').reduce((sum, item) => sum + item.amount_centavos, 0)
+    return route.fulfill({ json: { data: {
+      realized_income: { amount_centavos: income },
+      realized_expenses: { amount_centavos: expenses },
+      financial_result: { amount_centavos: income - expenses },
+    } }, headers })
+  })
 }
 
 function createTransaction(route, state) {
@@ -395,10 +409,10 @@ test('signed-in user records income and expense and sees the balance impact', as
   })
   await dialog.getByRole('button', { name: 'Salvar' }).click()
 
-  const table = page.locator('[data-test="transaction-table"]')
-  await expect(table.getByText('Salário setembro')).toBeVisible()
-  await expect(table.getByText('Receita', { exact: true })).toHaveCount(0)
-  await expect(table.locator('.income-amount')).toHaveText('+ R$ 250,00')
+  const table = page.locator('[data-test="transaction-history-list"]')
+  await expect(table.locator('.history-toggle').getByText('Salário setembro')).toBeVisible()
+  await expect(table.locator('.history-toggle').getByText('Receita', { exact: true })).toHaveCount(0)
+  await expect(table.locator('.amount-income')).toHaveText('+ R$ 250,00')
   await expect(page.locator('[data-test="balance-impact"]')).toContainText('R$ 350,00')
 
   await chooseTransactionHeaderAction(page, 'Nova transação')
@@ -410,9 +424,9 @@ test('signed-in user records income and expense and sees the balance impact', as
   })
   await dialog.getByRole('button', { name: 'Salvar' }).click()
 
-  await expect(table.getByText('Almoço')).toBeVisible()
-  await expect(table.getByText('Despesa', { exact: true })).toHaveCount(0)
-  await expect(table.locator('.expense-amount')).toHaveText('− R$ 35,00')
+  await expect(table.locator('.history-toggle').getByText('Almoço')).toBeVisible()
+  await expect(table.locator('.history-toggle').getByText('Despesa', { exact: true })).toHaveCount(0)
+  await expect(table.locator('.amount-expense')).toHaveText('− R$ 35,00')
   await expect(page.locator('[data-test="balance-impact"]')).toContainText('R$ 315,00')
 })
 
@@ -450,13 +464,14 @@ test('history is newest first with details, empty state, and no foreign transact
   })
 
   await page.goto('/app/transactions')
-  const rows = page.locator('.el-table__row')
+  const rows = page.locator('.history-item')
   await expect(rows).toHaveCount(2)
   await expect(rows.nth(0)).toContainText('Hoje')
   await expect(rows.nth(1)).toContainText('Ontem')
   await expect(page.getByText('Transação de outro usuário')).toHaveCount(0)
 
-  await rows.nth(0).click()
+  await rows.nth(0).locator('.history-toggle').click()
+  await rows.nth(0).getByRole('button', { name: 'Ver detalhes' }).click()
   const drawer = page.locator('.el-drawer:visible')
   await expect(drawer).toBeVisible()
   await expect(drawer).toContainText('Nota do dia')
@@ -492,11 +507,12 @@ test('owner edits, removes, and restores a transaction with archived association
   await mockApi(page, { accounts: [account], categories: [category], transactions: [item] })
 
   await page.goto('/app/transactions')
-  const table = page.locator('[data-test="transaction-table"]')
-  await expect(table.getByText('Conta encerrada (arquivada)')).toBeVisible()
-  await expect(table.getByText('Contas antigas (arquivada)')).toBeVisible()
+  const table = page.locator('[data-test="transaction-history-list"]')
+  await expect(table.locator('.history-toggle').getByText('Conta encerrada (arquivada)')).toBeVisible()
+  await expect(table.locator('.history-toggle').getByText('Contas antigas (arquivada)')).toBeVisible()
 
-  await page.locator('.el-table__row').first().click()
+  await page.locator('.history-item').first().locator('.history-toggle').click()
+  await page.locator('.history-item').first().getByRole('button', { name: 'Ver detalhes' }).click()
   await page
     .getByRole('dialog', { name: 'Conta de luz' })
     .getByRole('button', { name: 'Editar' })
@@ -509,13 +525,13 @@ test('owner edits, removes, and restores a transaction with archived association
   await dialog.getByLabel('Valor (centavos)').fill('250')
   await dialog.getByRole('button', { name: 'Salvar' }).click()
 
-  await expect(page.locator('.el-table__row')).toHaveCount(1)
-  await expect(page.locator('.el-table__row').first()).toContainText('Conta de luz corrigida')
-  await page.locator('.el-table__row').first().click()
+  await expect(page.locator('.history-item')).toHaveCount(1)
+  await expect(page.locator('.history-item').first()).toContainText('Conta de luz corrigida')
+  await page.locator('.history-item').first().getByRole('button', { name: 'Ver detalhes' }).click()
   await page.locator('.el-drawer:visible').getByRole('button', { name: 'Remover' }).click()
   await page.locator('[data-test="confirm-remove"]').click()
 
-  await expect(page.locator('.el-table__row')).toHaveCount(0)
+  await expect(page.locator('.history-item')).toHaveCount(0)
   await expect(page.getByText('0 transações')).toBeVisible()
 
   await chooseTransactionHeaderAction(page, 'Transações removidas')
@@ -525,7 +541,7 @@ test('owner edits, removes, and restores a transaction with archived association
   await expect(page.getByText('Transação restaurada.')).toBeVisible()
 
   await page.goto('/app/transactions')
-  await expect(page.locator('.el-table__row').first()).toContainText('Conta de luz corrigida')
+  await expect(page.locator('.history-item').first()).toContainText('Conta de luz corrigida')
 })
 
 test('owner combines filters and search and clears the criteria', async ({ page }) => {
@@ -569,7 +585,7 @@ test('owner combines filters and search and clears the criteria', async ({ page 
   })
 
   await page.goto('/app/transactions')
-  await expect(page.locator('.el-table__row')).toHaveCount(4)
+  await expect(page.locator('.history-item')).toHaveCount(4)
 
   const filterDialog = await openTransactionFilters(page)
   await filterDialog.getByLabel('Buscar').fill('salario')
@@ -579,15 +595,15 @@ test('owner combines filters and search and clears the criteria', async ({ page 
   await page.getByRole('option', { name: 'Efetiva', exact: true }).click()
   await filterDialog.locator('[data-test="apply-filters"]').click()
 
-  await expect(page.locator('.el-table__row')).toHaveCount(1)
-  await expect(page.locator('.el-table__row').first()).toContainText('Salário setembro')
+  await expect(page.locator('.history-item')).toHaveCount(1)
+  await expect(page.locator('.history-item').first()).toContainText('Salário setembro')
   await expect(page).toHaveURL(/q=salario/)
   await expect(page).toHaveURL(/type=income/)
   await expect(page.locator('[data-test="active-criteria"]')).toContainText('Busca: salario')
   await expect(page.locator('[data-test="active-criteria"]')).toContainText('Tipo: Receita')
 
   await page.locator('[data-test="clear-active-filters"]').click()
-  await expect(page.locator('.el-table__row')).toHaveCount(4)
+  await expect(page.locator('.history-item')).toHaveCount(4)
   await expect(page.locator('[data-test="active-criteria"]')).toHaveCount(0)
 })
 
@@ -613,7 +629,7 @@ test('filters activate from the keyboard and the dialog closes with Escape in da
   const filterButton = filterDialog.locator('[data-test="apply-filters"]')
   await filterButton.focus()
   await page.keyboard.press('Enter')
-  await expect(page.locator('.el-table__row')).toHaveCount(1)
+  await expect(page.locator('.history-item')).toHaveCount(1)
 
   const trigger = page.locator('[data-test="transactions-header-menu"]')
   await trigger.focus()
@@ -655,12 +671,12 @@ test('mobile uses the compact history list without horizontal page overflow', as
 
   await page.goto('/app/transactions')
 
-  const mobileList = page.locator('[data-test="transaction-mobile-list"]')
+  const mobileList = page.locator('[data-test="transaction-history-list"]')
   await expect(mobileList).toBeVisible()
-  await expect(page.locator('[data-test="transaction-table"]')).toBeHidden()
-  await expect(mobileList.getByText('Compra no mercado')).toBeVisible()
-  await expect(mobileList.getByText('− R$ 89,50')).toBeVisible()
-  await expect(mobileList.getByText('Efetiva')).toBeVisible()
+  await expect(page.locator('[data-test="transaction-table"]')).toHaveCount(0)
+  await expect(mobileList.locator('.history-toggle').getByText('Compra no mercado')).toBeVisible()
+  await expect(mobileList.locator('.history-toggle').getByText('− R$ 89,50')).toBeVisible()
+  await expect(mobileList.locator('.history-toggle').getByText('Efetiva')).toBeVisible()
   await expect
     .poll(() =>
       page.evaluate(
@@ -673,4 +689,35 @@ test('mobile uses the compact history list without horizontal page overflow', as
   await expect(filterDialog.getByLabel('Buscar')).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(filterDialog).toBeHidden()
+})
+
+test('month navigation changes year, period totals, grouping, and expanded row', async ({ page }) => {
+  const account = { id: 1, name: 'Conta principal', status: 'active', current_balance_centavos: 0 }
+  const category = { id: 2, name: 'Salário', status: 'active', classification: 'income' }
+  await mockApi(page, { accounts: [account], categories: [category], transactions: [
+    transaction({ id: 71, description: 'Dezembro', type: 'income', amount: 10_000, date: '2026-12-15', account, category }),
+    transaction({ id: 72, description: 'Janeiro', type: 'income', amount: 20_000, date: '2027-01-15', account, category }),
+  ] })
+
+  await page.goto('/app/transactions?from=2026-12-01&to=2026-12-31')
+  await expect(page.locator('[data-test="transaction-month-label"]')).toContainText('dezembro de 2026')
+  await expect(page.locator('.history-item')).toHaveCount(1)
+  await expect(page.locator('[data-test="history-total-income"]')).toContainText('100,00')
+  const toggle = page.locator('[data-test="history-toggle-income-71"]')
+  await toggle.focus()
+  await page.keyboard.press('Enter')
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+  await page.locator('[data-test="transaction-month-next"]').click()
+  await expect(page).toHaveURL(/from=2027-01-01/)
+  await expect(page.locator('[data-test="transaction-month-label"]')).toContainText('janeiro de 2027')
+  await expect(page.locator('.history-item')).toHaveCount(1)
+  await expect(page.locator('.history-item')).toContainText('Janeiro')
+  await expect(page.locator('[data-test="history-total-income"]')).toContainText('200,00')
+  await expect(page.locator('[data-test="history-toggle-income-71"]')).toHaveCount(0)
+
+  await page.goto('/app/transactions?from=2026-12-10&to=2026-12-20')
+  await expect(page.locator('[data-test="transaction-custom-period"]')).toBeVisible()
+  await page.locator('[data-test="transaction-month-next"]').click()
+  await expect(page).toHaveURL(/from=2027-01-01/)
+  await expect(page.locator('[data-test="transaction-custom-period"]')).toHaveCount(0)
 })

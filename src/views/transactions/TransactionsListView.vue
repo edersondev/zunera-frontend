@@ -1,9 +1,10 @@
 <script setup>
-import { computed, onMounted, shallowRef } from 'vue'
+import { computed, onMounted, shallowRef, watch } from 'vue'
 import { ArrowDown, Delete, Plus } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import MonthNavigator from '@/components/common/MonthNavigator.vue'
 import TransactionDetailDrawer from '@/components/transactions/TransactionDetailDrawer.vue'
 import TransactionFilterBar from '@/components/transactions/TransactionFilterBar.vue'
 import TransactionFinancialSummary from '@/components/transactions/TransactionFinancialSummary.vue'
@@ -16,6 +17,9 @@ import { useTransferStore } from '@/stores/transfers/transferStore'
 import { useFinancialAccountStore } from '@/stores/financial-accounts/financialAccountStore'
 import { useCategoryStore } from '@/stores/categories/categoryStore'
 import { formatCentavos } from '@/utils/transfers/transferFormatters'
+import { getDashboardSummary } from '@/services/dashboardService'
+import { listFinancialHistory } from '@/services/transactionService'
+import { hasNonDateFilters, monthBounds, periodFromBounds } from '@/utils/transactions/transactionPeriod'
 
 const store = useTransactionStore()
 const transferStore = useTransferStore()
@@ -33,6 +37,12 @@ const detailOpen = shallowRef(false)
 const editing = shallowRef(null)
 const removeDialog = shallowRef(false)
 const removingTransaction = shallowRef(null)
+const periodSummary = shallowRef(null)
+const summaryError = shallowRef(false)
+const emptyKind = shallowRef('period')
+const lastQuerySignature = shallowRef(null)
+let summaryRequest = 0
+let emptyRequest = 0
 
 const clearedFilters = {
   include: undefined,
@@ -47,13 +57,12 @@ const clearedFilters = {
   to: undefined,
 }
 
-const hasActiveFilters = computed(() =>
-  ['q', 'type', 'status', 'financial_account_id', 'category_id', 'from', 'to'].some((key) => {
-    const value = store.filters[key]
-
-    return value !== undefined && value !== null && value !== ''
-  }),
+const period = computed(() => periodFromBounds(store.filters.from, store.filters.to))
+const hasActiveFilters = computed(() => hasNonDateFilters(store.filters) || period.value.custom)
+const summaryEligible = computed(() =>
+  !hasNonDateFilters(store.filters) && Boolean(store.filters.from && store.filters.to) && store.filters.view !== 'removed',
 )
+const listResetKey = computed(() => JSON.stringify({ ...store.filters, page: 1 }))
 
 function impactMessage(impact) {
   const sign = impact.delta > 0 ? '+ ' : '− '
@@ -61,20 +70,76 @@ function impactMessage(impact) {
   return `${impact.name}: ${formatCentavos(impact.after)} (${sign}${formatCentavos(Math.abs(impact.delta))})`
 }
 
+async function loadSummary(filters) {
+  const request = ++summaryRequest
+  periodSummary.value = null
+  summaryError.value = false
+  if (hasNonDateFilters(filters) || !filters.from || !filters.to || filters.view === 'removed') return
+
+  try {
+    const data = await getDashboardSummary({ preset: 'custom', from: filters.from, to: filters.to })
+    if (request !== summaryRequest) return
+    periodSummary.value = {
+      income_centavos: data.realized_income.amount_centavos,
+      expense_centavos: data.realized_expenses.amount_centavos,
+      financial_result_centavos: data.financial_result.amount_centavos,
+    }
+  } catch {
+    if (request === summaryRequest) summaryError.value = true
+  }
+}
+
+async function loadEmptyKind(filters) {
+  const request = ++emptyRequest
+  emptyKind.value = 'period'
+  if (hasNonDateFilters(filters) || store.items.length || store.loading) return
+
+  try {
+    const data = await listFinancialHistory({ view: 'active', per_page: 1, page: 1 })
+    if (request === emptyRequest) emptyKind.value = data.meta.total === 0 ? 'none' : 'period'
+  } catch {
+    /* Keep the truthful period empty state when global history is unavailable. */
+  }
+}
+
+async function syncRoute(query) {
+  const { highlight, ...routeFilters } = query
+  const resolved = periodFromBounds(routeFilters.from, routeFilters.to)
+  const bounds = resolved.missing ? monthBounds(resolved.month) : { from: routeFilters.from, to: routeFilters.to }
+  const normalized = { ...routeFilters, ...bounds }
+  const signature = JSON.stringify(Object.entries(normalized)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => [key, value == null ? null : String(value)]))
+  if (signature === lastQuerySignature.value) return
+  lastQuerySignature.value = signature
+  if (resolved.missing) await router.replace({ query: { ...query, ...bounds } })
+
+  const filters = {
+    ...clearedFilters,
+    ...normalized,
+    per_page: Number(routeFilters.per_page ?? 50),
+    view: routeFilters.view ?? 'active',
+  }
+  const listRequest = ++emptyRequest
+  const listLoad = store.setFilters(filters)
+  loadSummary(filters)
+  try {
+    await listLoad
+    if (listRequest === emptyRequest) await loadEmptyKind(filters)
+  } catch {
+    /* Store error renders separately. */
+  }
+
+  return highlight
+}
+
 onMounted(async () => {
   store.clearFeedback()
   transferStore.clearFeedback()
 
-  const { highlight, ...routeFilters } = route.query
-  const query = {
-    ...routeFilters,
-    per_page: Number(routeFilters.per_page ?? 50),
-    view: routeFilters.view ?? 'active',
-  }
-
   try {
-    await Promise.all([
-      store.setFilters(query),
+    const [highlight] = await Promise.all([
+      syncRoute(route.query),
       accounts.fetchAccounts(),
       categories.fetchCategories('active'),
     ])
@@ -89,6 +154,8 @@ onMounted(async () => {
   }
 })
 
+watch(() => route.query, (query) => { syncRoute(query) })
+
 async function save({ kind, payload }) {
   try {
     if (kind === 'transfer') {
@@ -100,6 +167,7 @@ async function save({ kind, payload }) {
     dialog.value = false
     editing.value = null
     editingTransfer.value = null
+    loadSummary(store.filters)
   } catch {
     /* Feedback comes from store error state. */
   }
@@ -120,6 +188,7 @@ async function updateTransferStatus(transfer, status) {
   try {
     await transferStore.update(transfer.id, { status })
     await store.fetch()
+    loadSummary(store.filters)
   } catch {
     /* Feedback comes from transfer store error state. */
   }
@@ -134,6 +203,7 @@ async function removeTransfer() {
   try {
     await transferStore.remove(removingTransfer.value.id)
     await store.fetch()
+    loadSummary(store.filters)
   } catch {
     /* Feedback comes from transfer store error state. */
   } finally {
@@ -168,6 +238,7 @@ function requestRemove(transaction) {
 async function updateStatus(transaction, status) {
   try {
     await store.update(transaction.id, { status })
+    loadSummary(store.filters)
   } catch {
     /* Feedback comes from store error state. */
   }
@@ -177,6 +248,7 @@ async function remove() {
   try {
     await store.remove(removingTransaction.value.id)
     detailOpen.value = false
+    loadSummary(store.filters)
   } catch {
     /* Feedback comes from store error state. */
   } finally {
@@ -186,18 +258,22 @@ async function remove() {
 }
 
 async function applyFilters(filters) {
-  const query = Object.fromEntries(
-    Object.entries(filters).filter(
-      ([key, value]) => key !== 'include' && value !== undefined && value !== null && value !== '',
-    ),
-  )
+  const next = { ...filters, include: Object.hasOwn(filters, 'include') ? filters.include : store.filters.include }
+  if (!next.from && !next.to) Object.assign(next, monthBounds(period.value.month))
+  const query = Object.fromEntries(Object.entries(next).filter(
+    ([, value]) => value !== undefined && value !== null && value !== '',
+  ))
   await router.replace({ query })
 
-  return store.setFilters(filters)
+  return syncRoute(query)
 }
 
 function clearFilters() {
-  return applyFilters(clearedFilters)
+  return applyFilters({ ...clearedFilters, from: store.filters.from, to: store.filters.to })
+}
+
+function changeMonth(month) {
+  return applyFilters({ ...store.filters, ...monthBounds(month), page: 1 })
 }
 
 function handleHeaderAction(command) {
@@ -232,7 +308,19 @@ function updateDialog(visible) {
   <div class="transactions-view">
     <PageHeader :title="t('transactions.title')" :description="t('transactions.description')">
       <template #actions>
-        <ElDropdown trigger="click" @command="handleHeaderAction">
+        <div class="header-actions">
+          <div class="period-control">
+            <MonthNavigator
+              :month="period.month"
+              :loading="store.loading"
+              :previous-label="t('transactions.monthPrevious')"
+              :next-label="t('transactions.monthNext')"
+              test-prefix="transaction-month"
+              @change-month="changeMonth"
+            />
+            <span v-if="period.custom" class="custom-period" data-test="transaction-custom-period">{{ t('transactions.customPeriod') }}</span>
+          </div>
+          <ElDropdown trigger="click" @command="handleHeaderAction">
           <ElButton type="primary" :icon="Plus" data-test="transactions-header-menu">
             {{ t('transactions.new') }}
             <ElIcon class="transactions-menu-chevron"><ArrowDown /></ElIcon>
@@ -249,7 +337,8 @@ function updateDialog(visible) {
               </ElDropdownItem>
             </ElDropdownMenu>
           </template>
-        </ElDropdown>
+          </ElDropdown>
+        </div>
       </template>
     </PageHeader>
 
@@ -304,23 +393,28 @@ function updateDialog(visible) {
       data-test="transfer-balance-impact"
     />
 
-    <TransactionFinancialSummary :totals="store.totals" />
+    <TransactionFinancialSummary v-if="summaryEligible" :totals="periodSummary" />
+    <ElAlert v-if="summaryError && summaryEligible" type="info" :title="t('transactions.summary.unavailable')" :closable="false" />
     <TransactionFilterBar
       :filters="store.filters"
       :accounts="accounts.accounts"
       :categories="categories.categories"
       :loading="store.loading"
+      :show-period-chip="period.custom"
       @apply="applyFilters"
       @clear="clearFilters"
     />
     <TransactionHistoryList
       :items="store.items"
       :meta="store.meta"
+      :categories="categories.categories"
       :loading="store.loading"
       :transaction-saving="store.saving"
       :transfer-saving="transferStore.saving"
       :has-more="store.hasMore"
       :filtered="hasActiveFilters"
+      :empty-kind="emptyKind"
+      :reset-key="listResetKey"
       @select="openDetail"
       @edit-transaction="edit"
       @edit-transfer="editTransfer"
@@ -380,5 +474,34 @@ function updateDialog(visible) {
 
 .transactions-menu-chevron {
   margin-left: 4px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.period-control {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+.custom-period {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+@media (max-width: 767px) {
+  .header-actions { flex-wrap: wrap; }
+}
+
+@media (max-width: 639px) {
+  .header-actions, .period-control { width: 100%; }
+  .header-actions { display: grid; }
+  .header-actions :deep(.el-dropdown),
+  .header-actions :deep(.el-dropdown .el-button) { width: 100%; }
 }
 </style>

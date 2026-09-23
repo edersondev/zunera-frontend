@@ -9,6 +9,7 @@ const props = defineProps({
   accounts: { type: Array, required: true },
   categories: { type: Array, required: true },
   loading: Boolean,
+  showPeriodChip: { type: Boolean, default: true },
 })
 const emit = defineEmits(['apply', 'clear'])
 const { t } = useI18n()
@@ -59,7 +60,7 @@ const activeFilters = computed(() => {
       value: optionLabel(props.categories, props.filters.category_id),
     })
   }
-  if (hasValue(props.filters.from) || hasValue(props.filters.to)) {
+  if (props.showPeriodChip && (hasValue(props.filters.from) || hasValue(props.filters.to))) {
     filters.push({
       key: 'period',
       label: t('transactions.period'),
@@ -281,6 +282,10 @@ function removeFilter(key) {
 .filter-bar {
   display: grid;
   gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
 }
 
 .search-row {

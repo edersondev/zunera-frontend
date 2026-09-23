@@ -171,7 +171,7 @@ test('a signed-in owner reviews planned, realized, and unbudgeted values for the
   await expect(page.getByText('R$ 720,00').first()).toBeVisible()
   await expect(page.getByText('R$ 125,00')).toBeVisible()
   await expect(page.getByText('Dentro do orçamento').first()).toBeVisible()
-  await expect(page.getByRole('progressbar')).toBeVisible()
+  await expect(page.getByRole('progressbar', { name: 'Progresso do orçamento' })).toBeVisible()
 })
 
 test('plan amounts are edited without sending any financial movement request', async ({
@@ -273,7 +273,7 @@ test('values, status, and month controls stay usable at 320px with keyboard only
 
   await expect(page.getByRole('heading', { name: 'Orçamentos' })).toBeVisible()
   // Progress keeps a textual equivalent instead of relying on colour.
-  await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '72')
+  await expect(page.getByRole('progressbar', { name: 'Progresso do orçamento' })).toHaveAttribute('aria-valuenow', '72')
   await expect(page.getByText('Dentro do orçamento').first()).toBeVisible()
   await expect(page.getByText('R$ 125,00')).toBeVisible()
 

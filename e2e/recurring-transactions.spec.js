@@ -145,7 +145,7 @@ async function mockApi(page, { accounts, categories, rules = [], transactions = 
     route.fulfill({ json: { data: state.transactions, meta: metaFor(state.transactions) }, headers }),
   )
   await page.route(/\/api\/v1\/financial-history(?:\?[^/]*)?$/, (route) =>
-    route.fulfill({ json: { data: state.transactions, meta: metaFor(state.transactions) }, headers }),
+    route.fulfill({ json: { data: state.transactions.map((item) => ({ ...item, movement_date: item.movement_date ?? item.transaction_date })), meta: metaFor(state.transactions) }, headers }),
   )
   await page.route(/\/api\/v1\/transactions\/(\d+)$/, (route) => {
     const id = Number(route.request().url().match(/transactions\/(\d+)/)[1])
@@ -470,12 +470,13 @@ test('generated occurrence shows its rule in history and links back to it', asyn
   })
   await signIn(page)
 
-  await page.goto('/app/transactions')
+  await page.goto('/app/transactions?from=2026-10-01&to=2026-10-31')
   await expect(page.locator('[data-test="transaction-recurrence-label"]').first()).toHaveAttribute(
     'aria-label',
     /#61/,
   )
-  await page.locator('.el-table__row').first().click()
+  await page.locator('.history-item').first().locator('.history-toggle').click()
+  await page.locator('.history-item').first().getByRole('button', { name: 'Ver detalhes' }).click()
   await expect(page.locator('[data-test="transaction-recurrence-source"]')).toContainText('#61')
   await expect(page.locator('[data-test="transaction-recurrence-scope"]')).toContainText(
     'Você está editando apenas esta ocorrência.',
@@ -530,7 +531,7 @@ test('catch-up occurrences stay pending, identify their source, and open as ordi
     /#62/,
   )
   await expect(page.locator('[data-test="transaction-recurrence-source"]')).toContainText('#62')
-  await expect(page.locator('.el-table__row')).toContainText('Pendente')
+  await expect(page.locator('.history-item')).toContainText('Pendente')
 })
 
 test('editing one generated occurrence does not rewrite its recurrence rule', async ({ page }) => {
@@ -557,12 +558,13 @@ test('editing one generated occurrence does not rewrite its recurrence rule', as
   })
   await signIn(page)
 
-  await page.goto('/app/transactions')
-  await page.locator('.el-table__row').first().click()
+  await page.goto('/app/transactions?from=2026-10-01&to=2026-10-31')
+  await page.locator('.history-item').first().locator('.history-toggle').click()
+  await page.locator('.history-item').first().getByRole('button', { name: 'Ver detalhes' }).click()
   await page.locator('[data-test="edit-transaction"]').click()
   await page.locator('[data-test="transaction-amount"]').fill('275,00')
   await page.locator('[data-test="save-transaction"]').click()
-  await expect(page.locator('.el-table__row')).toContainText('275,00')
+  await expect(page.locator('.history-item')).toContainText('275,00')
 
   await page.goto('/app/recurring-transactions')
   await expect(page.locator('.el-table__row')).toContainText('250,00')
