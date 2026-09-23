@@ -281,6 +281,10 @@ function removeFilter(key) {
 .filter-bar {
   display: grid;
   gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
 }
 
 .search-row {

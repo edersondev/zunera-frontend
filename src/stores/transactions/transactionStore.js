@@ -23,6 +23,7 @@ export const useTransactionStore = defineStore('transactions', () => {
   const notice = shallowRef(null)
   const lastBalanceImpact = shallowRef([])
   const retryKeys = new Map()
+  let latestFetch = 0
   const hasMore = computed(() => (meta.value.current_page ?? 1) < (meta.value.last_page ?? 1))
   /** Income/expense/result totals reported by the backend; transfers are excluded there. */
   const totals = computed(() => meta.value.totals ?? null)
@@ -66,21 +67,24 @@ export const useTransactionStore = defineStore('transactions', () => {
   }
 
   async function fetch({ append = false } = {}) {
+    const request = ++latestFetch
     loading.value = true
     error.value = null
 
     try {
       const result = await listFinancialHistory(filters.value)
       const entries = (result.items ?? []).map(normalizeEntry)
-      items.value = append ? [...items.value, ...entries] : entries
-      meta.value = result.meta
+      if (request === latestFetch) {
+        items.value = append ? [...items.value, ...entries] : entries
+        meta.value = result.meta
+      }
 
       return result
     } catch (value) {
-      applyError(value)
+      if (request === latestFetch) applyError(value)
       throw value
     } finally {
-      loading.value = false
+      if (request === latestFetch) loading.value = false
     }
   }
 

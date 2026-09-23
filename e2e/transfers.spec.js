@@ -234,6 +234,20 @@ async function mockApi(page, { accounts, transfers = [], transactions = [], cate
   await page.route(/\/api\/v1\/financial-history(?:\?[^/]*)?$/, (route) =>
     route.fulfill({ json: mixedHistory(route, state), headers }),
   )
+  await page.route(/\/api\/v1\/financial-dashboard\/summary(?:\?[^/]*)?$/, (route) => {
+    const query = new URL(route.request().url()).searchParams
+    const effective = state.transactions.filter((item) =>
+      item.removed_at == null && item.status === 'effective' &&
+      item.movement_date >= query.get('from') && item.movement_date <= query.get('to'),
+    )
+    const income = effective.filter((item) => item.movement_kind === 'income').reduce((sum, item) => sum + item.amount_centavos, 0)
+    const expenses = effective.filter((item) => item.movement_kind === 'expense').reduce((sum, item) => sum + item.amount_centavos, 0)
+    return route.fulfill({ json: { data: {
+      realized_income: { amount_centavos: income },
+      realized_expenses: { amount_centavos: expenses },
+      financial_result: { amount_centavos: income - expenses },
+    } }, headers })
+  })
 }
 
 function listTransfers(route, state) {
@@ -398,6 +412,8 @@ function mixedHistory(route, state) {
       })),
   ]
     .filter((item) => !query.get('status') || item.status === query.get('status'))
+    .filter((item) => !query.get('from') || item.movement_date >= query.get('from'))
+    .filter((item) => !query.get('to') || item.movement_date <= query.get('to'))
     .filter(
       (item) =>
         !query.get('financial_account_id') ||
@@ -663,7 +679,7 @@ test('owner corrects, removes, and restores a transfer with an archived associat
 
   await page.locator('[data-test="back-to-transactions"]').click()
   await expect(page.getByRole('heading', { name: 'Transações', exact: true })).toBeVisible()
-  await expect(page.locator('.el-table__row')).toHaveCount(2)
+  await expect(page.locator('.history-item')).toHaveCount(2)
 })
 
 test('mixed history labels a transfer beside income and expense without changing totals', async ({ page }) => {
@@ -708,20 +724,21 @@ test('mixed history labels a transfer beside income and expense without changing
   await page.emulateMedia({ colorScheme: 'dark' })
   await page.goto('/app/transactions')
 
-  const rows = page.locator('.el-table__row')
+  const rows = page.locator('.history-item')
   await expect(rows).toHaveCount(3)
   const transferRow = rows.filter({ hasText: 'Transferência' })
   await expect(transferRow).toContainText('Conta corrente → Poupança')
   await expect(transferRow).toContainText('R$ 2.500,00')
-  await expect(transferRow.locator('[data-test="transfer-history-no-category"]')).toHaveText('—')
-  await expect(page.locator('[data-test="history-total-income"]')).toHaveText('R$ 5.000,00')
-  await expect(page.locator('[data-test="history-total-expense"]')).toHaveText('R$ 2.000,00')
-  await expect(page.locator('[data-test="history-total-result"]')).toHaveText('R$ 3.000,00')
+  await expect(transferRow.locator('.history-toggle')).not.toContainText('Categoria')
+  await expect(page.locator('[data-test="history-total-income"]')).toContainText('5.000,00')
+  await expect(page.locator('[data-test="history-total-expense"]')).toContainText('2.000,00')
+  await expect(page.locator('[data-test="history-total-result"]')).toContainText('3.000,00')
   await expect(page.locator('[data-test="history-total-excludes"]')).toContainText(
-    'Transferências não entram',
+    'transferências',
   )
 
-  await transferRow.click()
+  await transferRow.locator('.history-toggle').click()
+  await transferRow.getByRole('button', { name: 'Ver detalhes' }).click()
   const drawer = page.locator('.el-drawer:visible')
   await expect(drawer).toContainText('Conta corrente')
   await expect(drawer).toContainText('Poupança')
@@ -729,11 +746,11 @@ test('mixed history labels a transfer beside income and expense without changing
   await expect(drawer.getByRole('button', { name: 'Editar' })).toHaveCount(0)
   await page.keyboard.press('Escape')
 
-  await openFilters(page, 'transaction-filter-collapse')
-  const filterButton = page.getByRole('button', { name: 'Filtrar' })
+  await page.getByRole('button', { name: 'Filtros', exact: true }).click()
+  const filterButton = page.getByRole('dialog', { name: 'Filtrar transações' }).getByRole('button', { name: 'Filtrar' })
   await filterButton.focus()
   await page.keyboard.press('Enter')
-  await expect(page.locator('.el-table__row')).toHaveCount(3)
+  await expect(page.locator('.history-item')).toHaveCount(3)
 })
 
 test('transactions header opens creation and removed history shortcuts', async ({ page }) => {
@@ -746,7 +763,7 @@ test('transactions header opens creation and removed history shortcuts', async (
   const dialog = page.getByRole('dialog', { name: 'Nova transação' })
   await expect(dialog).toBeVisible()
   await expect(dialog.getByRole('radio', { name: 'Transferência' })).toBeVisible()
-  await expect(page).toHaveURL(/\/app\/transactions$/)
+  await expect(page).toHaveURL(/\/app\/transactions(?:\?|$)/)
   await page.keyboard.press('Escape')
   await expect(dialog).toBeHidden()
 
@@ -773,14 +790,15 @@ test('transactions history manages transfer rows without leaving the page', asyn
   })
   await page.goto('/app/transactions')
 
-  const row = page.locator('.el-table__row').first()
+  const row = page.locator('.history-item').first()
+  await row.locator('.history-toggle').click()
   await row.locator('[data-test="transfer-row-actions"]').click()
   await chooseRowAction(page, 'Editar')
   const dialog = page.getByRole('dialog', { name: 'Editar transação' })
   await dialog.getByLabel('Descrição').fill('Reserva revisada')
   await dialog.getByRole('button', { name: 'Salvar' }).click()
   await expect(dialog).toBeHidden()
-  await expect(page).toHaveURL(/\/app\/transactions$/)
+  await expect(page).toHaveURL(/\/app\/transactions(?:\?|$)/)
 
   await row.locator('[data-test="transfer-row-actions"]').click()
   await chooseRowAction(page, 'Pendente')

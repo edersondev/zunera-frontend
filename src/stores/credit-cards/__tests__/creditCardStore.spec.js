@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 vi.mock('@/services/creditCardService', () => ({
   listCards: vi.fn(),
   getCard: vi.fn(),
+  getPurchase: vi.fn(),
   createCard: vi.fn(),
   updateCard: vi.fn(),
   archiveCard: vi.fn(),
@@ -70,6 +71,17 @@ describe('creditCardStore', () => {
 
     expect(store.currentStatement).toMatchObject({ id: null, is_current: true })
     expect(store.history).toEqual({ usedCentavos: 20_000, cardCreditCentavos: 0 })
+  })
+
+  it('loads an owned purchase for statement actions and surfaces lookup errors', async () => {
+    const store = useCreditCardStore()
+    const purchase = { id: 21, description: 'Groceries' }
+    service.getPurchase.mockResolvedValueOnce(purchase).mockRejectedValueOnce(new Error('Unavailable'))
+
+    expect(await store.fetchPurchase(21)).toEqual(purchase)
+    expect(service.getPurchase).toHaveBeenCalledWith(21)
+    expect(await store.fetchPurchase(21)).toBeNull()
+    expect(store.error.message).toBe('Unavailable')
   })
 
   it('creates and archives cards through generated keys', async () => {

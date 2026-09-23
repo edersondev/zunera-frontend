@@ -88,14 +88,21 @@ async function mockBudgets(page, { month = monthPayload(budgetFixture([plan()]))
       await route.fulfill({
         status: 409,
         headers: apiHeaders(),
-        json: { message: 'O mês de destino já possui um orçamento.', code: 'budget_copy_destination_occupied' },
+        json: {
+          message: 'O mês de destino já possui um orçamento.',
+          code: 'budget_copy_destination_occupied',
+        },
       })
       return
     }
 
     if (url.pathname.endsWith('/plans')) {
       requests.plans.push(route.request().postDataJSON())
-      await route.fulfill({ status: 201, headers: apiHeaders(), json: monthPayload(budgetFixture([plan()])) })
+      await route.fulfill({
+        status: 201,
+        headers: apiHeaders(),
+        json: monthPayload(budgetFixture([plan()])),
+      })
       return
     }
 
@@ -109,7 +116,11 @@ async function mockBudgets(page, { month = monthPayload(budgetFixture([plan()]))
     }
 
     if (route.request().method() === 'post') {
-      await route.fulfill({ status: 201, headers: apiHeaders(), json: monthPayload(budgetFixture([])) })
+      await route.fulfill({
+        status: 201,
+        headers: apiHeaders(),
+        json: monthPayload(budgetFixture([])),
+      })
       return
     }
 
@@ -174,9 +185,7 @@ test('a signed-in owner reviews planned, realized, and unbudgeted values for the
   await expect(page.getByRole('progressbar', { name: 'Progresso do orçamento' })).toBeVisible()
 })
 
-test('plan amounts are edited without sending any financial movement request', async ({
-  page,
-}) => {
+test('plan amounts are edited without sending any financial movement request', async ({ page }) => {
   const requests = await mockBudgets(page)
   const financialRequests = []
   page.on('request', (request) => {
@@ -211,9 +220,7 @@ test('copy rejects an occupied destination with clear feedback and no partial pl
   expect(requests.copy).toHaveLength(1)
 })
 
-test('an archived plan stays readable and offers no edit or removal controls', async ({
-  page,
-}) => {
+test('an archived plan stays readable and offers no edit or removal controls', async ({ page }) => {
   await mockBudgets(page, {
     month: monthPayload(
       budgetFixture(

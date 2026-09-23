@@ -55,6 +55,8 @@ const categories = vi.hoisted(() => ({
 const route = vi.hoisted(() => ({ query: {} }))
 const routerReplace = vi.hoisted(() => vi.fn())
 const routerPush = vi.hoisted(() => vi.fn())
+const dashboardSummary = vi.hoisted(() => vi.fn())
+const historyList = vi.hoisted(() => vi.fn())
 
 vi.mock('@/stores/transactions/transactionStore', () => ({ useTransactionStore: () => store }))
 vi.mock('@/stores/transfers/transferStore', () => ({ useTransferStore: () => transferStore }))
@@ -66,6 +68,8 @@ vi.mock('vue-router', () => ({
   useRoute: () => route,
   useRouter: () => ({ push: routerPush, replace: routerReplace }),
 }))
+vi.mock('@/services/dashboardService', () => ({ getDashboardSummary: dashboardSummary }))
+vi.mock('@/services/transactionService', () => ({ listFinancialHistory: historyList }))
 
 function row(id, description, overrides = {}) {
   return {
@@ -88,7 +92,7 @@ function stubs() {
       PageHeader: {
         props: ['title', 'description'],
         template:
-          '<header><h1>{{ title }}</h1><p>{{ description }}</p><slot name="context" /><slot name="actions" /></header>',
+          '<header><h1>{{ title }}</h1><p>{{ description }}</p><slot name="center" /><slot name="context" /><slot name="actions" /></header>',
       },
       ElDropdown: {
         name: 'ElDropdown',
@@ -177,6 +181,12 @@ describe('TransactionsListView', () => {
     transferStore.notice = null
     transferStore.lastBalanceImpact = []
     route.query = {}
+    dashboardSummary.mockResolvedValue({
+      realized_income: { amount_centavos: 500_000 },
+      realized_expenses: { amount_centavos: 200_000 },
+      financial_result: { amount_centavos: 300_000 },
+    })
+    historyList.mockResolvedValue({ items: [], meta: { total: 0 } })
   })
 
   it('loads the history with the route criteria and the current business month', async () => {
@@ -200,7 +210,7 @@ describe('TransactionsListView', () => {
     expect(categories.fetchCategories).toHaveBeenCalledWith('active')
     expect(wrapper.get('[data-test="transaction-count"]').text()).toBe('3 transações')
     expect(wrapper.get('[data-test="active-criteria"]').text()).toContain('Busca: almoço')
-    expect(wrapper.get('.el-table__row').text()).toContain('Almoço')
+    expect(wrapper.get('.history-item').text()).toContain('Almoço')
   })
 
   it('restores the month from the address period instead of the current month', async () => {
@@ -214,28 +224,30 @@ describe('TransactionsListView', () => {
   })
 
   it('moves to the month chosen in the header navigator and keeps the other criteria', async () => {
-    route.query = { q: 'almoço' }
+    route.query = { q: 'almoço', from: '2026-09-01', to: '2026-09-30' }
+    store.filters = { view: 'active', per_page: 50, ...route.query }
     const wrapper = mount(TransactionsListView, { global: stubs() })
     await flushPromises()
 
-    await wrapper.get('[data-test="month-next"]').trigger('click')
+    await wrapper.get('[data-test="transaction-month-next"]').trigger('click')
     await flushPromises()
 
     expect(store.setFilters).toHaveBeenLastCalledWith(
       expect.objectContaining({ q: 'almoço', from: '2026-10-01', to: '2026-10-31' }),
     )
-    expect(wrapper.get('[data-test="transaction-month-navigator"]').text()).toContain('outubro')
     expect(routerReplace).toHaveBeenLastCalledWith({
       query: expect.objectContaining({ q: 'almoço', from: '2026-10-01', to: '2026-10-31' }),
     })
   })
 
   it('keeps the selected month when the criteria are cleared', async () => {
-    route.query = {}
+    route.query = { from: '2026-09-01', to: '2026-09-30' }
+    store.filters = { view: 'active', per_page: 50, ...route.query }
     const wrapper = mount(TransactionsListView, { global: stubs() })
     await flushPromises()
-    await wrapper.get('[data-test="month-next"]').trigger('click')
+    await wrapper.get('[data-test="transaction-month-next"]').trigger('click')
     await flushPromises()
+    store.filters = { view: 'active', per_page: 50, from: '2026-10-01', to: '2026-10-31' }
     store.setFilters.mockClear()
 
     await wrapper.get('[data-test="clear-filter"]').trigger('click')
@@ -338,12 +350,13 @@ describe('TransactionsListView', () => {
     const wrapper = mount(TransactionsListView, { global: stubs() })
     await flushPromises()
 
-    const rows = wrapper.findAll('.el-table__row').map((node) => node.text())
+    const rows = wrapper.findAll('.history-item').map((node) => node.text())
     expect(rows).toHaveLength(2)
     expect(rows[0]).toContain('Hoje')
     expect(rows[1]).toContain('Ontem')
 
-    await wrapper.findAll('.el-table__row')[0].trigger('click')
+    await wrapper.findAll('.history-toggle')[0].trigger('click')
+    await wrapper.findAll('[data-test="view-history-details"]')[0].trigger('click')
     await flushPromises()
 
     expect(store.select).toHaveBeenCalledWith(2)
@@ -360,7 +373,8 @@ describe('TransactionsListView', () => {
     const wrapper = mount(TransactionsListView, { global: stubs() })
     await flushPromises()
 
-    await wrapper.get('.el-table__row').trigger('click')
+    await wrapper.get('.history-toggle').trigger('click')
+    await wrapper.get('[data-test="view-history-details"]').trigger('click')
     await flushPromises()
     await wrapper.get('[data-test="view-recurrence-rule"]').trigger('click')
     await flushPromises()
@@ -382,7 +396,7 @@ describe('TransactionsListView', () => {
     const wrapper = mount(TransactionsListView, { global: stubs() })
     await flushPromises()
 
-    const text = wrapper.get('.el-table__row').text()
+    const text = wrapper.get('.history-item').text()
     expect(text).toContain('Conta encerrada (arquivada)')
     expect(text).toContain('Contas antigas (arquivada)')
   })
@@ -498,8 +512,17 @@ describe('TransactionsListView', () => {
     await wrapper.get('[data-test="apply-filter"]').trigger('click')
     await flushPromises()
 
-    expect(routerReplace).toHaveBeenCalledWith({ query: { q: 'almoço', type: 'expense' } })
-    expect(store.setFilters).toHaveBeenLastCalledWith({ q: 'almoço', type: 'expense' })
+    expect(routerReplace).toHaveBeenLastCalledWith({
+      query: expect.objectContaining({
+        q: 'almoço',
+        type: 'expense',
+        from: expect.any(String),
+        to: expect.any(String),
+      }),
+    })
+    expect(store.setFilters).toHaveBeenLastCalledWith(
+      expect.objectContaining({ q: 'almoço', type: 'expense' }),
+    )
 
     await wrapper.get('[data-test="clear-filter"]').trigger('click')
     await flushPromises()
@@ -538,14 +561,14 @@ describe('TransactionsListView', () => {
     const wrapper = mount(TransactionsListView, { global: stubs() })
     await flushPromises()
 
-    const transferRow = wrapper.findAll('.el-table__row')[0].text()
+    const transferRow = wrapper.findAll('.history-item')[0].text()
     expect(transferRow).toContain('Transferência')
     expect(transferRow).toContain('Conta corrente → Poupança (arquivada)')
     expect(transferRow).not.toContain('+')
     expect(transferRow).not.toContain('−')
-    expect(wrapper.get('[data-test="transfer-history-no-category"]').text()).toBe('—')
+    expect(transferRow).not.toContain('Categoria')
     expect(wrapper.get('[data-test="transfer-history-amount"]').text()).toContain('2.500,00')
-    expect(wrapper.findAll('.el-table__row')[1].text()).toContain('Mercado')
+    expect(wrapper.findAll('.history-item')[1].text()).toContain('Mercado')
   })
 
   it('shows transaction amounts without repeating their income or expense type', async () => {
@@ -575,10 +598,12 @@ describe('TransactionsListView', () => {
     const indicator = wrapper.get('[data-test="transaction-recurrence-label"]')
     expect(indicator.find('svg').exists()).toBe(true)
     expect(indicator.attributes('aria-label')).toContain('#61')
-    expect(indicator.text()).toBe('')
+    expect(indicator.text()).not.toContain('#61')
   })
 
   it('reports income and expense totals that a transfer never changes', async () => {
+    store.filters = { view: 'active', per_page: 50, from: '2026-09-01', to: '2026-09-30' }
+    route.query = { from: '2026-09-01', to: '2026-09-30' }
     const totals = {
       income_centavos: 500_000,
       expense_centavos: 200_000,
@@ -622,5 +647,46 @@ describe('TransactionsListView', () => {
     expect(after.get('[data-test="history-total-result"]').text()).toBe(
       before.get('[data-test="history-total-result"]').text(),
     )
+  })
+
+  it('navigates across years with one date range for list and realized summary', async () => {
+    route.query = { from: '2026-12-01', to: '2026-12-31' }
+    store.filters = { view: 'active', per_page: 50, from: '2026-12-01', to: '2026-12-31' }
+    const wrapper = mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+
+    expect(wrapper.get('[data-test="transaction-month-label"]').text()).toContain(
+      'dezembro de 2026',
+    )
+    await wrapper.get('[data-test="transaction-month-next"]').trigger('click')
+    await flushPromises()
+
+    expect(routerReplace).toHaveBeenLastCalledWith({
+      query: expect.objectContaining({ from: '2027-01-01', to: '2027-01-31', page: 1 }),
+    })
+    expect(store.setFilters).toHaveBeenLastCalledWith(
+      expect.objectContaining({ from: '2027-01-01', to: '2027-01-31', page: 1 }),
+    )
+    expect(dashboardSummary).toHaveBeenLastCalledWith({
+      preset: 'custom',
+      from: '2027-01-01',
+      to: '2027-01-31',
+    })
+  })
+
+  it('marks a custom range and suppresses summary under non-date filters', async () => {
+    route.query = { from: '2026-09-10', to: '2026-09-20', q: 'almoço' }
+    store.filters = { view: 'active', per_page: 50, ...route.query }
+    const wrapper = mount(TransactionsListView, { global: stubs() })
+    await flushPromises()
+
+    expect(wrapper.get('[data-test="transaction-custom-period"]').text()).toContain('personalizado')
+    expect(wrapper.find('[data-test="history-totals"]').exists()).toBe(false)
+    expect(dashboardSummary).not.toHaveBeenCalled()
+    await wrapper.get('[data-test="transaction-month-previous"]').trigger('click')
+    await flushPromises()
+    expect(routerReplace).toHaveBeenLastCalledWith({
+      query: expect.objectContaining({ from: '2026-08-01', to: '2026-08-31' }),
+    })
   })
 })

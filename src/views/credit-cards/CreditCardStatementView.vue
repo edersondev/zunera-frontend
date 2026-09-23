@@ -7,6 +7,8 @@ import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import CreditCardStatementBreakdown from '@/components/credit-cards/CreditCardStatementBreakdown.vue'
 import CreditCardStatementCreditEvents from '@/components/credit-cards/CreditCardStatementCreditEvents.vue'
+import CreditCardCorrectionDialog from '@/components/credit-cards/CreditCardCorrectionDialog.vue'
+import CreditCardCreditEventDialog from '@/components/credit-cards/CreditCardCreditEventDialog.vue'
 import CreditCardStatementLineItems from '@/components/credit-cards/CreditCardStatementLineItems.vue'
 import CreditCardStatementPaymentDialog from '@/components/credit-cards/CreditCardStatementPaymentDialog.vue'
 import CreditCardStatementPayments from '@/components/credit-cards/CreditCardStatementPayments.vue'
@@ -24,6 +26,12 @@ const statement = computed(() => store.statement)
 const paymentDialogVisible = shallowRef(false)
 const editingPayment = shallowRef(null)
 const successMessage = shallowRef('')
+const actionMessage = shallowRef('')
+const correctionTarget = shallowRef(null)
+const creditEventTarget = shallowRef(null)
+const correctionVisible = shallowRef(false)
+const creditEventVisible = shallowRef(false)
+const loadingPurchaseId = shallowRef(null)
 const statementTitle = computed(() => {
   const month = formatStatementMonth(statement.value?.closing_date, locale.value)
 
@@ -86,6 +94,58 @@ async function restorePayment(payment) {
   const outcome = await store.restoreStatementPayment(payment.id)
   if (outcome.ok) successMessage.value = t('creditCards.payment.restored')
 }
+
+async function openPurchaseAction(installment, action) {
+  if (loadingPurchaseId.value !== null || store.submitting || !installment.purchase_id) return
+
+  successMessage.value = ''
+  actionMessage.value = ''
+  store.dismissMutationError()
+  loadingPurchaseId.value = installment.purchase_id
+
+  try {
+    const purchase = await store.fetchPurchase(installment.purchase_id)
+    if (!purchase || purchase.id !== installment.purchase_id) return
+
+    if (action === 'correct') {
+      if (!purchase.is_directly_editable) {
+        actionMessage.value = t('creditCards.statementDetail.correctionUnavailable')
+        return
+      }
+      correctionTarget.value = purchase
+      correctionVisible.value = true
+    } else {
+      creditEventTarget.value = purchase
+      creditEventVisible.value = true
+    }
+  } finally {
+    loadingPurchaseId.value = null
+  }
+}
+
+async function submitCorrection(payload) {
+  if (!correctionTarget.value) return
+
+  const outcome = await store.submitPurchaseCorrection(correctionTarget.value.id, payload)
+  if (!outcome.ok) return
+
+  correctionVisible.value = false
+  correctionTarget.value = null
+  successMessage.value = t('creditCards.correction.saved')
+  await store.fetchStatement(Number(props.statementId ?? route.params.statement_id))
+}
+
+async function submitCreditEvent(payload) {
+  if (!creditEventTarget.value) return
+
+  const outcome = await store.submitCreditEvent(creditEventTarget.value.id, payload)
+  if (!outcome.ok) return
+
+  creditEventVisible.value = false
+  creditEventTarget.value = null
+  successMessage.value = t('creditCards.creditEvent.saved')
+  await store.fetchStatement(Number(props.statementId ?? route.params.statement_id))
+}
 </script>
 
 <template>
@@ -121,6 +181,13 @@ async function restorePayment(payment) {
       :title="successMessage"
       data-test="credit-card-payment-success"
     />
+    <ElAlert
+      v-if="actionMessage"
+      type="warning"
+      :closable="false"
+      :title="actionMessage"
+      data-test="credit-card-statement-action-message"
+    />
     <ElSkeleton v-if="store.loading && !statement" :rows="6" animated />
 
     <div v-else-if="statement" class="statement-content">
@@ -129,6 +196,11 @@ async function restorePayment(payment) {
       <CreditCardStatementLineItems
         :installments="statement.installments"
         :statement-amount-centavos="statement.net_amount?.amount_centavos"
+        :card="statement.card"
+        :statement="statement"
+        :action-loading="loadingPurchaseId !== null || store.submitting"
+        @correct="openPurchaseAction($event, 'correct')"
+        @refund="openPurchaseAction($event, 'refund')"
       />
       <CreditCardStatementPayments
         :payments="activePayments"
@@ -147,6 +219,22 @@ async function restorePayment(payment) {
       :submitting="store.submitting"
       :mutation-error="store.mutationError"
       @submit="submitPayment"
+      @dismiss-mutation-error="store.dismissMutationError"
+    />
+    <CreditCardCorrectionDialog
+      v-model:visible="correctionVisible"
+      :purchase="correctionTarget"
+      :submitting="store.submitting"
+      :mutation-error="store.mutationError"
+      @submit="submitCorrection"
+      @dismiss-mutation-error="store.dismissMutationError"
+    />
+    <CreditCardCreditEventDialog
+      v-model:visible="creditEventVisible"
+      :purchase="creditEventTarget"
+      :submitting="store.submitting"
+      :mutation-error="store.mutationError"
+      @submit="submitCreditEvent"
       @dismiss-mutation-error="store.dismissMutationError"
     />
   </section>
