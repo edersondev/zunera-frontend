@@ -870,21 +870,23 @@ test('current month scopes activity and stays keyboard accessible at 320px', asy
   await expect(page.locator('[data-test="transaction-month-label"]')).toHaveText(
     monthLabel(current),
   )
-  await expect(list.getByText('Salário do mês')).toBeVisible()
-  await expect(list.getByText('Mercado do mês passado')).toHaveCount(0)
+  await expect(list.locator('.history-toggle').getByText('Salário do mês')).toBeVisible()
+  await expect(list.locator('.history-toggle').getByText('Mercado do mês passado')).toHaveCount(0)
   await expect(page.locator('[data-test="history-total-income"]')).toContainText('R$ 2.500,00')
 
   await page.locator('[data-test="transaction-month-previous"]').click()
   await expect(page.locator('[data-test="transaction-month-label"]')).toHaveText(
     monthLabel(previous),
   )
-  await expect(list.getByText('Mercado do mês passado')).toBeVisible()
+  await expect(list.locator('.history-toggle').getByText('Mercado do mês passado')).toBeVisible()
   await expect(page.locator('[data-test="history-total-expense"]')).toContainText('R$ 35,00')
   await expect(page).toHaveURL(new RegExp(`from=${monthBounds(previous).from}`))
 
   const nextButton = page.locator('[data-test="transaction-month-next"]')
   await nextButton.focus()
   await page.keyboard.press('Enter')
+  await expect(page.locator('[data-test="transaction-month-label"]')).toHaveText(monthLabel(current))
+  await nextButton.focus()
   await page.keyboard.press('Enter')
   await expect(page.locator('[data-test="transaction-month-label"]')).toHaveText(monthLabel(next))
   await expect(page.locator('[data-test="transaction-empty"]')).toBeVisible()
