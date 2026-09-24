@@ -15,6 +15,7 @@
   --color-action-primary-subtle: #ccfbf1;
   --color-on-primary: #ffffff;
   --color-success: #16a34a;
+  --color-on-success: #ffffff;
   --color-danger: #dc2626;
   --color-danger-hover: #b91c1c;
   --color-danger-active: #991b1b;
@@ -74,6 +75,12 @@
   --el-button-disabled-text-color: var(--color-on-primary);
 }
 
+.el-button--success {
+  --el-button-text-color: var(--color-on-success);
+  --el-button-hover-text-color: var(--color-on-success);
+  --el-button-disabled-text-color: var(--color-on-success);
+}
+
 .el-button--warning {
   --el-button-text-color: var(--color-on-warning);
   --el-button-hover-text-color: var(--color-on-warning);
@@ -104,6 +111,7 @@
     --color-action-primary-subtle: #134e4a;
     --color-on-primary: #042f2e;
     --color-success: #4ade80;
+    --color-on-success: #052e16;
     --color-danger: #f87171;
     --color-danger-hover: #fca5a5;
     --color-danger-active: #ef4444;

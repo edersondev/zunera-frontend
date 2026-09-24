@@ -29,6 +29,7 @@ function handleCommand(command) {
   <div v-if="inline" class="inline-actions" data-test="transaction-inline-actions" @click.stop>
     <ElButton
       size="small"
+      type="info"
       :icon="Edit"
       :disabled="saving"
       data-test="transaction-action-edit"
@@ -38,6 +39,7 @@ function handleCommand(command) {
     </ElButton>
     <ElButton
       size="small"
+      :type="nextStatus === 'pending' ? 'warning' : 'success'"
       :icon="nextStatusIcon"
       :disabled="saving"
       data-test="transaction-action-status"
