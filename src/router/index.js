@@ -73,14 +73,14 @@ const router = createRouter({
           path: 'credit-cards/:card_id',
           name: 'credit-card-detail',
           component: () => import('@/views/credit-cards/CreditCardDetailView.vue'),
-          props: true,
+          props: (route) => ({ cardId: route.params.card_id }),
           meta: { requiresAuth: true, titleKey: 'creditCards.detail.title' },
         },
         {
           path: 'credit-card-statements/:statement_id',
           name: 'credit-card-statement-detail',
           component: () => import('@/views/credit-cards/CreditCardStatementView.vue'),
-          props: true,
+          props: (route) => ({ statementId: route.params.statement_id }),
           meta: { requiresAuth: true, titleKey: 'creditCards.statementDetail.title' },
         },
         {
@@ -128,7 +128,8 @@ const router = createRouter({
         {
           path: 'recurring-transactions',
           name: 'recurring-transactions',
-          component: () => import('@/views/recurring-transactions/RecurringTransactionsListView.vue'),
+          component: () =>
+            import('@/views/recurring-transactions/RecurringTransactionsListView.vue'),
           meta: { requiresAuth: true, titleKey: 'recurringTransactions.title' },
         },
       ],
