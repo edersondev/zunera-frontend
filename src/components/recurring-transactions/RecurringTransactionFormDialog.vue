@@ -156,17 +156,22 @@ async function submit() {
     @closed="clearValidation"
   >
     <ElForm ref="formRef" :model="form" :rules="rules" label-position="top" data-test="recurrence-form" @submit.prevent="submit">
-      <ElFormItem :label="t('recurringTransactions.criteria.type')">
-        <ElRadioGroup v-model="form.type" data-test="recurrence-type" @change="onTypeChange">
-          <ElRadio value="expense">{{ t('transactions.expense') }}</ElRadio>
-          <ElRadio value="income">{{ t('transactions.income') }}</ElRadio>
-        </ElRadioGroup>
-      </ElFormItem>
-      <ElFormItem :label="t('recurringTransactions.destination')">
-        <ElRadioGroup v-model="form.destination_type" data-test="recurrence-destination-field" :disabled="Boolean(rule)" @change="onDestinationChange">
-          <ElRadio value="financial_account">{{ t('recurringTransactions.destinationOptions.financial_account') }}</ElRadio>
-          <ElRadio value="credit_card">{{ t('recurringTransactions.destinationOptions.credit_card') }}</ElRadio>
-        </ElRadioGroup>
+      <div class="grid grid-cols-1 gap-x-4 lg:grid-cols-2">
+        <ElFormItem :label="t('recurringTransactions.criteria.type')">
+          <ElRadioGroup v-model="form.type" data-test="recurrence-type" @change="onTypeChange">
+            <ElRadio value="expense">{{ t('transactions.expense') }}</ElRadio>
+            <ElRadio value="income">{{ t('transactions.income') }}</ElRadio>
+          </ElRadioGroup>
+        </ElFormItem>
+        <ElFormItem :label="t('recurringTransactions.destination')">
+          <ElRadioGroup v-model="form.destination_type" data-test="recurrence-destination-field" :disabled="Boolean(rule)" @change="onDestinationChange">
+            <ElRadio value="financial_account">{{ t('recurringTransactions.destinationOptions.financial_account') }}</ElRadio>
+            <ElRadio value="credit_card">{{ t('recurringTransactions.destinationOptions.credit_card') }}</ElRadio>
+          </ElRadioGroup>
+        </ElFormItem>
+      </div>
+      <ElFormItem :label="t('recurringTransactions.descriptionField')" :error="errors.description?.[0]">
+        <ElInput v-model="form.description" maxlength="200" data-test="recurrence-description" />
       </ElFormItem>
       <div class="form-grid">
         <ElFormItem v-if="form.destination_type === 'financial_account'" :label="t('recurringTransactions.account')" prop="financial_account_id" required :error="errors.financial_account_id?.[0]">
@@ -214,9 +219,6 @@ async function submit() {
           <ElDatePicker v-model="form.end_date" type="date" value-format="YYYY-MM-DD" clearable data-test="recurrence-end" />
         </ElFormItem>
       </div>
-      <ElFormItem :label="t('recurringTransactions.descriptionField')" :error="errors.description?.[0]">
-        <ElInput v-model="form.description" maxlength="200" data-test="recurrence-description" />
-      </ElFormItem>
       <ElFormItem :label="t('recurringTransactions.notes')" :error="errors.notes?.[0]">
         <ElInput v-model="form.notes" type="textarea" maxlength="1000" data-test="recurrence-notes" />
       </ElFormItem>
