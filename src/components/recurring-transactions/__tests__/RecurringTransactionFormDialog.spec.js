@@ -93,14 +93,17 @@ describe('RecurringTransactionFormDialog', () => {
     expect(save.find('svg').exists()).toBe(true)
   })
 
-  it('clears client validation when the dialog closes', async () => {
+  it('clears validation and entered values when the dialog closes', async () => {
     const wrapper = factory()
     await nextTick()
+    await wrapper.get('[data-test="recurrence-description"]').setValue('Rascunho')
     clearValidate.mockClear()
 
     await wrapper.get('[data-test="dialog-closed"]').trigger('click')
+    await nextTick()
 
     expect(clearValidate).toHaveBeenCalledOnce()
+    expect(wrapper.get('[data-test="recurrence-description"]').element.value).toBe('')
   })
 
   it('clears client validation when the dialog opens again', async () => {

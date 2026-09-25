@@ -410,12 +410,20 @@ test('create form keeps invalid recurrence local and explains required active as
   await signIn(page)
 
   await page.locator('[data-test="recurrence-new"]').click()
+  await page.locator('[data-test="recurrence-description"]').fill('Rascunho')
   await page.locator('[data-test="recurrence-save"]').click()
 
   await expect(page.locator('[data-test="recurrence-form"]')).toBeVisible()
   await expect(page.getByText('Selecione uma conta ativa.')).toBeVisible()
   await expect(page.getByText('Selecione uma categoria compatível.')).toBeVisible()
   await expect(page.locator('.el-table__row')).toHaveCount(0)
+
+  await page.locator('[data-test="recurrence-cancel"]').click()
+  await expect(page.locator('[data-test="recurrence-form"]')).toBeHidden()
+  await page.locator('[data-test="recurrence-new"]').click()
+  await expect(page.locator('[data-test="recurrence-description"]')).toHaveValue('')
+  await expect(page.getByText('Selecione uma conta ativa.')).toHaveCount(0)
+  await expect(page.getByText('Selecione uma categoria compatível.')).toHaveCount(0)
 })
 
 test('owner filters recurrences and clears the criteria back to the full list', async ({ page }) => {

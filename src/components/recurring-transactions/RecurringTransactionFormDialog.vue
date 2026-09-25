@@ -71,6 +71,15 @@ function clearValidation() {
   formRef.value?.clearValidate?.()
 }
 
+async function resetFormAfterClose() {
+  const initial = blank()
+  Object.assign(form, initial)
+  original.value = { ...initial }
+
+  await nextTick()
+  clearValidation()
+}
+
 watch(
   () => [props.modelValue, props.rule],
   async () => {
@@ -153,7 +162,7 @@ async function submit() {
     width="min(92vw, 640px)"
     :close-on-click-modal="!saving"
     @update:model-value="emit('update:modelValue', $event)"
-    @closed="clearValidation"
+    @closed="resetFormAfterClose"
   >
     <ElForm ref="formRef" :model="form" :rules="rules" label-position="top" data-test="recurrence-form" @submit.prevent="submit">
       <div class="grid grid-cols-1 gap-x-4 lg:grid-cols-2">
