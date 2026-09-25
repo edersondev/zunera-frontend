@@ -41,15 +41,17 @@ describe('RecurringTransactionFilterBar', () => {
     const selects = wrapper.findAll('select')
 
     await selects[0].setValue('expense')
-    await selects[1].setValue('1')
-    await selects[2].setValue('10')
-    await selects[3].setValue('monthly')
-    await selects[4].setValue('active')
+    await selects[1].setValue('financial_account')
+    await selects[2].setValue('1')
+    await selects[4].setValue('10')
+    await selects[5].setValue('monthly')
+    await selects[6].setValue('active')
     await wrapper.findAll('button').at(-1).trigger('click')
 
     expect(wrapper.emitted('apply')[0][0]).toEqual({
       per_page: 50,
       type: 'expense',
+      destination_type: 'financial_account',
       financial_account_id: '1',
       category_id: '10',
       frequency: 'monthly',
@@ -62,7 +64,7 @@ describe('RecurringTransactionFilterBar', () => {
     await wrapper.setProps({ filters: { per_page: 50, frequency: 'yearly' } })
     await nextTick()
 
-    expect(wrapper.findAll('select')[3].element.value).toBe('yearly')
+    expect(wrapper.findAll('select')[5].element.value).toBe('yearly')
     await wrapper.findAll('button').at(0).trigger('click')
     expect(wrapper.emitted('clear')).toHaveLength(1)
   })

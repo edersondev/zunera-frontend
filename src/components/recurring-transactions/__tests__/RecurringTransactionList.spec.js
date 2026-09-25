@@ -47,7 +47,7 @@ describe('RecurringTransactionList', () => {
 
     const text = wrapper.text()
     expect(text).toContain('Aluguel')
-    expect(wrapper.find('[data-test="recurrence-account"]').text()).toBe('Conta')
+    expect(wrapper.find('[data-test="recurrence-destination"]').text()).toBe('Conta')
     expect(wrapper.find('[data-test="recurrence-category"]').text()).toBe('Moradia')
     expect(text).toContain('Ativa')
     expect(text).toMatch(/05\/10\/2026/)
@@ -60,7 +60,7 @@ describe('RecurringTransactionList', () => {
 
     expect(wrapper.findAll('thead th').map((header) => header.text().trim())).toEqual([
       'Descrição',
-      'Conta',
+      'Destino',
       'Categoria',
       'Frequência',
       'Próxima',
@@ -68,6 +68,18 @@ describe('RecurringTransactionList', () => {
       'Valor',
       '',
     ])
+  })
+
+  it('shows card identity for a credit-card destination', async () => {
+    const wrapper = await factory([
+      rule({
+        destination_type: 'credit_card',
+        financial_account: null,
+        credit_card: { id: 3, name: 'Nubank', institution_name: 'Nubank', last_four: '3450', status: 'active' },
+      }),
+    ])
+
+    expect(wrapper.find('[data-test="recurrence-destination"]').text()).toBe('Nubank •••• 3450')
   })
 
   it('uses a plus sign for income amounts', async () => {

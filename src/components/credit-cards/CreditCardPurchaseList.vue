@@ -23,7 +23,7 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['correct', 'refund'])
+const emit = defineEmits(['correct', 'refund', 'navigate-source'])
 const { t } = useI18n()
 
 function handleCommand(purchase, command) {
@@ -54,7 +54,18 @@ function handleCommand(purchase, command) {
           class="purchase-row"
           :data-test="`credit-card-purchase-${purchase.id}`"
         >
-          <span class="purchase-description">{{ purchase.description }}</span>
+          <span class="purchase-description">
+            {{ purchase.description }}
+            <button
+              v-if="purchase.recurrence_source"
+              type="button"
+              class="purchase-source"
+              :data-test="`credit-card-purchase-source-${purchase.id}`"
+              @click.stop="emit('navigate-source', purchase)"
+            >
+              {{ t('creditCards.purchase.recurrenceSource') }} · {{ formatIsoDate(purchase.recurrence_source.scheduled_date, props.locale) }}
+            </button>
+          </span>
           <span class="purchase-meta">
             <span class="purchase-date">{{ formatIsoDate(purchase.purchase_date, props.locale) }}</span>
             <span class="purchase-installments">{{ installmentLabel(purchase.installments[0]?.sequence, purchase.installment_count) }}</span>
@@ -177,6 +188,20 @@ function handleCommand(purchase, command) {
   font-size: 14px;
   font-weight: 600;
   line-height: 20px;
+}
+
+.purchase-source {
+  display: block;
+  margin-top: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-primary, var(--el-color-primary));
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  text-align: left;
 }
 
 .purchase-date,

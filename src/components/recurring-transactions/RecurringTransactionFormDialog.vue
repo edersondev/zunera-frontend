@@ -3,12 +3,14 @@ import { computed, nextTick, reactive, shallowRef, watch } from 'vue'
 import { Check, Close } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import CurrencyAmountInput from '@/components/common/CurrencyAmountInput.vue'
+import { cardIdentityLabel } from '@/utils/credit-cards/creditCardFormatters'
 import { frequencyLabel, frequencyOptions } from '@/utils/recurring-transactions/recurringTransactionFormatters'
 
 const props = defineProps({
   modelValue: Boolean,
   rule: { type: Object, default: null },
   accounts: { type: Array, required: true },
+  cards: { type: Array, default: () => [] },
   categories: { type: Array, required: true },
   saving: Boolean,
   errors: { type: Object, default: () => ({}) },
@@ -22,6 +24,7 @@ const title = computed(() =>
   props.rule ? t('recurringTransactions.editDialog') : t('recurringTransactions.newDialog'),
 )
 const activeAccounts = computed(() => props.accounts.filter((account) => account.status === 'active'))
+const activeCards = computed(() => props.cards.filter((card) => card.status === 'active'))
 const categoryOptions = computed(() =>
   props.categories.filter(
     (category) => category.status === 'active' && category.classification === form.type,
@@ -29,7 +32,18 @@ const categoryOptions = computed(() =>
 )
 const rules = computed(() => ({
   financial_account_id: [
-    { required: true, message: t('recurringTransactions.accountRequired'), trigger: 'change' },
+    {
+      required: form.destination_type === 'financial_account',
+      message: t('recurringTransactions.accountRequired'),
+      trigger: 'change',
+    },
+  ],
+  credit_card_id: [
+    {
+      required: form.destination_type === 'credit_card',
+      message: t('recurringTransactions.cardRequired'),
+      trigger: 'change',
+    },
   ],
   category_id: [
     { required: true, message: t('recurringTransactions.categoryRequired'), trigger: 'change' },
@@ -39,7 +53,10 @@ const rules = computed(() => ({
 function blank() {
   return {
     type: 'expense',
+    destination_type: 'financial_account',
     financial_account_id: null,
+    credit_card_id: null,
+    generation_mode: 'automatic',
     category_id: null,
     amount_centavos: null,
     frequency: 'monthly',
@@ -61,7 +78,10 @@ watch(
     const initial = props.rule
       ? {
           type: props.rule.type,
+          destination_type: props.rule.destination_type ?? 'financial_account',
           financial_account_id: props.rule.financial_account?.id ?? null,
+          credit_card_id: props.rule.credit_card?.id ?? null,
+          generation_mode: props.rule.generation_mode ?? 'automatic',
           category_id: props.rule.category?.id ?? null,
           amount_centavos: props.rule.amount_centavos,
           frequency: props.rule.frequency,
@@ -86,6 +106,11 @@ function onTypeChange() {
   if (!match) form.category_id = null
 }
 
+function onDestinationChange() {
+  if (form.destination_type === 'credit_card') form.financial_account_id = null
+  else form.credit_card_id = null
+}
+
 async function submit() {
   if (props.saving) return
   if (formRef.value?.validate) {
@@ -94,7 +119,10 @@ async function submit() {
   }
 
   const payload = {
-    financial_account_id: form.financial_account_id,
+    destination_type: form.destination_type,
+    financial_account_id: form.destination_type === 'financial_account' ? form.financial_account_id : undefined,
+    credit_card_id: form.destination_type === 'credit_card' ? form.credit_card_id : undefined,
+    generation_mode: form.destination_type === 'credit_card' ? form.generation_mode : undefined,
     category_id: form.category_id,
     type: form.type,
     amount_centavos: Number(form.amount_centavos),
@@ -134,10 +162,21 @@ async function submit() {
           <ElRadio value="income">{{ t('transactions.income') }}</ElRadio>
         </ElRadioGroup>
       </ElFormItem>
+      <ElFormItem :label="t('recurringTransactions.destination')">
+        <ElRadioGroup v-model="form.destination_type" data-test="recurrence-destination-field" :disabled="Boolean(rule)" @change="onDestinationChange">
+          <ElRadio value="financial_account">{{ t('recurringTransactions.destinationOptions.financial_account') }}</ElRadio>
+          <ElRadio value="credit_card">{{ t('recurringTransactions.destinationOptions.credit_card') }}</ElRadio>
+        </ElRadioGroup>
+      </ElFormItem>
       <div class="form-grid">
-        <ElFormItem :label="t('recurringTransactions.account')" prop="financial_account_id" required :error="errors.financial_account_id?.[0]">
+        <ElFormItem v-if="form.destination_type === 'financial_account'" :label="t('recurringTransactions.account')" prop="financial_account_id" required :error="errors.financial_account_id?.[0]">
           <ElSelect v-model="form.financial_account_id" data-test="recurrence-account">
             <ElOption v-for="account in activeAccounts" :key="account.id" :label="account.name" :value="account.id" />
+          </ElSelect>
+        </ElFormItem>
+        <ElFormItem v-else :label="t('recurringTransactions.creditCard')" prop="credit_card_id" required :error="errors.credit_card_id?.[0]">
+          <ElSelect v-model="form.credit_card_id" data-test="recurrence-card">
+            <ElOption v-for="card in activeCards" :key="card.id" :label="cardIdentityLabel(card)" :value="card.id" />
           </ElSelect>
         </ElFormItem>
         <ElFormItem :label="t('recurringTransactions.category')" prop="category_id" required :error="errors.category_id?.[0]">
@@ -146,6 +185,12 @@ async function submit() {
           </ElSelect>
         </ElFormItem>
       </div>
+      <ElFormItem v-if="form.destination_type === 'credit_card'" :label="t('recurringTransactions.generationMode')">
+        <ElRadioGroup v-model="form.generation_mode" data-test="recurrence-generation-mode">
+          <ElRadio value="automatic">{{ t('recurringTransactions.generationModeOptions.automatic') }}</ElRadio>
+          <ElRadio value="confirmation">{{ t('recurringTransactions.generationModeOptions.confirmation') }}</ElRadio>
+        </ElRadioGroup>
+      </ElFormItem>
       <div class="form-grid">
         <ElFormItem :label="t('recurringTransactions.amount')" :error="errors.amount_centavos?.[0]">
           <CurrencyAmountInput v-model="form.amount_centavos" data-test="recurrence-amount" />

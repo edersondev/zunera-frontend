@@ -19,6 +19,8 @@ export default defineConfig([
     '**/dist-ssr/**',
     '**/build/**',
     '**/coverage/**',
+    '**/playwright-report/**',
+    '**/test-results/**',
     '**/*.min.js',
   ]),
 

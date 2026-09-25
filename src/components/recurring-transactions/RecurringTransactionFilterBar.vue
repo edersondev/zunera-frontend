@@ -2,11 +2,13 @@
 import { computed, reactive, shallowRef, watch } from 'vue'
 import { Filter, RefreshLeft } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
+import { cardIdentityLabel } from '@/utils/credit-cards/creditCardFormatters'
 import { frequencyOptions, stateOptions } from '@/utils/recurring-transactions/recurringTransactionFormatters'
 
 const props = defineProps({
   filters: { type: Object, required: true },
   accounts: { type: Array, required: true },
+  cards: { type: Array, default: () => [] },
   categories: { type: Array, required: true },
 })
 const emit = defineEmits(['apply', 'clear'])
@@ -16,6 +18,10 @@ const activePanels = shallowRef([])
 const typeOptions = computed(() => [
   { value: 'income', label: t('transactions.income') },
   { value: 'expense', label: t('transactions.expense') },
+])
+const destinationOptions = computed(() => [
+  { value: 'financial_account', label: t('recurringTransactions.destinationOptions.financial_account') },
+  { value: 'credit_card', label: t('recurringTransactions.destinationOptions.credit_card') },
 ])
 
 watch(
@@ -50,9 +56,19 @@ function clear() {
               <ElOption v-for="option in typeOptions" :key="option.value" :label="option.label" :value="option.value" />
             </ElSelect>
           </ElFormItem>
+          <ElFormItem :label="t('recurringTransactions.destination')">
+            <ElSelect v-model="form.destination_type" clearable data-test="recurrence-filter-destination">
+              <ElOption v-for="option in destinationOptions" :key="option.value" :label="option.label" :value="option.value" />
+            </ElSelect>
+          </ElFormItem>
           <ElFormItem :label="t('recurringTransactions.criteria.financial_account_id')">
             <ElSelect v-model="form.financial_account_id" clearable data-test="recurrence-filter-account">
               <ElOption v-for="account in accounts" :key="account.id" :label="account.name" :value="account.id" />
+            </ElSelect>
+          </ElFormItem>
+          <ElFormItem :label="t('recurringTransactions.creditCard')">
+            <ElSelect v-model="form.credit_card_id" clearable data-test="recurrence-filter-card">
+              <ElOption v-for="card in cards" :key="card.id" :label="cardIdentityLabel(card)" :value="card.id" />
             </ElSelect>
           </ElFormItem>
           <ElFormItem :label="t('recurringTransactions.criteria.category_id')">

@@ -77,6 +77,25 @@ describe('RecentActivityCard', () => {
     )
   })
 
+  it('labels a recorded card purchase and links its recurrence source', () => {
+    const wrapper = mountCard({ items: [{
+      id: 7,
+      movement_kind: 'credit_card_expense',
+      movement_date: '2026-09-01',
+      amount: { amount_centavos: 15_000, currency_code: 'BRL' },
+      status: 'effective',
+      description: 'Academia',
+      credit_card: { id: 3, name: 'Nubank', institution_name: 'Nubank', last_four: '3450', status: 'active' },
+      category: { id: 8, name: 'Academia' },
+      recurrence_source: { id: 12, scheduled_date: '2026-09-01' },
+    }] })
+
+    expect(wrapper.get('[data-test="dashboard-recent-row"]').text()).toContain('Compra no cartão')
+    expect(wrapper.get('[data-test="dashboard-recent-account"]').text()).toContain('Nubank •••• 3450')
+    expect(wrapper.get('[data-test="dashboard-recent-amount"]').classes()).toContain('financial-negative')
+    expect(wrapper.get('[data-test="dashboard-recent-recurrence"]').attributes('href')).toContain('"highlight":12')
+  })
+
   it('asks the backend for at most ten movements instead of trimming silently', () => {
     const items = Array.from({ length: 10 }, (_, index) => ({
       ...dashboardRecentActivityFixture()[0],

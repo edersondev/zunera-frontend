@@ -135,7 +135,12 @@ test('owner records installment spending and confirms an over-limit purchase wit
   await expect(dialog.locator('[data-test="credit-card-purchase-result"]')).toContainText('Closes 25/09/2026')
   expect(requests[0].payload).toMatchObject({ installment_count: 3, total_amount_centavos: 10_000 })
 
+  await expect(page.locator('[data-test="credit-card-purchase-301"]')).toBeVisible()
+  await page.getByRole('button', { name: 'New purchase' }).click()
+  await chooseOption(page, dialog.locator('[data-test="credit-card-purchase-category"]'), 'Groceries')
   await dialog.getByLabel('Description').fill('Above limit')
+  await dialog.getByLabel('Total amount').pressSequentially('10000')
+  await dialog.getByLabel('Installments').fill('1')
   await dialog.getByRole('button', { name: 'Save' }).click()
   await expect(dialog.locator('[data-test="credit-card-purchase-over-limit"]')).toContainText('-')
   await dialog.getByRole('button', { name: 'Confirm over-limit purchase' }).click()
@@ -396,8 +401,8 @@ test('history identifies recognized card spending and recurring rules guide manu
   await expect(page.locator('[data-test="transaction-history-amount"]')).toContainText('123,45')
 
   await page.goto('/app/recurring-transactions')
-  await expect(page.locator('[data-test="credit-card-recurring-unsupported"]')).toContainText('Recurring transactions do not use credit cards')
-  await expect(page.locator('[data-test="credit-card-recurring-unsupported"]')).toContainText('Record the card purchase manually')
+  await expect(page.locator('[data-test="credit-card-recurring-guidance"]')).toContainText('Recurring credit-card purchases')
+  await expect(page.locator('[data-test="credit-card-recurring-guidance"]')).toContainText('Each scheduled date becomes one card purchase')
 })
 
 test('dashboard separates card obligations from cash and stays usable by keyboard on a narrow dark screen', async ({ page }) => {
@@ -429,10 +434,10 @@ test('dashboard separates card obligations from cash and stays usable by keyboar
 
   const summary = page.locator('[data-test="dashboard-credit-cards"]')
   await expect(summary).toBeVisible()
-  await expect(summary.locator('[data-test="dashboard-credit-cards-outstanding"]')).toContainText('123,45')
-  await expect(summary.locator('[data-test="dashboard-credit-cards-available"]')).toContainText('4.876,55')
+  await expect(summary.locator('[data-test="dashboard-credit-cards-outstanding"]')).toContainText('123.45')
+  await expect(summary.locator('[data-test="dashboard-credit-cards-available"]')).toContainText('4,876.55')
   await expect(summary).toContainText('separate from account balances')
-  await expect(summary.locator('[data-test="dashboard-credit-card-statement-72"]')).toContainText('123,45')
+  await expect(summary.locator('[data-test="dashboard-credit-card-statement-72"]')).toContainText('123.45')
 
   const manage = summary.locator('[data-test="dashboard-credit-cards-link"]')
   await expect(manage).toHaveAccessibleName('Manage cards')

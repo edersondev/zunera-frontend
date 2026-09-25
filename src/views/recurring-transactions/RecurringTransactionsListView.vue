@@ -7,15 +7,18 @@ import PageHeader from '@/components/layout/PageHeader.vue'
 import RecurringTransactionDetailDrawer from '@/components/recurring-transactions/RecurringTransactionDetailDrawer.vue'
 import RecurringTransactionFilterBar from '@/components/recurring-transactions/RecurringTransactionFilterBar.vue'
 import RecurringTransactionFormDialog from '@/components/recurring-transactions/RecurringTransactionFormDialog.vue'
+import RecurringCardOccurrenceDialog from '@/components/recurring-transactions/RecurringCardOccurrenceDialog.vue'
 import RecurringTransactionLifecycleDialog from '@/components/recurring-transactions/RecurringTransactionLifecycleDialog.vue'
 import RecurringTransactionList from '@/components/recurring-transactions/RecurringTransactionList.vue'
 import { useCategoryStore } from '@/stores/categories/categoryStore'
+import { useCreditCardStore } from '@/stores/credit-cards/creditCardStore'
 import { useFinancialAccountStore } from '@/stores/financial-accounts/financialAccountStore'
 import { useRecurringTransactionStore } from '@/stores/recurring-transactions/recurringTransactionStore'
 
 const store = useRecurringTransactionStore()
 const accounts = useFinancialAccountStore()
 const categories = useCategoryStore()
+const cards = useCreditCardStore()
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
@@ -25,6 +28,8 @@ const detailOpen = shallowRef(false)
 const lifecycleOpen = shallowRef(false)
 const lifecycleAction = shallowRef('pause')
 const lifecycleRule = shallowRef(null)
+const occurrenceOpen = shallowRef(false)
+const selectedOccurrence = shallowRef(null)
 
 const criteriaLabels = computed(() => ({
   type: t('recurringTransactions.criteria.type'),
@@ -46,6 +51,10 @@ const categoryOptions = computed(() => [
   ...(categories.categories ?? []),
   ...(categories.archivedCategories ?? []),
 ])
+const cardOptions = computed(() => [
+  ...(cards.cards ?? []),
+  ...(cards.archivedCards ?? []),
+])
 const lifecycleError = computed(() => store.error?.message ?? '')
 
 onMounted(async () => {
@@ -57,6 +66,7 @@ onMounted(async () => {
       store.setFilters(query),
       accounts.fetchAccounts(),
       categories.fetchCategories(),
+      cards.fetchCards(),
     ])
 
     const ruleId = Number(highlight)
@@ -83,6 +93,8 @@ async function clearFilters() {
     per_page: 50,
     type: undefined,
     financial_account_id: undefined,
+    destination_type: undefined,
+    credit_card_id: undefined,
     category_id: undefined,
     frequency: undefined,
     state: undefined,
@@ -146,8 +158,49 @@ async function runLifecycle() {
 }
 
 async function openOccurrence(occurrence) {
+  if (occurrence.state) {
+    selectedOccurrence.value = occurrence
+    store.clearFeedback()
+    occurrenceOpen.value = true
+
+    return
+  }
   detailOpen.value = false
   await router.push({ name: 'transactions', query: { highlight: occurrence.id } })
+}
+
+async function confirmOccurrence(payload) {
+  try {
+    const result = await store.confirmOccurrence(store.selected.id, selectedOccurrence.value.id, payload)
+    selectedOccurrence.value = result
+    occurrenceOpen.value = result.state !== 'recorded' && result.state !== 'dismissed'
+    await store.select(store.selected.id)
+  } catch {
+    if (['OVER_LIMIT_CONFIRMATION_REQUIRED', 'stale_over_limit_confirmation'].includes(store.error?.code)) {
+      await cards.fetchCards()
+    }
+  }
+}
+
+async function dismissOccurrence() {
+  try {
+    await store.dismissOccurrence(store.selected.id, selectedOccurrence.value.id)
+    occurrenceOpen.value = false
+    await store.select(store.selected.id)
+  } catch {
+    /* Feedback comes from the store error state. */
+  }
+}
+
+async function retryOccurrence() {
+  try {
+    const result = await store.retryOccurrence(store.selected.id, selectedOccurrence.value.id)
+    selectedOccurrence.value = result
+    occurrenceOpen.value = result.state !== 'recorded' && result.state !== 'dismissed'
+    await store.select(store.selected.id)
+  } catch {
+    /* Feedback comes from the store error state. */
+  }
 }
 </script>
 
@@ -165,9 +218,9 @@ async function openOccurrence(occurrence) {
       type="info"
       :closable="false"
       show-icon
-      :title="t('creditCards.recurringUnsupported.title')"
-      :description="t('creditCards.recurringUnsupported.description')"
-      data-test="credit-card-recurring-unsupported"
+      :title="t('creditCards.recurringGuidance.title')"
+      :description="t('creditCards.recurringGuidance.description')"
+      data-test="credit-card-recurring-guidance"
     />
 
     <ElAlert v-if="store.notice" type="success" :closable="false" show-icon :title="t(store.notice)" data-test="recurrence-notice" />
@@ -180,6 +233,7 @@ async function openOccurrence(occurrence) {
     <RecurringTransactionFilterBar
       :filters="store.filters"
       :accounts="accountOptions"
+      :cards="cardOptions"
       :categories="categoryOptions"
       @apply="applyFilters"
       @clear="clearFilters"
@@ -202,6 +256,7 @@ async function openOccurrence(occurrence) {
       :model-value="dialog"
       :rule="editing"
       :accounts="accountOptions"
+      :cards="cardOptions"
       :categories="categoryOptions"
       :saving="store.saving"
       :errors="store.validationErrors"
@@ -222,6 +277,19 @@ async function openOccurrence(occurrence) {
       :occurrences="store.occurrences"
       :loading-occurrences="store.loadingOccurrences"
       @open-occurrence="openOccurrence"
+    />
+    <RecurringCardOccurrenceDialog
+      v-model="occurrenceOpen"
+      :rule="store.selected"
+      :occurrence="selectedOccurrence"
+      :cards="cardOptions"
+      :categories="categoryOptions"
+      :saving="store.saving"
+      :error="store.error"
+      :errors="store.validationErrors"
+      @confirm="confirmOccurrence"
+      @dismiss="dismissOccurrence"
+      @retry="retryOccurrence"
     />
   </section>
 </template>

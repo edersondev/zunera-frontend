@@ -32,6 +32,14 @@ const creditEventTarget = shallowRef(null)
 const correctionVisible = shallowRef(false)
 const creditEventVisible = shallowRef(false)
 const loadingPurchaseId = shallowRef(null)
+
+function openRecurrenceSource(installment) {
+  const source = installment?.recurrence_source
+  if (!source?.recurring_transaction_id) return
+
+  router.push({ name: 'recurring-transactions', query: { highlight: source.recurring_transaction_id } })
+}
+
 const statementTitle = computed(() => {
   const month = formatStatementMonth(statement.value?.closing_date, locale.value)
 
@@ -201,6 +209,7 @@ async function submitCreditEvent(payload) {
         :action-loading="loadingPurchaseId !== null || store.submitting"
         @correct="openPurchaseAction($event, 'correct')"
         @refund="openPurchaseAction($event, 'refund')"
+        @navigate-source="openRecurrenceSource"
       />
       <CreditCardStatementPayments
         :payments="activePayments"

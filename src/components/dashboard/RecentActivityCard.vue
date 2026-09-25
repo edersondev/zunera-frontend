@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { cardIdentityLabel } from '@/utils/credit-cards/creditCardFormatters'
 import {
   formatDashboardCurrency,
   formatDashboardDate,
@@ -42,6 +43,10 @@ function statusLabel(status) {
 function accountLabel(movement) {
   if (movement.movement_kind === 'transfer') {
     return `${movement.source_account?.name ?? '—'} → ${movement.destination_account?.name ?? '—'}`
+  }
+
+  if (movement.movement_kind === 'credit_card_expense') {
+    return cardIdentityLabel(movement.credit_card)
   }
 
   return movement.account?.name ?? '—'
@@ -111,13 +116,14 @@ function amountLabel(movement) {
           <span class="field-label">{{ t('dashboard.recent.description') }}</span>
           <span class="movement-kind">{{ movementKindLabel(movement.movement_kind) }}</span>
           <span data-test="dashboard-recent-description">{{ movement.description || '—' }}</span>
-          <span
+          <RouterLink
             v-if="movement.recurrence_source"
             class="recurrence-source"
+            :to="{ name: 'recurring-transactions', query: { highlight: movement.recurrence_source.id } }"
             data-test="dashboard-recent-recurrence"
           >
             {{ t('dashboard.recent.recurrenceSource', { id: movement.recurrence_source.id }) }}
-          </span>
+          </RouterLink>
         </div>
         <div class="activity-field">
           <span class="field-label">{{ t('dashboard.recent.category') }}</span>
@@ -131,7 +137,7 @@ function amountLabel(movement) {
           class="activity-field amount-cell"
           :class="{
             'financial-positive': movement.movement_kind === 'income',
-            'financial-negative': movement.movement_kind === 'expense',
+            'financial-negative': ['expense', 'credit_card_expense'].includes(movement.movement_kind),
           }"
           data-test="dashboard-recent-amount"
         >
@@ -247,6 +253,10 @@ function amountLabel(movement) {
 .history-link {
   color: var(--color-action-primary);
   font-weight: 600;
+}
+
+.recurrence-source {
+  color: var(--color-action-primary);
 }
 
 @media (min-width: 960px) {

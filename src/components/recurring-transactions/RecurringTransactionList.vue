@@ -1,5 +1,6 @@
 <script setup>
 import { useI18n } from 'vue-i18n'
+import { cardIdentityLabel } from '@/utils/credit-cards/creditCardFormatters'
 import {
   formatRecurrenceAmount,
   frequencyLabel,
@@ -31,9 +32,9 @@ const { t } = useI18n()
           <strong>{{ row.description }}</strong>
         </template>
       </ElTableColumn>
-      <ElTableColumn :label="t('recurringTransactions.account')" min-width="150">
+      <ElTableColumn :label="t('recurringTransactions.destination')" min-width="150">
         <template #default="{ row }">
-          <span data-test="recurrence-account">{{ row.financial_account?.name }}</span>
+          <span data-test="recurrence-destination">{{ row.destination_type === 'credit_card' ? cardIdentityLabel(row.credit_card) : row.financial_account?.name }}</span>
         </template>
       </ElTableColumn>
       <ElTableColumn :label="t('recurringTransactions.category')" min-width="150">

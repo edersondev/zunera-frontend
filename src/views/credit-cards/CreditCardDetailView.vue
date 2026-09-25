@@ -33,6 +33,13 @@ const creditEventTarget = shallowRef(null)
 const correctionVisible = shallowRef(false)
 const creditEventVisible = shallowRef(false)
 
+function openRecurrenceSource(purchase) {
+  const source = purchase?.recurrence_source
+  if (!source?.recurring_transaction_id) return
+
+  router.push({ name: 'recurring-transactions', query: { highlight: source.recurring_transaction_id } })
+}
+
 onMounted(async () => {
   const id = Number(props.cardId ?? route.params.card_id)
   await store.fetchCard(id)
@@ -179,6 +186,7 @@ function openStatement(statement) {
         :loading="store.submitting"
         @correct="openCorrection"
         @refund="openCreditEvent"
+        @navigate-source="openRecurrenceSource"
       />
     </template>
 

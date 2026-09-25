@@ -1,12 +1,15 @@
 import { computed, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
 import {
+  confirmCardOccurrence,
   createRecurringTransaction,
+  dismissCardOccurrence,
   endRecurringTransaction,
   getRecurringTransaction,
   listRecurringTransactionOccurrences,
   listRecurringTransactions,
   pauseRecurringTransaction,
+  retryCardOccurrence,
   resumeRecurringTransaction,
   updateRecurringTransaction,
 } from '@/services/recurringTransactionService'
@@ -98,6 +101,38 @@ export const useRecurringTransactionStore = defineStore('recurring-transactions'
     }
   }
 
+  async function runOccurrenceAction(ruleId, occurrenceId, operation, action) {
+    const actionId = `${ruleId}:${occurrenceId}`
+    saving.value = true
+    error.value = null
+    validationErrors.value = {}
+
+    try {
+      const result = await action(keyFor(operation, actionId))
+      clearRetryKey(operation, actionId)
+      await fetchOccurrences(ruleId)
+
+      return result.occurrence
+    } catch (value) {
+      if (value?.status === 409 || value?.status === 422) clearRetryKey(operation, actionId)
+      applyError(value)
+      throw value
+    } finally {
+      saving.value = false
+    }
+  }
+
+  const confirmOccurrence = (ruleId, occurrenceId, payload) =>
+    runOccurrenceAction(ruleId, occurrenceId, `confirm:${JSON.stringify(payload ?? {})}`, (key) =>
+      confirmCardOccurrence(ruleId, occurrenceId, payload, key))
+
+  const dismissOccurrence = (ruleId, occurrenceId) =>
+    runOccurrenceAction(ruleId, occurrenceId, 'dismiss', (key) =>
+      dismissCardOccurrence(ruleId, occurrenceId, key))
+
+  const retryOccurrence = (ruleId, occurrenceId) =>
+    runOccurrenceAction(ruleId, occurrenceId, 'retry', (key) =>
+      retryCardOccurrence(ruleId, occurrenceId, key))
   async function runMutation(operation, id, action, { noticeKey } = {}) {
     saving.value = true
     error.value = null
@@ -180,6 +215,9 @@ export const useRecurringTransactionStore = defineStore('recurring-transactions'
     pause,
     resume,
     end,
+    confirmOccurrence,
+    dismissOccurrence,
+    retryOccurrence,
     clearValidationErrors,
     clearFeedback,
   }

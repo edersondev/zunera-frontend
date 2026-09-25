@@ -16,11 +16,16 @@ const store = vi.hoisted(() => ({
   notice: null,
   error: null,
   setFilters: vi.fn(),
+  select: vi.fn(),
+  confirmOccurrence: vi.fn(),
+  dismissOccurrence: vi.fn(),
+  retryOccurrence: vi.fn(),
   clearValidationErrors: vi.fn(),
   clearFeedback: vi.fn(),
 }))
 const accounts = vi.hoisted(() => ({ accounts: [], archivedAccounts: [], fetchAccounts: vi.fn() }))
 const categories = vi.hoisted(() => ({ categories: [], archivedCategories: [], fetchCategories: vi.fn() }))
+const cards = vi.hoisted(() => ({ cards: [], archivedCards: [], fetchCards: vi.fn() }))
 
 vi.mock('@/stores/recurring-transactions/recurringTransactionStore', () => ({
   useRecurringTransactionStore: () => store,
@@ -29,6 +34,7 @@ vi.mock('@/stores/financial-accounts/financialAccountStore', () => ({
   useFinancialAccountStore: () => accounts,
 }))
 vi.mock('@/stores/categories/categoryStore', () => ({ useCategoryStore: () => categories }))
+vi.mock('@/stores/credit-cards/creditCardStore', () => ({ useCreditCardStore: () => cards }))
 vi.mock('vue-router', () => ({
   useRoute: () => ({ query: {} }),
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
@@ -51,6 +57,7 @@ const stubs = {
     template: '<div v-if="modelValue" data-test="recurrence-form-dialog"><button data-test="close-recurrence-form" @click="$emit(\'update:modelValue\', false)" /></div>',
   },
   RecurringTransactionLifecycleDialog: { template: '<div />' },
+  RecurringCardOccurrenceDialog: { template: '<div />' },
   RecurringTransactionDetailDrawer: { template: '<div />' },
 }
 
@@ -59,8 +66,13 @@ describe('RecurringTransactionsListView', () => {
     vi.clearAllMocks()
     store.loading = false
     store.setFilters.mockResolvedValue({})
+    store.select.mockResolvedValue({ id: 3, description: 'Academia' })
+    store.confirmOccurrence.mockResolvedValue({})
+    store.dismissOccurrence.mockResolvedValue({})
+    store.retryOccurrence.mockResolvedValue({})
     accounts.fetchAccounts.mockResolvedValue({})
     categories.fetchCategories.mockResolvedValue({})
+    cards.fetchCards.mockResolvedValue([])
   })
 
   it('places the new recurring action in the page header', async () => {
