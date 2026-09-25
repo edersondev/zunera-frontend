@@ -81,6 +81,21 @@ describe('recurringTransactionStore', () => {
     expect(service.retryCardOccurrence).toHaveBeenCalledWith(4, 9, expect.any(String))
   })
 
+  it('keeps a successful occurrence result when its refresh request fails', async () => {
+    const store = useRecurringTransactionStore()
+    service.listRecurringTransactionOccurrences.mockRejectedValueOnce(new Error('Refresh unavailable'))
+
+    const dismissed = await store.dismissOccurrence(4, 9)
+
+    expect(dismissed.state).toBe('dismissed')
+    expect(store.error.message).toBe('Refresh unavailable')
+    expect(store.saving).toBe(false)
+    const firstKey = service.dismissCardOccurrence.mock.calls[0][2]
+
+    await store.dismissOccurrence(4, 9)
+    expect(service.dismissCardOccurrence.mock.calls[1][2]).not.toBe(firstKey)
+  })
+
   it('reuses a transport retry key but gives a changed confirmation choice a fresh key', async () => {
     const store = useRecurringTransactionStore()
     service.confirmCardOccurrence.mockRejectedValueOnce(Object.assign(new Error('Offline'), { status: 0 }))

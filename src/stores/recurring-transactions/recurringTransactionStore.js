@@ -135,15 +135,24 @@ export const useRecurringTransactionStore = defineStore('recurring-transactions'
     validationErrors.value = {}
 
     try {
-      const result = await action(keyFor(operation, actionId))
+      let result
+      try {
+        result = await action(keyFor(operation, actionId))
+      } catch (value) {
+        if (value?.status === 409 || value?.status === 422) clearRetryKey(operation, actionId)
+        applyError(value)
+        throw value
+      }
+
       clearRetryKey(operation, actionId)
-      await fetchOccurrences(ruleId)
+      try {
+        await fetchOccurrences(ruleId)
+      } catch (value) {
+        // The mutation succeeded. Keep its returned state even when readback fails.
+        applyError(value)
+      }
 
       return result.occurrence
-    } catch (value) {
-      if (value?.status === 409 || value?.status === 422) clearRetryKey(operation, actionId)
-      applyError(value)
-      throw value
     } finally {
       saving.value = false
     }

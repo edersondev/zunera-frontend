@@ -17,6 +17,7 @@ const store = vi.hoisted(() => ({
   error: null,
   setFilters: vi.fn(),
   select: vi.fn(),
+  findNewestReviewableOccurrence: vi.fn(),
   confirmOccurrence: vi.fn(),
   dismissOccurrence: vi.fn(),
   retryOccurrence: vi.fn(),
@@ -50,14 +51,21 @@ const stubs = {
   ElAlert: { template: '<div><slot /></div>' },
   ElTag: { template: '<span><slot /></span>' },
   RecurringTransactionFilterBar: { template: '<div />' },
-  RecurringTransactionList: { template: '<div />' },
+  RecurringTransactionList: {
+    emits: ['review', 'view-history'],
+    template: '<div><button data-test="review-rule" @click="$emit(\'review\', { id: 1 })" /><button data-test="history-rule" @click="$emit(\'view-history\', { id: 2 })" /></div>',
+  },
   RecurringTransactionFormDialog: {
     props: ['modelValue'],
     emits: ['update:modelValue'],
     template: '<div v-if="modelValue" data-test="recurrence-form-dialog"><button data-test="close-recurrence-form" @click="$emit(\'update:modelValue\', false)" /></div>',
   },
   RecurringTransactionLifecycleDialog: { template: '<div />' },
-  RecurringCardOccurrenceDialog: { template: '<div />' },
+  RecurringCardOccurrenceDialog: {
+    props: ['modelValue', 'rule'],
+    emits: ['confirm'],
+    template: '<div v-if="modelValue" data-test="review-dialog"><button data-test="confirm-review" @click="$emit(\'confirm\', {})" />{{ rule?.id }}</div>',
+  },
   RecurringTransactionDetailDrawer: { template: '<div />' },
 }
 
@@ -65,6 +73,9 @@ describe('RecurringTransactionsListView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     store.loading = false
+    store.selected = null
+    store.error = null
+    store.findNewestReviewableOccurrence.mockResolvedValue(null)
     store.setFilters.mockResolvedValue({})
     store.select.mockResolvedValue({ id: 3, description: 'Academia' })
     store.confirmOccurrence.mockResolvedValue({})
@@ -99,5 +110,37 @@ describe('RecurringTransactionsListView', () => {
 
     expect(store.clearValidationErrors).toHaveBeenCalledOnce()
     expect(wrapper.find('[data-test="recurrence-form-dialog"]').exists()).toBe(false)
+  })
+
+  it('cancels a pending direct review when another rule history opens', async () => {
+    let finishReview
+    store.selected = { id: 1 }
+    store.findNewestReviewableOccurrence.mockReturnValueOnce(new Promise((resolve) => { finishReview = resolve }))
+    store.select.mockReturnValueOnce(new Promise(() => {}))
+    const wrapper = mount(RecurringTransactionsListView, { global: { plugins: [i18n], stubs } })
+    await flushPromises()
+
+    await wrapper.get('[data-test="review-rule"]').trigger('click')
+    await wrapper.get('[data-test="history-rule"]').trigger('click')
+    finishReview({ id: 9, state: 'expected' })
+    await flushPromises()
+
+    expect(wrapper.find('[data-test="review-dialog"]').exists()).toBe(false)
+  })
+
+  it('uses the review dialog rule even if another selection changes later', async () => {
+    store.selected = { id: 1 }
+    store.findNewestReviewableOccurrence.mockResolvedValueOnce({ id: 9, state: 'expected' })
+    store.confirmOccurrence.mockResolvedValueOnce({ id: 9, state: 'recorded' })
+    const wrapper = mount(RecurringTransactionsListView, { global: { plugins: [i18n], stubs } })
+    await flushPromises()
+
+    await wrapper.get('[data-test="review-rule"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-test="review-dialog"]').text()).toBe('1')
+
+    store.selected = { id: 2 }
+    await wrapper.get('[data-test="confirm-review"]').trigger('click')
+    expect(store.confirmOccurrence).toHaveBeenCalledWith(1, 9, {})
   })
 })

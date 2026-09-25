@@ -30,6 +30,7 @@ const lifecycleAction = shallowRef('pause')
 const lifecycleRule = shallowRef(null)
 const occurrenceOpen = shallowRef(false)
 const selectedOccurrence = shallowRef(null)
+const occurrenceRule = shallowRef(null)
 const expandedRuleId = shallowRef(null)
 const reviewPreview = shallowRef(null)
 const reviewLoadingRuleId = shallowRef(null)
@@ -49,6 +50,12 @@ const cardOptions = computed(() => [
   ...(cards.archivedCards ?? []),
 ])
 const lifecycleError = computed(() => store.error?.message ?? '')
+
+function cancelReviewLookup() {
+  reviewRequest += 1
+  reviewLoadingRuleId.value = null
+  reviewPreview.value = null
+}
 
 onMounted(async () => {
   const { highlight, ...routeFilters } = route.query
@@ -73,9 +80,8 @@ onMounted(async () => {
 })
 
 async function applyFilters(value) {
-  reviewRequest += 1
+  cancelReviewLookup()
   expandedRuleId.value = null
-  reviewPreview.value = null
   await router.replace({ query: { ...value, per_page: value.per_page ?? 50 } })
   try {
     await store.setFilters(value)
@@ -116,21 +122,25 @@ function updateDialog(visible) {
 }
 
 function openCreate() {
+  cancelReviewLookup()
   editing.value = null
   store.clearFeedback()
   dialog.value = true
 }
 
 function openEdit(rule) {
+  cancelReviewLookup()
   editing.value = rule
   store.clearFeedback()
   dialog.value = true
 }
 
 async function openDetail(rule) {
+  cancelReviewLookup()
+  expandedRuleId.value = null
   try {
     await store.select(rule.id)
-    detailOpen.value = true
+    if (store.selected?.id === rule.id) detailOpen.value = true
   } catch {
     /* Feedback comes from the store error state. */
   }
@@ -142,10 +152,11 @@ async function loadReviewPreview(rule, openDialog = false) {
   reviewPreview.value = null
   try {
     const occurrence = await store.findNewestReviewableOccurrence(rule.id)
-    if (request !== reviewRequest) return
+    if (request !== reviewRequest || store.selected?.id !== rule.id) return
     reviewPreview.value = occurrence
     if (openDialog && occurrence) {
       selectedOccurrence.value = occurrence
+      occurrenceRule.value = store.selected
       store.clearFeedback()
       occurrenceOpen.value = true
     } else if (openDialog && !occurrence) {
@@ -159,27 +170,35 @@ async function loadReviewPreview(rule, openDialog = false) {
 }
 
 function toggleExpanded(rule) {
-  if (expandedRuleId.value === rule.id) {
+  const wasExpanded = expandedRuleId.value === rule.id
+  cancelReviewLookup()
+  if (wasExpanded) {
     expandedRuleId.value = null
-    reviewPreview.value = null
-    reviewRequest += 1
     return
   }
   expandedRuleId.value = rule.id
-  reviewPreview.value = null
   if (rule.reviewable_occurrence_count > 0) loadReviewPreview(rule)
 }
 
 async function refreshAfterOccurrence(ruleId) {
-  await store.select(ruleId)
-  if (expandedRuleId.value === ruleId && store.selected?.reviewable_occurrence_count > 0) {
-    await loadReviewPreview(store.selected)
-  } else {
-    reviewPreview.value = null
+  try {
+    await store.select(ruleId)
+    if (store.selected?.id !== ruleId) return
+    occurrenceRule.value = store.selected
+    store.clearValidationErrors()
+    if (expandedRuleId.value === ruleId && store.selected.reviewable_occurrence_count > 0) {
+      await loadReviewPreview(store.selected)
+    } else {
+      reviewPreview.value = null
+    }
+  } catch (error) {
+    // The occurrence action already succeeded; expose only the readback error.
+    store.error = error
   }
 }
 
 function confirmLifecycle(action, rule) {
+  cancelReviewLookup()
   lifecycleAction.value = action
   lifecycleRule.value = rule
   store.clearFeedback()
@@ -199,6 +218,7 @@ async function runLifecycle() {
 async function openOccurrence(occurrence) {
   if (occurrence.state) {
     selectedOccurrence.value = occurrence
+    occurrenceRule.value = store.selected
     store.clearFeedback()
     occurrenceOpen.value = true
 
@@ -210,7 +230,7 @@ async function openOccurrence(occurrence) {
 
 async function confirmOccurrence(payload) {
   try {
-    const ruleId = store.selected.id
+    const ruleId = occurrenceRule.value.id
     const result = await store.confirmOccurrence(ruleId, selectedOccurrence.value.id, payload)
     selectedOccurrence.value = result
     occurrenceOpen.value = result.state !== 'recorded' && result.state !== 'dismissed'
@@ -224,7 +244,7 @@ async function confirmOccurrence(payload) {
 
 async function dismissOccurrence() {
   try {
-    const ruleId = store.selected.id
+    const ruleId = occurrenceRule.value.id
     await store.dismissOccurrence(ruleId, selectedOccurrence.value.id)
     occurrenceOpen.value = false
     await refreshAfterOccurrence(ruleId)
@@ -235,7 +255,7 @@ async function dismissOccurrence() {
 
 async function retryOccurrence() {
   try {
-    const ruleId = store.selected.id
+    const ruleId = occurrenceRule.value.id
     const result = await store.retryOccurrence(ruleId, selectedOccurrence.value.id)
     selectedOccurrence.value = result
     occurrenceOpen.value = result.state !== 'recorded' && result.state !== 'dismissed'
@@ -326,7 +346,7 @@ async function retryOccurrence() {
     />
     <RecurringCardOccurrenceDialog
       v-model="occurrenceOpen"
-      :rule="store.selected"
+      :rule="occurrenceRule"
       :occurrence="selectedOccurrence"
       :cards="cardOptions"
       :categories="categoryOptions"
