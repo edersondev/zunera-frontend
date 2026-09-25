@@ -76,9 +76,11 @@ for (const viewport of [{ name: 'desktop', width: 1280, height: 800 }, { name: '
     await page.setViewportSize({ width: viewport.width, height: viewport.height })
     await mockOwnedRules(page)
 
-    const listTimes = []
-    const detailTimes = []
-    for (let iteration = -2; iteration < 20; iteration += 1) {
+    const warmupRuns = 2
+    const measuredRuns = 20
+    const listSamples = []
+    const detailSamples = []
+    for (let iteration = 0; iteration < warmupRuns + measuredRuns; iteration += 1) {
       const listStart = performance.now()
       await page.goto('/app/recurring-transactions')
       await expect(page.locator('.el-table__row').first()).toContainText('Despesa recorrente 1')
@@ -92,17 +94,17 @@ for (const viewport of [{ name: 'desktop', width: 1280, height: 800 }, { name: '
       await expect(page.locator('[data-test="recurrence-occurrence-open"]')).toBeEnabled()
       const detailElapsed = performance.now() - detailStart
 
-      if (iteration >= 0) {
-        listTimes.push(Math.round(listElapsed))
-        detailTimes.push(Math.round(detailElapsed))
-      }
+      listSamples.push(Math.round(listElapsed))
+      detailSamples.push(Math.round(detailElapsed))
     }
 
+    const listTimes = listSamples.slice(warmupRuns)
+    const detailTimes = detailSamples.slice(warmupRuns)
     const results = {
       browser: browserName, viewport, ownedRules: rules.length, pageSize: 50,
       device: 'local Playwright desktop browser, default CPU',
       network: 'local preview server; API routes mocked with 25ms latency for list, no throttling',
-      warmupRuns: 2, measuredRuns: 20,
+      warmupRuns, measuredRuns,
       listMs: listTimes, detailMs: detailTimes,
       listP95Ms: percentile95(listTimes), detailP95Ms: percentile95(detailTimes),
     }

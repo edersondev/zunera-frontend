@@ -794,7 +794,7 @@ test('a card rule keeps its destination immutable while editing future details',
   await expect(page.locator('.el-table__row')).toContainText('Academia renovada')
 })
 
-test('card expectation becomes one purchase, one closed expense, and no second expense on payment', async ({ page }) => {
+async function mockCardAccountingJourney(page) {
   let phase = 'expected'
   const money = (amount) => ({ amount_centavos: amount, currency_code: 'BRL' })
   const realized = () => ['closed', 'paid'].includes(phase) ? 15_000 : 0
@@ -888,6 +888,14 @@ test('card expectation becomes one purchase, one closed expense, and no second e
   await page.route('**/api/v1/credit-cards/41/statements**', (route) => route.fulfill({ json: {
     data: hasPurchase() ? [cardData().current_statement] : [], meta: { current_page: 1, last_page: 1, total: hasPurchase() ? 1 : 0 },
   }, headers }))
+
+  return (nextPhase) => {
+    phase = nextPhase
+  }
+}
+
+test('card expectation becomes one purchase, one closed expense, and no second expense on payment', async ({ page }) => {
+  const setPhase = await mockCardAccountingJourney(page)
   await signIn(page)
 
   await page.goto('/app')
@@ -895,7 +903,7 @@ test('card expectation becomes one purchase, one closed expense, and no second e
   await expect(page.locator('[data-test="dashboard-recent-row"]')).toHaveCount(0)
   await expect(page.locator('[data-test="dashboard-summary-expenses-value"]')).toContainText('0,00')
 
-  phase = 'open'
+  setPhase('open')
   await page.goto('/app')
   await expect(page.locator('[data-test="dashboard-upcoming-row"]')).toHaveCount(0)
   await expect(page.locator('[data-test="dashboard-recent-row"]')).toHaveCount(1)
@@ -907,7 +915,7 @@ test('card expectation becomes one purchase, one closed expense, and no second e
   await expect(page.locator('[data-test="credit-card-purchase-701"]')).toContainText('Academia')
   await expect(page.locator('[data-test="credit-card-purchase-701"]')).toContainText('Previsto')
 
-  phase = 'closed'
+  setPhase('closed')
   await page.goto('/app')
   await expect(page.locator('[data-test="dashboard-summary-expenses-value"]')).toContainText('150,00')
   await expect(page.locator('[data-test="dashboard-recent-row"]')).toHaveCount(1)
@@ -917,7 +925,7 @@ test('card expectation becomes one purchase, one closed expense, and no second e
   await page.goto('/app/credit-cards/41')
   await expect(page.locator('[data-test="credit-card-purchase-701"]')).toContainText('Reconhecido')
 
-  phase = 'paid'
+  setPhase('paid')
   await page.goto('/app')
   await expect(page.locator('[data-test="dashboard-summary-expenses-value"]')).toContainText('150,00')
   await expect(page.locator('[data-test="dashboard-summary-balance-value"]')).toContainText('850,00')
