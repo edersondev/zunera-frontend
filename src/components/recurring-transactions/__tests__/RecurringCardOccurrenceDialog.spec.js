@@ -7,7 +7,7 @@ const stubs = {
   ElDialog: { props: ['modelValue', 'title'], template: '<section v-if="modelValue" role="dialog" :aria-label="title"><slot /></section>' },
   ElForm: { template: '<form><slot /></form>' },
   ElFormItem: { props: ['label', 'error'], template: '<label>{{ label }}<slot /><span v-if="error" role="alert">{{ error }}</span></label>' },
-  ElInputNumber: { props: ['modelValue'], emits: ['update:modelValue'], template: '<input type="number" :value="modelValue" @input="$emit(\'update:modelValue\', Number($event.target.value))" />' },
+  CurrencyAmountInput: { props: ['modelValue'], emits: ['update:modelValue'], template: '<input type="number" :value="modelValue" @input="$emit(\'update:modelValue\', Number($event.target.value))" />' },
   ElDatePicker: { props: ['modelValue'], emits: ['update:modelValue'], template: '<input type="date" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />' },
   ElSelect: { props: ['modelValue'], emits: ['update:modelValue'], template: '<select :value="modelValue" @change="$emit(\'update:modelValue\', Number($event.target.value))"><slot /></select>' },
   ElOption: { props: ['value', 'label'], template: '<option :value="value">{{ label }}</option>' },

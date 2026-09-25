@@ -1,7 +1,8 @@
 <script setup>
 import { computed, reactive, useTemplateRef, watch } from 'vue'
-import { Close } from '@element-plus/icons-vue'
+import { Check, CircleClose, Close, RefreshLeft } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
+import CurrencyAmountInput from '@/components/common/CurrencyAmountInput.vue'
 import { cardIdentityLabel } from '@/utils/credit-cards/creditCardFormatters'
 import { cardOccurrenceStateLabel } from '@/utils/recurring-transactions/recurringTransactionFormatters'
 
@@ -122,22 +123,24 @@ function submitConfirmation() {
       />
       <template v-if="showChoices">
         <ElForm ref="formRef" label-position="top" class="mt-4">
-          <ElFormItem :label="t('recurringTransactions.amount')" :error="errors.actual_amount_centavos?.[0]">
-            <ElInputNumber v-model="form.actual_amount_centavos" :min="1" data-test="occurrence-amount" />
-          </ElFormItem>
-          <ElFormItem :label="t('recurringTransactions.actualPurchaseDate')" :error="errors.actual_purchase_date?.[0]">
-            <ElDatePicker v-model="form.actual_purchase_date" type="date" value-format="YYYY-MM-DD" :disabled-date="isFutureDate" data-test="occurrence-date" />
-          </ElFormItem>
-          <ElFormItem :label="t('recurringTransactions.creditCard')" :error="errors.credit_card_id?.[0]">
-            <ElSelect v-model="form.credit_card_id" clearable data-test="occurrence-card">
-              <ElOption v-for="card in activeCards" :key="card.id" :label="cardIdentityLabel(card)" :value="card.id" />
-            </ElSelect>
-          </ElFormItem>
-          <ElFormItem :label="t('recurringTransactions.category')" :error="errors.category_id?.[0]">
-            <ElSelect v-model="form.category_id" clearable data-test="occurrence-category">
-              <ElOption v-for="category in expenseCategories" :key="category.id" :label="category.name" :value="category.id" />
-            </ElSelect>
-          </ElFormItem>
+          <div class="grid grid-cols-1 gap-x-4 lg:grid-cols-2">
+            <ElFormItem :label="t('recurringTransactions.amount')" :error="errors.actual_amount_centavos?.[0]">
+              <CurrencyAmountInput v-model="form.actual_amount_centavos" data-test="occurrence-amount" />
+            </ElFormItem>
+            <ElFormItem :label="t('recurringTransactions.actualPurchaseDate')" :error="errors.actual_purchase_date?.[0]">
+              <ElDatePicker v-model="form.actual_purchase_date" type="date" value-format="YYYY-MM-DD" :disabled-date="isFutureDate" data-test="occurrence-date" />
+            </ElFormItem>
+            <ElFormItem :label="t('recurringTransactions.creditCard')" :error="errors.credit_card_id?.[0]">
+              <ElSelect v-model="form.credit_card_id" clearable data-test="occurrence-card">
+                <ElOption v-for="card in activeCards" :key="card.id" :label="cardIdentityLabel(card)" :value="card.id" />
+              </ElSelect>
+            </ElFormItem>
+            <ElFormItem :label="t('recurringTransactions.category')" :error="errors.category_id?.[0]">
+              <ElSelect v-model="form.category_id" clearable data-test="occurrence-category">
+                <ElOption v-for="category in expenseCategories" :key="category.id" :label="category.name" :value="category.id" />
+              </ElSelect>
+            </ElFormItem>
+          </div>
         </ElForm>
       </template>
 
@@ -165,7 +168,8 @@ function submitConfirmation() {
           @click="emit('update:modelValue', false)">{{ t('common.cancel') }}</ElButton>
         <ElButton
           v-if="isActionable"
-          type="danger"
+          type="info"
+          :icon="CircleClose"
           :disabled="saving"
           data-test="occurrence-dismiss"
           @click="emit('dismiss')"
@@ -174,6 +178,7 @@ function submitConfirmation() {
         </ElButton>
         <ElButton
           v-if="canRetry"
+          :icon="RefreshLeft"
           :loading="saving"
           :disabled="saving"
           data-test="occurrence-retry"
@@ -184,6 +189,7 @@ function submitConfirmation() {
         <ElButton
           v-if="canConfirm"
           type="primary"
+          :icon="isFailed ? RefreshLeft : Check"
           :loading="saving"
           :disabled="saving || futureDate || (approvalRequired && !form.confirm_over_limit)"
           data-test="occurrence-confirm"
