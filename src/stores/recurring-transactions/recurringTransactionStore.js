@@ -83,6 +83,7 @@ export const useRecurringTransactionStore = defineStore('recurring-transactions'
   async function select(id) {
     const rule = await getRecurringTransaction(id)
     selected.value = rule
+    items.value = items.value.map((item) => item.id === rule.id ? rule : item)
     await fetchOccurrences(id)
 
     return rule

@@ -177,6 +177,22 @@ describe('recurringTransactionStore', () => {
     expect(store.occurrenceMeta.total).toBe(1)
   })
 
+  it('updates the listed review count when refreshed rule detail changes', async () => {
+    const store = useRecurringTransactionStore()
+    const pendingRule = { ...rule, reviewable_occurrence_count: 1 }
+    service.listRecurringTransactions.mockResolvedValueOnce({
+      items: [pendingRule],
+      meta: { total: 1, current_page: 1, last_page: 1 },
+    })
+    service.getRecurringTransaction.mockResolvedValueOnce({ ...pendingRule, reviewable_occurrence_count: 0 })
+
+    await store.fetch()
+    await store.select(rule.id)
+
+    expect(store.items[0].reviewable_occurrence_count).toBe(0)
+    expect(service.listRecurringTransactions).toHaveBeenCalledTimes(1)
+  })
+
   it('loads the next page and appends it to current items', async () => {
     const store = useRecurringTransactionStore()
     await store.fetch()

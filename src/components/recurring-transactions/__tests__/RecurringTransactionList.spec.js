@@ -82,6 +82,19 @@ describe('RecurringTransactionList', () => {
     expect(wrapper.find('[data-test="recurrence-destination"]').text()).toBe('Nubank •••• 3450')
   })
 
+  it('highlights only rows with an occurrence that needs review', async () => {
+    const wrapper = await factory([
+      rule({ id: 1, reviewable_occurrence_count: 1 }),
+      rule({ id: 2, description: 'Internet', reviewable_occurrence_count: 0 }),
+    ])
+    const rows = wrapper.findAll('tbody tr')
+
+    expect(rows[0].classes()).toContain('[&>td]:!bg-[var(--color-warning-subtle)]')
+    expect(rows[0].get('[data-test="recurrence-needs-review"]').text()).toBe('Revisar ocorrência')
+    expect(rows[1].classes()).not.toContain('[&>td]:!bg-[var(--color-warning-subtle)]')
+    expect(rows[1].find('[data-test="recurrence-needs-review"]').exists()).toBe(false)
+  })
+
   it('uses a plus sign for income amounts', async () => {
     const wrapper = await factory([rule({ type: 'income', amount_centavos: 3000 })])
     const amount = wrapper.find('[data-test="recurrence-amount"]')

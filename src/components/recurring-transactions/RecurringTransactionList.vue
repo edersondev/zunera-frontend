@@ -17,6 +17,12 @@ defineProps({
 })
 const emit = defineEmits(['open', 'edit', 'pause', 'resume', 'end', 'load-more'])
 const { t } = useI18n()
+
+function reviewRowClass({ row }) {
+  return row.reviewable_occurrence_count > 0
+    ? '[&>td]:!bg-[var(--color-warning-subtle)] [&>td:first-child]:!border-l-4 [&>td:first-child]:!border-l-[var(--color-warning)]'
+    : ''
+}
 </script>
 
 <template>
@@ -25,11 +31,23 @@ const { t } = useI18n()
       :data="rules"
       :empty-text="t('recurringTransactions.empty')"
       row-key="id"
+      :row-class-name="reviewRowClass"
       @row-click="emit('open', $event)"
     >
       <ElTableColumn :label="t('recurringTransactions.columns.description')" min-width="180">
         <template #default="{ row }">
-          <strong>{{ row.description }}</strong>
+          <span class="flex flex-wrap items-center gap-2">
+            <strong>{{ row.description }}</strong>
+            <ElTag
+              v-if="row.reviewable_occurrence_count > 0"
+              type="warning"
+              size="small"
+              effect="plain"
+              data-test="recurrence-needs-review"
+            >
+              {{ t('recurringTransactions.occurrenceReview') }}
+            </ElTag>
+          </span>
         </template>
       </ElTableColumn>
       <ElTableColumn :label="t('recurringTransactions.destination')" min-width="150">
