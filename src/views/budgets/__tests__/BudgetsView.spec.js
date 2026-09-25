@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { reactive } from 'vue'
+import { nextTick, reactive } from 'vue'
 import { mount } from '@vue/test-utils'
 
 const hoisted = vi.hoisted(() => ({ store: null }))
@@ -164,6 +164,34 @@ describe('BudgetsView', () => {
     expect(wrapper.text()).toContain('setembro de 2026')
     expect(wrapper.get('[data-test="budget-summary-realized"]').text()).toContain('720,00')
     expect(wrapper.get('[data-test="budget-plan-row"]').exists()).toBe(true)
+  })
+
+  it('moves one card installment from expected to realized without doubling projected spending', async () => {
+    const expectedPlan = plan({
+      realized: money(0), expected: money(15_000), projected_spending: money(15_000),
+      available: money(100_000), projected_available: money(85_000),
+    })
+    const expectedBudget = budget([expectedPlan])
+    expectedBudget.summary = {
+      ...expectedBudget.summary, budgeted_realized: money(0), total_expenses: money(0),
+      expected: money(15_000), projected_spending: money(15_000),
+      actual_available: money(100_000), projected_available: money(85_000),
+    }
+    hoisted.store = createStore({ budget: expectedBudget, summary: expectedBudget.summary, plans: [expectedPlan] })
+    const wrapper = mountView()
+    expect(wrapper.get('[data-test="budget-summary-realized"]').text()).toContain('0,00')
+    expect(wrapper.get('[data-test="budget-summary-projection"]').text()).toContain('150,00')
+
+    hoisted.store.summary = {
+      ...expectedBudget.summary, budgeted_realized: money(15_000), total_expenses: money(15_000),
+      expected: money(0), projected_spending: money(15_000), actual_available: money(85_000),
+    }
+    hoisted.store.plans = [{ ...expectedPlan, realized: money(15_000), expected: money(0), projected_spending: money(15_000) }]
+    await nextTick()
+
+    expect(wrapper.get('[data-test="budget-summary-realized"]').text()).toContain('150,00')
+    expect(wrapper.get('[data-test="budget-summary-projection"]').text()).toContain('150,00')
+    expect(wrapper.get('[data-test="budget-plan-realized"]').text()).toContain('150,00')
   })
 
   it('keeps an archived plan read-only with an explicit label', () => {

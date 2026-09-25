@@ -72,4 +72,34 @@ describe('RecurringTransactionDetailDrawer', () => {
     expect(wrapper.find('[data-test="recurrence-occurrences-empty"]').exists()).toBe(true)
     expect(wrapper.find('[data-test="recurrence-detail-count"]').text()).toBe('0')
   })
+
+  it('shows automatic review and recorded purchase origin in a card rule', async () => {
+    const cardRule = {
+      ...rule, destination_type: 'credit_card', generation_mode: 'automatic',
+      credit_card: { id: 6, name: 'Principal', institution_name: 'Nubank', last_four: '1234', status: 'active' },
+    }
+    const cardStubs = {
+      ...stubs,
+      ElTable: {
+        props: ['data'], provide() { return { tableRows: this.data } },
+        template: '<div><slot /></div>',
+      },
+      ElTableColumn: {
+        inject: ['tableRows'],
+        template: '<div v-for="row in tableRows" :key="row.id"><slot :row="row" /></div>',
+      },
+    }
+    const awaiting = { id: 11, scheduled_date: '2026-09-01', state: 'awaiting_over_limit', purchase_id: null }
+    const recorded = { id: 12, scheduled_date: '2026-08-01', state: 'recorded', purchase_id: 81 }
+    const wrapper = mount(RecurringTransactionDetailDrawer, {
+      props: { modelValue: true, rule: cardRule, occurrences: [awaiting, recorded] },
+      global: { plugins: [i18n], stubs: cardStubs },
+    })
+
+    expect(wrapper.text()).toContain('Aguardando aprovação')
+    expect(wrapper.get('[data-test="recurrence-recorded-purchase"]').text()).toContain('#81')
+    expect(wrapper.text()).toContain('Revisar ocorrência')
+    await wrapper.findAll('[data-test="recurrence-occurrence-open"]')[0].trigger('click')
+    expect(wrapper.emitted('open-occurrence')[0][0]).toEqual(awaiting)
+  })
 })

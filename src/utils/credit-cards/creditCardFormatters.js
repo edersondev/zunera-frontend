@@ -128,13 +128,13 @@ export function paymentStatus(status) {
  * Available credit stays a server value: this only decides how to present it,
  * including the explicit over-limit state that never relies on colour alone.
  */
-export function availableCreditPresentation(amountCentavos) {
+export function availableCreditPresentation(amountCentavos, locale = DEFAULT_LOCALE) {
   const amount = Number(amountCentavos ?? 0)
 
   return {
     amountCentavos: amount,
     isOverLimit: amount < 0,
-    formatted: formatBRL(amount),
+    formatted: formatBRL(amount, locale),
     overLimitAmountCentavos: amount < 0 ? Math.abs(amount) : 0,
     tone: amount < 0 ? 'danger' : 'success',
   }

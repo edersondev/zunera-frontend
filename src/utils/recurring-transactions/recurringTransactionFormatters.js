@@ -49,6 +49,10 @@ export function occurrenceStatusLabel(occurrence, t) {
     : t('recurringTransactions.pending')
 }
 
+export function cardOccurrenceStateLabel(state, t) {
+  return t(`recurringTransactions.occurrenceStates.${state ?? 'expected'}`)
+}
+
 export function sourceLabel(recurrenceSource, t, locale = 'pt-BR') {
   if (!recurrenceSource?.id) return null
 

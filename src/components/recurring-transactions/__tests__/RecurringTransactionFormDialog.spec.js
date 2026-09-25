@@ -93,14 +93,17 @@ describe('RecurringTransactionFormDialog', () => {
     expect(save.find('svg').exists()).toBe(true)
   })
 
-  it('clears client validation when the dialog closes', async () => {
+  it('clears validation and entered values when the dialog closes', async () => {
     const wrapper = factory()
     await nextTick()
+    await wrapper.get('[data-test="recurrence-description"]').setValue('Rascunho')
     clearValidate.mockClear()
 
     await wrapper.get('[data-test="dialog-closed"]').trigger('click')
+    await nextTick()
 
     expect(clearValidate).toHaveBeenCalledOnce()
+    expect(wrapper.get('[data-test="recurrence-description"]').element.value).toBe('')
   })
 
   it('clears client validation when the dialog opens again', async () => {
@@ -166,5 +169,31 @@ describe('RecurringTransactionFormDialog', () => {
 
     expect(wrapper.find('[role="dialog"]').attributes('aria-label')).toBe('Editar recorrência')
     expect(wrapper.text()).toContain('Informe uma descrição.')
+  })
+
+  it('shows a card selector and generation mode for a card destination', async () => {
+    const cards = [{ id: 3, name: 'Nubank', institution_name: 'Nubank', last_four: '3450', status: 'active' }]
+    const rule = {
+      id: 6,
+      type: 'expense',
+      destination_type: 'credit_card',
+      generation_mode: 'confirmation',
+      amount_centavos: 15000,
+      frequency: 'monthly',
+      start_date: '2026-09-01',
+      end_date: null,
+      description: 'Academia',
+      notes: null,
+      financial_account: null,
+      credit_card: cards[0],
+      category: { id: 10, name: 'Assinaturas', classification: 'expense', status: 'active' },
+    }
+    const wrapper = factory({ rule, cards })
+    await nextTick()
+
+    expect(wrapper.find('[data-test="recurrence-card"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="recurrence-account"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="recurrence-generation-mode"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="recurrence-destination-field"]').attributes('disabled')).toBeDefined()
   })
 })

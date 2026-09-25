@@ -1,7 +1,9 @@
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { cardIdentityLabel } from '@/utils/credit-cards/creditCardFormatters'
 import {
+  cardOccurrenceStateLabel,
   formatRecurrenceAmount,
   formatRecurrenceDate,
   frequencyLabel,
@@ -19,6 +21,17 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'open-occurrence'])
 const { t } = useI18n()
 const pausedByArchive = computed(() => props.rule?.paused_reason === 'association_archived')
+const isCardDestination = computed(() => props.rule?.destination_type === 'credit_card')
+const destinationLabel = computed(() =>
+  isCardDestination.value
+    ? cardIdentityLabel(props.rule?.credit_card)
+    : props.rule?.financial_account?.name,
+)
+function occurrenceLabel(row) {
+  return isCardDestination.value
+    ? cardOccurrenceStateLabel(row.state, t)
+    : occurrenceStatusLabel(row, t)
+}
 </script>
 
 <template>
@@ -43,11 +56,14 @@ const pausedByArchive = computed(() => props.rule?.paused_reason === 'associatio
         <ElDescriptionsItem :label="t('recurringTransactions.amount')">
           {{ formatRecurrenceAmount(rule) }}
         </ElDescriptionsItem>
-        <ElDescriptionsItem :label="t('recurringTransactions.account')">
-          {{ rule.financial_account?.name }}
-          <span v-if="rule.financial_account?.status === 'archived'" class="hint"
+        <ElDescriptionsItem :label="t('recurringTransactions.destination')">
+          {{ destinationLabel }}
+          <span v-if="!isCardDestination && rule.financial_account?.status === 'archived'" class="hint"
             >({{ t('transactions.archived') }})</span
           >
+        </ElDescriptionsItem>
+        <ElDescriptionsItem v-if="isCardDestination" :label="t('recurringTransactions.generationMode')">
+          {{ t(`recurringTransactions.generationModeOptions.${rule.generation_mode}`) }}
         </ElDescriptionsItem>
         <ElDescriptionsItem :label="t('recurringTransactions.category')">
           {{ rule.category?.name }}
@@ -98,8 +114,11 @@ const pausedByArchive = computed(() => props.rule?.paused_reason === 'associatio
               effect="plain"
               data-test="recurrence-occurrence-status"
             >
-              {{ occurrenceStatusLabel(row, t) }}
+              {{ occurrenceLabel(row) }}
             </ElTag>
+            <span v-if="isCardDestination && row.purchase_id" class="hint" data-test="recurrence-recorded-purchase">
+              {{ t('recurringTransactions.recordedPurchase', { id: row.purchase_id }) }}
+            </span>
           </template>
         </ElTableColumn>
         <ElTableColumn :label="t('recurringTransactions.columns.actions')" width="160">
@@ -109,7 +128,7 @@ const pausedByArchive = computed(() => props.rule?.paused_reason === 'associatio
               data-test="recurrence-occurrence-open"
               @click="emit('open-occurrence', row)"
             >
-              {{ t('recurringTransactions.openOccurrence') }}
+              {{ isCardDestination ? t('recurringTransactions.occurrenceReview') : t('recurringTransactions.openOccurrence') }}
             </ElButton>
           </template>
         </ElTableColumn>

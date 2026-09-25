@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { cardIdentityLabel } from '@/utils/credit-cards/creditCardFormatters'
 import {
   formatDashboardDate,
   formatDashboardMovementAmount,
@@ -41,13 +42,20 @@ const horizon = computed(() => {
 })
 
 function sourceLabel(item) {
-  return item.source_kind === 'recurring_occurrence'
-    ? t('dashboard.upcoming.recurringOccurrence')
-    : t('dashboard.upcoming.pendingTransaction')
+  if (item.source_kind === 'card_expectation') return t('dashboard.upcoming.cardExpectation')
+  if (item.source_kind === 'recurring_occurrence') return t('dashboard.upcoming.recurringOccurrence')
+
+  return t('dashboard.upcoming.pendingTransaction')
 }
 
 function typeLabel(item) {
   return t(`dashboard.recent.${item.type}`)
+}
+
+function destinationLabel(item) {
+  return item.source_kind === 'card_expectation'
+    ? cardIdentityLabel(item.credit_card)
+    : item.account?.name ?? '—'
 }
 </script>
 
@@ -98,7 +106,7 @@ function typeLabel(item) {
         </div>
         <div class="activity-field">
           <span class="field-label">{{ t('dashboard.upcoming.account') }}</span>
-          <span>{{ item.account?.name ?? '—' }}</span>
+          <span>{{ destinationLabel(item) }}</span>
         </div>
         <div class="activity-field">
           <span class="field-label">{{ t('dashboard.upcoming.category') }}</span>

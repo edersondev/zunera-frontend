@@ -41,6 +41,39 @@ export async function listRecurringTransactionOccurrences(id, params = {}) {
   return { items: response.data.data, meta: response.data.meta }
 }
 
+export const confirmCardOccurrence = (ruleId, occurrenceId, payload, idempotencyKey = newIdempotencyKey()) =>
+  apiRequest(
+    {
+      method: 'post',
+      url: `/api/v1/recurring-transactions/${ruleId}/occurrences/${occurrenceId}/confirm`,
+      data: payload,
+      headers: { 'Idempotency-Key': idempotencyKey },
+    },
+    { csrf: true },
+  ).then((response) => ({ occurrence: response.data.data }))
+
+export const dismissCardOccurrence = (ruleId, occurrenceId, idempotencyKey = newIdempotencyKey()) =>
+  apiRequest(
+    {
+      method: 'post',
+      url: `/api/v1/recurring-transactions/${ruleId}/occurrences/${occurrenceId}/dismiss`,
+      data: undefined,
+      headers: { 'Idempotency-Key': idempotencyKey },
+    },
+    { csrf: true },
+  ).then((response) => ({ occurrence: response.data.data }))
+
+export const retryCardOccurrence = (ruleId, occurrenceId, idempotencyKey = newIdempotencyKey()) =>
+  apiRequest(
+    {
+      method: 'post',
+      url: `/api/v1/recurring-transactions/${ruleId}/occurrences/${occurrenceId}/retry`,
+      data: undefined,
+      headers: { 'Idempotency-Key': idempotencyKey },
+    },
+    { csrf: true },
+  ).then((response) => ({ occurrence: response.data.data }))
+
 export const createRecurringTransaction = (payload, idempotencyKey) =>
   mutation('post', '/api/v1/recurring-transactions', payload, idempotencyKey)
 

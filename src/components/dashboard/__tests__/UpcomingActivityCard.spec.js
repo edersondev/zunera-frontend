@@ -57,6 +57,32 @@ describe('UpcomingActivityCard', () => {
     )
   })
 
+  it('labels a card expectation with its card identity instead of an account', () => {
+    const wrapper = mountCard({
+      upcoming: {
+        items: [
+          {
+            source_kind: 'card_expectation',
+            expected_date: '2026-09-20',
+            type: 'expense',
+            amount: { amount_centavos: 15_000, currency_code: 'BRL' },
+            account: null,
+            credit_card: { id: 3, name: 'Nubank', institution_name: 'Nubank', last_four: '3450', status: 'active' },
+            category: { id: 8, name: 'Academia' },
+            description: 'Academia',
+            destination_type: 'credit_card',
+          },
+        ],
+        meta: { from: '2026-09-17', to: '2026-10-16' },
+      },
+    })
+
+    expect(wrapper.get('[data-test="dashboard-upcoming-source"]').text()).toBe(
+      'Recorrência no cartão',
+    )
+    expect(wrapper.text()).toContain('Nubank •••• 3450')
+  })
+
   it('explains an empty horizon and recovers independently from failure', async () => {
     const empty = mountCard({
       upcoming: { items: [], meta: { from: '2026-09-17', to: '2026-10-16' } },

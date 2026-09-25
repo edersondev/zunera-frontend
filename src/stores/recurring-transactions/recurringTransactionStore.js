@@ -1,12 +1,15 @@
 import { computed, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
 import {
+  confirmCardOccurrence,
   createRecurringTransaction,
+  dismissCardOccurrence,
   endRecurringTransaction,
   getRecurringTransaction,
   listRecurringTransactionOccurrences,
   listRecurringTransactions,
   pauseRecurringTransaction,
+  retryCardOccurrence,
   resumeRecurringTransaction,
   updateRecurringTransaction,
 } from '@/services/recurringTransactionService'
@@ -27,6 +30,7 @@ export const useRecurringTransactionStore = defineStore('recurring-transactions'
   const validationErrors = shallowRef({})
   const notice = shallowRef(null)
   const retryKeys = new Map()
+  let selectionRequest = 0
   const hasMore = computed(() => (meta.value.current_page ?? 1) < (meta.value.last_page ?? 1))
 
   function applyError(value) {
@@ -78,26 +82,93 @@ export const useRecurringTransactionStore = defineStore('recurring-transactions'
   }
 
   async function select(id) {
+    const request = ++selectionRequest
     const rule = await getRecurringTransaction(id)
+    if (request !== selectionRequest) return rule
     selected.value = rule
-    await fetchOccurrences(id)
+    items.value = items.value.map((item) => item.id === rule.id ? rule : item)
+    await fetchOccurrences(id, {}, request)
 
     return rule
   }
 
-  async function fetchOccurrences(id, params = {}) {
+  async function fetchOccurrences(id, params = {}, request = selectionRequest) {
     loadingOccurrences.value = true
     try {
       const result = await listRecurringTransactionOccurrences(id, { per_page: 50, ...params })
-      occurrences.value = result.items
-      occurrenceMeta.value = result.meta
+      if (request === selectionRequest) {
+        occurrences.value = result.items
+        occurrenceMeta.value = result.meta
+      }
 
       return result
     } finally {
-      loadingOccurrences.value = false
+      if (request === selectionRequest) loadingOccurrences.value = false
     }
   }
 
+  async function findNewestReviewableOccurrence(id) {
+    const rule = await select(id)
+    if (selected.value?.id !== id || !rule.reviewable_occurrence_count) return null
+
+    const actionable = (row) => ['expected', 'awaiting_over_limit', 'failed'].includes(row.state)
+    let page = 1
+    let result = { items: occurrences.value, meta: occurrenceMeta.value }
+
+    while (page <= (result.meta?.last_page ?? 1)) {
+      const match = result.items.find(actionable)
+      if (match) return match
+      page += 1
+      if (page <= (result.meta?.last_page ?? 1)) {
+        result = await listRecurringTransactionOccurrences(id, { per_page: 50, page })
+        if (selected.value?.id !== id) return null
+      }
+    }
+
+    return null
+  }
+
+  async function runOccurrenceAction(ruleId, occurrenceId, operation, action) {
+    const actionId = `${ruleId}:${occurrenceId}`
+    saving.value = true
+    error.value = null
+    validationErrors.value = {}
+
+    try {
+      let result
+      try {
+        result = await action(keyFor(operation, actionId))
+      } catch (value) {
+        if (value?.status === 409 || value?.status === 422) clearRetryKey(operation, actionId)
+        applyError(value)
+        throw value
+      }
+
+      clearRetryKey(operation, actionId)
+      try {
+        await fetchOccurrences(ruleId)
+      } catch (value) {
+        // The mutation succeeded. Keep its returned state even when readback fails.
+        applyError(value)
+      }
+
+      return result.occurrence
+    } finally {
+      saving.value = false
+    }
+  }
+
+  const confirmOccurrence = (ruleId, occurrenceId, payload) =>
+    runOccurrenceAction(ruleId, occurrenceId, `confirm:${JSON.stringify(payload ?? {})}`, (key) =>
+      confirmCardOccurrence(ruleId, occurrenceId, payload, key))
+
+  const dismissOccurrence = (ruleId, occurrenceId) =>
+    runOccurrenceAction(ruleId, occurrenceId, 'dismiss', (key) =>
+      dismissCardOccurrence(ruleId, occurrenceId, key))
+
+  const retryOccurrence = (ruleId, occurrenceId) =>
+    runOccurrenceAction(ruleId, occurrenceId, 'retry', (key) =>
+      retryCardOccurrence(ruleId, occurrenceId, key))
   async function runMutation(operation, id, action, { noticeKey } = {}) {
     saving.value = true
     error.value = null
@@ -175,11 +246,15 @@ export const useRecurringTransactionStore = defineStore('recurring-transactions'
     loadMore,
     select,
     fetchOccurrences,
+    findNewestReviewableOccurrence,
     create,
     update,
     pause,
     resume,
     end,
+    confirmOccurrence,
+    dismissOccurrence,
+    retryOccurrence,
     clearValidationErrors,
     clearFeedback,
   }

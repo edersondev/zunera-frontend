@@ -49,6 +49,43 @@ describe('CreditCardPurchaseList', () => {
     expect(wrapper.emitted('refund')).toEqual([[purchase]])
   })
 
+  it('shows and navigates the recurrence source for a recurring purchase', async () => {
+    const wrapper = mount(CreditCardPurchaseList, {
+      props: {
+        purchases: [
+          {
+            ...purchase,
+            recurrence_source: {
+              recurring_transaction_id: 42,
+              occurrence_id: 9,
+              scheduled_date: '2026-09-01',
+            },
+          },
+        ],
+      },
+      global: {
+        plugins: [i18n],
+        stubs: {
+          ElDropdown,
+          ElDropdownMenu: { template: '<div><slot /></div>' },
+          ElDropdownItem: { template: '<button><slot /></button>' },
+          ElButton: { template: '<button><slot /></button>' },
+          ElTag: { template: '<span><slot /></span>' },
+          ElIcon: { template: '<span><slot /></span>' },
+          ElEmpty: true,
+        },
+      },
+    })
+
+    const source = wrapper.get('[data-test="credit-card-purchase-source-301"]')
+    expect(source.text()).toContain('Recorrência')
+    await source.trigger('click')
+
+    expect(wrapper.emitted('navigate-source')[0][0]).toMatchObject({
+      recurrence_source: { recurring_transaction_id: 42 },
+    })
+  })
+
   it('hides correction while retaining refund for closed purchase history', () => {
     const wrapper = mount(CreditCardPurchaseList, {
       props: { purchases: [{ ...purchase, is_directly_editable: false }] },

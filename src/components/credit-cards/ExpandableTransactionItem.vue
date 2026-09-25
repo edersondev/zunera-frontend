@@ -21,7 +21,7 @@ const props = defineProps({
   actionLoading: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['toggle', 'correct', 'refund'])
+const emit = defineEmits(['toggle', 'correct', 'refund', 'navigate-source'])
 const { t, locale } = useI18n()
 const headerId = computed(() => `statement-line-header-${props.installment.id}`)
 const detailsId = computed(() => `statement-line-details-${props.installment.id}`)
@@ -102,6 +102,19 @@ const canAct = computed(() => props.installment.purchase_id != null)
         <div v-if="props.installment.category?.name" class="detail-pair">
           <dt>{{ t('creditCards.statementDetail.category') }}</dt>
           <dd>{{ props.installment.category.name }}</dd>
+        </div>
+        <div v-if="props.installment.recurrence_source" class="detail-pair">
+          <dt>{{ t('creditCards.purchase.recurrenceSource') }}</dt>
+          <dd>
+            <button
+              type="button"
+              class="cursor-pointer border-0 bg-transparent p-0 text-left text-[var(--color-action-primary)]"
+              :data-test="`credit-card-line-source-${props.installment.id}`"
+              @click.stop="emit('navigate-source', props.installment)"
+            >
+              {{ formatIsoDate(props.installment.recurrence_source.scheduled_date) }}
+            </button>
+          </dd>
         </div>
         <div v-if="cardLabel" class="detail-pair">
           <dt>{{ t('creditCards.statementDetail.creditCard') }}</dt>
