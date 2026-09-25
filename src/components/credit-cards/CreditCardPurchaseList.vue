@@ -59,7 +59,7 @@ function handleCommand(purchase, command) {
             <button
               v-if="purchase.recurrence_source"
               type="button"
-              class="purchase-source"
+              class="mt-0.5 block cursor-pointer border-0 bg-transparent p-0 text-left text-xs font-medium leading-4 text-[var(--color-action-primary)]"
               :data-test="`credit-card-purchase-source-${purchase.id}`"
               @click.stop="emit('navigate-source', purchase)"
             >
@@ -188,20 +188,6 @@ function handleCommand(purchase, command) {
   font-size: 14px;
   font-weight: 600;
   line-height: 20px;
-}
-
-.purchase-source {
-  display: block;
-  margin-top: 2px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--color-primary, var(--el-color-primary));
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 16px;
-  text-align: left;
 }
 
 .purchase-date,

@@ -108,7 +108,7 @@ const canAct = computed(() => props.installment.purchase_id != null)
           <dd>
             <button
               type="button"
-              class="source-link"
+              class="cursor-pointer border-0 bg-transparent p-0 text-left text-[var(--color-action-primary)]"
               :data-test="`credit-card-line-source-${props.installment.id}`"
               @click.stop="emit('navigate-source', props.installment)"
             >
@@ -308,16 +308,6 @@ const canAct = computed(() => props.installment.purchase_id != null)
 
 .money-value {
   font-variant-numeric: tabular-nums;
-}
-
-.source-link {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--color-primary, var(--el-color-primary));
-  cursor: pointer;
-  font: inherit;
-  text-align: left;
 }
 
 .detail-actions {

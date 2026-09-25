@@ -121,7 +121,7 @@ function submitConfirmation() {
         data-test="occurrence-failed"
       />
       <template v-if="showChoices">
-        <ElForm ref="formRef" label-position="top" class="occurrence-form">
+        <ElForm ref="formRef" label-position="top" class="mt-4">
           <ElFormItem :label="t('recurringTransactions.amount')" :error="errors.actual_amount_centavos?.[0]">
             <ElInputNumber v-model="form.actual_amount_centavos" :min="1" data-test="occurrence-amount" />
           </ElFormItem>
@@ -160,7 +160,7 @@ function submitConfirmation() {
         :title="t('recurringTransactions.futureDate')" data-test="occurrence-future-date" />
       <p class="muted" data-test="occurrence-recording-scope">{{ t('recurringTransactions.recordingScope') }}</p>
 
-      <div class="dialog-actions">
+      <div class="mt-4 flex flex-wrap justify-end gap-2">
         <ElButton type="danger" :icon="Close" :disabled="saving" data-test="occurrence-cancel"
           @click="emit('update:modelValue', false)">{{ t('common.cancel') }}</ElButton>
         <ElButton
@@ -195,17 +195,3 @@ function submitConfirmation() {
     </template>
   </ElDialog>
 </template>
-
-<style scoped>
-.occurrence-form {
-  margin-top: 16px;
-}
-
-.dialog-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
-  margin-top: 16px;
-}
-</style>

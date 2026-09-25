@@ -118,7 +118,7 @@ function amountLabel(movement) {
           <span data-test="dashboard-recent-description">{{ movement.description || '—' }}</span>
           <RouterLink
             v-if="movement.recurrence_source"
-            class="recurrence-source"
+            class="block text-xs leading-4 text-[var(--color-action-primary)]"
             :to="{ name: 'recurring-transactions', query: { highlight: movement.recurrence_source.id } }"
             data-test="dashboard-recent-recurrence"
           >
@@ -229,8 +229,7 @@ function amountLabel(movement) {
   line-height: 16px;
 }
 
-.movement-kind,
-.recurrence-source {
+.movement-kind {
   display: block;
   color: var(--color-text-muted);
   font-size: 12px;
@@ -253,10 +252,6 @@ function amountLabel(movement) {
 .history-link {
   color: var(--color-action-primary);
   font-weight: 600;
-}
-
-.recurrence-source {
-  color: var(--color-action-primary);
 }
 
 @media (min-width: 960px) {
