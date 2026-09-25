@@ -30,19 +30,12 @@ const lifecycleAction = shallowRef('pause')
 const lifecycleRule = shallowRef(null)
 const occurrenceOpen = shallowRef(false)
 const selectedOccurrence = shallowRef(null)
-
-const criteriaLabels = computed(() => ({
-  type: t('recurringTransactions.criteria.type'),
-  financial_account_id: t('recurringTransactions.criteria.financial_account_id'),
-  category_id: t('recurringTransactions.criteria.category_id'),
-  frequency: t('recurringTransactions.criteria.frequency'),
-  state: t('recurringTransactions.criteria.state'),
-}))
-const activeCriteria = computed(() =>
-  Object.entries(store.filters)
-    .filter(([key, value]) => Object.hasOwn(criteriaLabels.value, key) && value !== undefined && value !== null && value !== '')
-    .map(([key, value]) => `${criteriaLabels.value[key]}: ${value}`),
-)
+const expandedRuleId = shallowRef(null)
+const reviewPreview = shallowRef(null)
+const reviewLoadingRuleId = shallowRef(null)
+let reviewRequest = 0
+const filtered = computed(() => ['type', 'destination_type', 'financial_account_id', 'credit_card_id', 'category_id', 'frequency', 'state']
+  .some((key) => store.filters[key] !== undefined && store.filters[key] !== null && store.filters[key] !== ''))
 const accountOptions = computed(() => [
   ...(accounts.accounts ?? []),
   ...(accounts.archivedAccounts ?? []),
@@ -80,6 +73,9 @@ onMounted(async () => {
 })
 
 async function applyFilters(value) {
+  reviewRequest += 1
+  expandedRuleId.value = null
+  reviewPreview.value = null
   await router.replace({ query: { ...value, per_page: value.per_page ?? 50 } })
   try {
     await store.setFilters(value)
@@ -140,6 +136,49 @@ async function openDetail(rule) {
   }
 }
 
+async function loadReviewPreview(rule, openDialog = false) {
+  const request = ++reviewRequest
+  reviewLoadingRuleId.value = rule.id
+  reviewPreview.value = null
+  try {
+    const occurrence = await store.findNewestReviewableOccurrence(rule.id)
+    if (request !== reviewRequest) return
+    reviewPreview.value = occurrence
+    if (openDialog && occurrence) {
+      selectedOccurrence.value = occurrence
+      store.clearFeedback()
+      occurrenceOpen.value = true
+    } else if (openDialog && !occurrence) {
+      store.error = { message: t('recurringTransactions.reviewUnavailable') }
+    }
+  } catch (error) {
+    if (request === reviewRequest) store.error = error
+  } finally {
+    if (request === reviewRequest) reviewLoadingRuleId.value = null
+  }
+}
+
+function toggleExpanded(rule) {
+  if (expandedRuleId.value === rule.id) {
+    expandedRuleId.value = null
+    reviewPreview.value = null
+    reviewRequest += 1
+    return
+  }
+  expandedRuleId.value = rule.id
+  reviewPreview.value = null
+  if (rule.reviewable_occurrence_count > 0) loadReviewPreview(rule)
+}
+
+async function refreshAfterOccurrence(ruleId) {
+  await store.select(ruleId)
+  if (expandedRuleId.value === ruleId && store.selected?.reviewable_occurrence_count > 0) {
+    await loadReviewPreview(store.selected)
+  } else {
+    reviewPreview.value = null
+  }
+}
+
 function confirmLifecycle(action, rule) {
   lifecycleAction.value = action
   lifecycleRule.value = rule
@@ -171,10 +210,11 @@ async function openOccurrence(occurrence) {
 
 async function confirmOccurrence(payload) {
   try {
-    const result = await store.confirmOccurrence(store.selected.id, selectedOccurrence.value.id, payload)
+    const ruleId = store.selected.id
+    const result = await store.confirmOccurrence(ruleId, selectedOccurrence.value.id, payload)
     selectedOccurrence.value = result
     occurrenceOpen.value = result.state !== 'recorded' && result.state !== 'dismissed'
-    await store.select(store.selected.id)
+    await refreshAfterOccurrence(ruleId)
   } catch {
     if (['OVER_LIMIT_CONFIRMATION_REQUIRED', 'stale_over_limit_confirmation'].includes(store.error?.code)) {
       await cards.fetchCards()
@@ -184,9 +224,10 @@ async function confirmOccurrence(payload) {
 
 async function dismissOccurrence() {
   try {
-    await store.dismissOccurrence(store.selected.id, selectedOccurrence.value.id)
+    const ruleId = store.selected.id
+    await store.dismissOccurrence(ruleId, selectedOccurrence.value.id)
     occurrenceOpen.value = false
-    await store.select(store.selected.id)
+    await refreshAfterOccurrence(ruleId)
   } catch {
     /* Feedback comes from the store error state. */
   }
@@ -194,10 +235,11 @@ async function dismissOccurrence() {
 
 async function retryOccurrence() {
   try {
-    const result = await store.retryOccurrence(store.selected.id, selectedOccurrence.value.id)
+    const ruleId = store.selected.id
+    const result = await store.retryOccurrence(ruleId, selectedOccurrence.value.id)
     selectedOccurrence.value = result
     occurrenceOpen.value = result.state !== 'recorded' && result.state !== 'dismissed'
-    await store.select(store.selected.id)
+    await refreshAfterOccurrence(ruleId)
   } catch {
     /* Feedback comes from the store error state. */
   }
@@ -215,6 +257,7 @@ async function retryOccurrence() {
     </PageHeader>
 
     <ElAlert
+      class="mb-4 !py-2"
       type="info"
       :closable="false"
       show-icon
@@ -225,11 +268,6 @@ async function retryOccurrence() {
 
     <ElAlert v-if="store.notice" type="success" :closable="false" show-icon :title="t(store.notice)" data-test="recurrence-notice" />
     <ElAlert v-if="store.error && !lifecycleOpen" type="error" :closable="false" show-icon :title="store.error.message" data-test="recurrence-error" />
-    <div v-if="activeCriteria.length" class="criteria" data-test="recurrence-active-criteria">
-      <span class="muted">{{ t('recurringTransactions.activeCriteria') }}:</span>
-      <ElTag v-for="criteria in activeCriteria" :key="criteria" effect="plain">{{ criteria }}</ElTag>
-    </div>
-
     <RecurringTransactionFilterBar
       :filters="store.filters"
       :accounts="accountOptions"
@@ -244,7 +282,15 @@ async function retryOccurrence() {
       :loading="store.loading"
       :has-more="store.hasMore"
       :saving="store.saving"
-      @open="openDetail"
+      :filtered="filtered"
+      :expanded-rule-id="expandedRuleId"
+      :review-preview="reviewPreview"
+      :review-loading-rule-id="reviewLoadingRuleId"
+      @toggle="toggleExpanded"
+      @review="(rule) => loadReviewPreview(rule, true)"
+      @view-history="openDetail"
+      @clear-filters="clearFilters"
+      @create="openCreate"
       @edit="openEdit"
       @pause="(rule) => confirmLifecycle('pause', rule)"
       @resume="(rule) => confirmLifecycle('resume', rule)"

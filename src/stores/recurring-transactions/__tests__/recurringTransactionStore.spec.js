@@ -193,6 +193,17 @@ describe('recurringTransactionStore', () => {
     expect(service.listRecurringTransactions).toHaveBeenCalledTimes(1)
   })
 
+  it('finds the newest actionable occurrence across paginated history', async () => {
+    const store = useRecurringTransactionStore()
+    service.getRecurringTransaction.mockResolvedValueOnce({ ...rule, reviewable_occurrence_count: 1 })
+    service.listRecurringTransactionOccurrences
+      .mockResolvedValueOnce({ items: [{ id: 20, state: 'recorded' }], meta: { last_page: 2 } })
+      .mockResolvedValueOnce({ items: [{ id: 19, state: 'expected' }, { id: 18, state: 'failed' }], meta: { last_page: 2 } })
+
+    expect(await store.findNewestReviewableOccurrence(4)).toMatchObject({ id: 19, state: 'expected' })
+    expect(service.listRecurringTransactionOccurrences).toHaveBeenLastCalledWith(4, { per_page: 50, page: 2 })
+  })
+
   it('loads the next page and appends it to current items', async () => {
     const store = useRecurringTransactionStore()
     await store.fetch()

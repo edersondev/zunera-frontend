@@ -83,13 +83,15 @@ for (const viewport of [{ name: 'desktop', width: 1280, height: 800 }, { name: '
     for (let iteration = 0; iteration < warmupRuns + measuredRuns; iteration += 1) {
       const listStart = performance.now()
       await page.goto('/app/recurring-transactions')
-      await expect(page.locator('.el-table__row').first()).toContainText('Despesa recorrente 1')
+      await expect(page.locator('[data-test="recurrence-item"]').first()).toContainText('Despesa recorrente 1')
       await expect(page.locator('[data-test="recurrence-new"]')).toBeEnabled()
       await expect(page.locator('[data-test="recurrence-load-more"]')).toBeEnabled()
       const listElapsed = performance.now() - listStart
 
       const detailStart = performance.now()
-      await page.locator('.el-table__row').first().click()
+      await page.locator('[data-test="recurrence-toggle"]').first().click()
+      await expect(page.locator('[data-test="recurrence-expanded"]')).toContainText('Detalhes da recorrência')
+      await page.locator('[data-test="recurrence-expanded"] button').first().click()
       await expect(page.locator('[data-test="recurrence-detail-drawer"]')).toContainText('Despesa recorrente 1')
       await expect(page.locator('[data-test="recurrence-occurrence-open"]')).toBeEnabled()
       const detailElapsed = performance.now() - detailStart

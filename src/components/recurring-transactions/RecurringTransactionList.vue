@@ -1,148 +1,53 @@
 <script setup>
 import { useI18n } from 'vue-i18n'
-import { cardIdentityLabel } from '@/utils/credit-cards/creditCardFormatters'
-import {
-  formatRecurrenceAmount,
-  frequencyLabel,
-  nextExpectedLabel,
-  stateLabel,
-} from '@/utils/recurring-transactions/recurringTransactionFormatters'
-import RecurringTransactionRowActions from './RecurringTransactionRowActions.vue'
+import RecurringTransactionItem from './RecurringTransactionItem.vue'
 
 defineProps({
   rules: { type: Array, required: true },
   loading: Boolean,
   hasMore: Boolean,
   saving: Boolean,
+  filtered: Boolean,
+  expandedRuleId: { type: Number, default: null },
+  reviewPreview: { type: Object, default: null },
+  reviewLoadingRuleId: { type: Number, default: null },
 })
-const emit = defineEmits(['open', 'edit', 'pause', 'resume', 'end', 'load-more'])
+const emit = defineEmits(['toggle', 'review', 'view-history', 'edit', 'pause', 'resume', 'end', 'load-more', 'clear-filters', 'create'])
 const { t } = useI18n()
-
-function reviewRowClass({ row }) {
-  return row.reviewable_occurrence_count > 0
-    ? '[&>td]:!bg-[var(--color-warning-subtle)] [&>td:first-child]:!border-l-4 [&>td:first-child]:!border-l-[var(--color-warning)]'
-    : ''
-}
 </script>
 
 <template>
-  <div data-test="recurrence-list">
-    <ElTable
-      :data="rules"
-      :empty-text="t('recurringTransactions.empty')"
-      row-key="id"
-      :row-class-name="reviewRowClass"
-      @row-click="emit('open', $event)"
-    >
-      <ElTableColumn :label="t('recurringTransactions.columns.description')" min-width="180">
-        <template #default="{ row }">
-          <span class="flex flex-wrap items-center gap-2">
-            <strong>{{ row.description }}</strong>
-            <ElTag
-              v-if="row.reviewable_occurrence_count > 0"
-              type="warning"
-              size="small"
-              effect="plain"
-              data-test="recurrence-needs-review"
-            >
-              {{ t('recurringTransactions.occurrenceReview') }}
-            </ElTag>
-          </span>
-        </template>
-      </ElTableColumn>
-      <ElTableColumn :label="t('recurringTransactions.destination')" min-width="150">
-        <template #default="{ row }">
-          <span data-test="recurrence-destination">{{ row.destination_type === 'credit_card' ? cardIdentityLabel(row.credit_card) : row.financial_account?.name }}</span>
-        </template>
-      </ElTableColumn>
-      <ElTableColumn :label="t('recurringTransactions.category')" min-width="150">
-        <template #default="{ row }">
-          <span data-test="recurrence-category">{{ row.category?.name }}</span>
-        </template>
-      </ElTableColumn>
-      <ElTableColumn :label="t('recurringTransactions.columns.frequency')" width="120">
-        <template #default="{ row }">
-          <ElTag data-test="recurrence-frequency-tag" effect="plain">
-            {{ frequencyLabel(row.frequency, t) }}
-          </ElTag>
-        </template>
-      </ElTableColumn>
-      <ElTableColumn :label="t('recurringTransactions.columns.next')" width="150">
-        <template #default="{ row }">
-          <span data-test="recurrence-next">{{ nextExpectedLabel(row, t) }}</span>
-        </template>
-      </ElTableColumn>
-      <ElTableColumn :label="t('recurringTransactions.columns.state')" width="230">
-        <template #default="{ row }">
-          <span class="cell-stack">
-            <ElTag
-              :type="row.state === 'active' ? 'success' : 'info'"
-              effect="plain"
-              data-test="recurrence-state"
-            >
-              {{ stateLabel(row, t) }}
-            </ElTag>
-            <span
-              v-if="row.paused_reason === 'association_archived'"
-              class="hint"
-              data-test="recurrence-repair-hint"
-            >
-              {{ t('recurringTransactions.repairAssociation') }}
-            </span>
-          </span>
-        </template>
-      </ElTableColumn>
-      <ElTableColumn :label="t('recurringTransactions.columns.amount')" min-width="180">
-        <template #default="{ row }">
-          <span
-            :class="row.type === 'income' ? 'income' : 'expense'"
-            data-test="recurrence-amount"
-          >
-            {{ row.type === 'income' ? '+' : '−' }} {{ formatRecurrenceAmount(row) }}
-          </span>
-        </template>
-      </ElTableColumn>
-      <ElTableColumn width="64" align="center">
-        <template #default="{ row }">
-          <RecurringTransactionRowActions
-            :rule="row"
-            :saving="saving"
-            @edit="emit('edit', $event)"
-            @pause="emit('pause', $event)"
-            @resume="emit('resume', $event)"
-            @end="emit('end', $event)"
-          />
-        </template>
-      </ElTableColumn>
-    </ElTable>
-    <div v-if="loading" class="hint" data-test="recurrence-loading">{{ t('common.loading') }}</div>
-    <ElButton
-      v-if="hasMore"
-      class="load-more"
-      data-test="recurrence-load-more"
-      @click="emit('load-more')"
-    >
-      {{ t('recurringTransactions.loadMore') }}
-    </ElButton>
-  </div>
+  <section data-test="recurrence-list" :aria-label="t('recurringTransactions.title')">
+    <div v-if="loading && !rules.length" class="rounded-xl border border-[var(--color-border)] p-4" data-test="recurrence-loading">
+      <ElSkeleton :rows="4" animated />
+    </div>
+    <div v-else-if="!rules.length" class="rounded-xl border border-[var(--color-border)] py-7 text-center">
+      <ElEmpty :description="t(filtered ? 'recurringTransactions.noMatch' : 'recurringTransactions.empty')">
+        <ElButton v-if="filtered" @click="emit('clear-filters')">{{ t('recurringTransactions.clear') }}</ElButton>
+        <ElButton v-else type="primary" @click="emit('create')">{{ t('recurringTransactions.new') }}</ElButton>
+      </ElEmpty>
+    </div>
+    <ul v-else class="divide-y divide-[var(--color-border)] overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]" data-test="recurrence-items">
+      <RecurringTransactionItem
+        v-for="rule in rules"
+        :key="rule.id"
+        :rule="rule"
+        :expanded="expandedRuleId === rule.id"
+        :review-preview="expandedRuleId === rule.id ? reviewPreview : null"
+        :review-loading="reviewLoadingRuleId === rule.id"
+        :saving="saving"
+        @toggle="emit('toggle', rule)"
+        @review="emit('review', rule)"
+        @view-history="emit('view-history', rule)"
+        @edit="emit('edit', $event)"
+        @pause="emit('pause', $event)"
+        @resume="emit('resume', $event)"
+        @end="emit('end', $event)"
+      />
+    </ul>
+    <div v-if="loading && rules.length" class="mt-3 text-sm text-[var(--color-text-muted)]" data-test="recurrence-loading">{{ t('common.loading') }}</div>
+    <div v-if="hasMore" class="mt-4 text-center">
+      <ElButton data-test="recurrence-load-more" :loading="loading" @click="emit('load-more')">{{ t('recurringTransactions.loadMore') }}</ElButton>
+    </div>
+  </section>
 </template>
-
-<style scoped>
-:deep(.el-table__body-wrapper) {
-  overflow-x: auto;
-}
-
-.load-more {
-  margin-top: 16px;
-}
-
-.income {
-  color: var(--color-financial-positive);
-  font-variant-numeric: tabular-nums;
-}
-
-.expense {
-  color: var(--color-financial-negative);
-  font-variant-numeric: tabular-nums;
-}
-</style>

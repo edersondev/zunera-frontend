@@ -30,6 +30,7 @@ export const useRecurringTransactionStore = defineStore('recurring-transactions'
   const validationErrors = shallowRef({})
   const notice = shallowRef(null)
   const retryKeys = new Map()
+  let selectionRequest = 0
   const hasMore = computed(() => (meta.value.current_page ?? 1) < (meta.value.last_page ?? 1))
 
   function applyError(value) {
@@ -81,25 +82,50 @@ export const useRecurringTransactionStore = defineStore('recurring-transactions'
   }
 
   async function select(id) {
+    const request = ++selectionRequest
     const rule = await getRecurringTransaction(id)
+    if (request !== selectionRequest) return rule
     selected.value = rule
     items.value = items.value.map((item) => item.id === rule.id ? rule : item)
-    await fetchOccurrences(id)
+    await fetchOccurrences(id, {}, request)
 
     return rule
   }
 
-  async function fetchOccurrences(id, params = {}) {
+  async function fetchOccurrences(id, params = {}, request = selectionRequest) {
     loadingOccurrences.value = true
     try {
       const result = await listRecurringTransactionOccurrences(id, { per_page: 50, ...params })
-      occurrences.value = result.items
-      occurrenceMeta.value = result.meta
+      if (request === selectionRequest) {
+        occurrences.value = result.items
+        occurrenceMeta.value = result.meta
+      }
 
       return result
     } finally {
-      loadingOccurrences.value = false
+      if (request === selectionRequest) loadingOccurrences.value = false
     }
+  }
+
+  async function findNewestReviewableOccurrence(id) {
+    const rule = await select(id)
+    if (selected.value?.id !== id || !rule.reviewable_occurrence_count) return null
+
+    const actionable = (row) => ['expected', 'awaiting_over_limit', 'failed'].includes(row.state)
+    let page = 1
+    let result = { items: occurrences.value, meta: occurrenceMeta.value }
+
+    while (page <= (result.meta?.last_page ?? 1)) {
+      const match = result.items.find(actionable)
+      if (match) return match
+      page += 1
+      if (page <= (result.meta?.last_page ?? 1)) {
+        result = await listRecurringTransactionOccurrences(id, { per_page: 50, page })
+        if (selected.value?.id !== id) return null
+      }
+    }
+
+    return null
   }
 
   async function runOccurrenceAction(ruleId, occurrenceId, operation, action) {
@@ -211,6 +237,7 @@ export const useRecurringTransactionStore = defineStore('recurring-transactions'
     loadMore,
     select,
     fetchOccurrences,
+    findNewestReviewableOccurrence,
     create,
     update,
     pause,

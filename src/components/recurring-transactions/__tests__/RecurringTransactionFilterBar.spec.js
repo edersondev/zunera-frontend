@@ -8,7 +8,6 @@ import RecurringTransactionFilterBar from '../RecurringTransactionFilterBar.vue'
 const stubs = {
   ElCollapse: { template: '<div><slot /></div>' },
   ElCollapseItem: { template: '<section><slot name="title" /><slot /></section>' },
-  ElCard: { template: '<div><slot /><footer data-test="recurrence-filter-card-footer"><slot name="footer" /></footer></div>' },
   ElForm: { template: '<form><slot /></form>' },
   ElFormItem: { template: '<label><slot /></label>' },
   ElSelect: {
@@ -69,9 +68,9 @@ describe('RecurringTransactionFilterBar', () => {
     expect(wrapper.emitted('clear')).toHaveLength(1)
   })
 
-  it('places filter action controls in the card footer with icons', () => {
+  it('places filter action controls below the compact grid with icons', () => {
     const wrapper = factory()
-    const footer = wrapper.get('[data-test="recurrence-filter-card-footer"]')
+    const footer = wrapper.get('[data-test="recurrence-filter-actions"]')
     const clear = wrapper.findComponent('[data-test="recurrence-filter-clear"]')
     const apply = wrapper.findComponent('[data-test="recurrence-filter-apply"]')
 

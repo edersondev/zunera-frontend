@@ -23,6 +23,8 @@ const destinationOptions = computed(() => [
   { value: 'financial_account', label: t('recurringTransactions.destinationOptions.financial_account') },
   { value: 'credit_card', label: t('recurringTransactions.destinationOptions.credit_card') },
 ])
+const activeCount = computed(() => ['type', 'destination_type', 'financial_account_id', 'credit_card_id', 'category_id', 'frequency', 'state']
+  .filter((key) => props.filters[key] !== undefined && props.filters[key] !== null && props.filters[key] !== '').length)
 
 watch(
   () => props.filters,
@@ -44,13 +46,13 @@ function clear() {
 </script>
 
 <template>
-  <ElCollapse v-model="activePanels" class="filter-collapse" data-test="recurrence-filter-collapse">
+  <ElCollapse v-model="activePanels" class="mb-4" data-test="recurrence-filter-collapse">
     <ElCollapseItem name="filters">
       <template #title>
-        <span class="filter-collapse-title"><ElIcon><Filter /></ElIcon>{{ t('recurringTransactions.filter') }}</span>
+        <span class="inline-flex items-center gap-2 font-semibold"><ElIcon><Filter /></ElIcon>{{ t('recurringTransactions.filter') }}<span v-if="activeCount" class="text-sm font-normal text-[var(--color-text-muted)]">· {{ t('recurringTransactions.activeFilterCount', { count: activeCount }) }}</span></span>
       </template>
-      <ElCard data-test="recurrence-filter-card">
-        <ElForm :model="form" label-position="top" class="filters" data-test="recurrence-filters" @submit.prevent="apply">
+      <div class="pt-3">
+        <ElForm :model="form" label-position="top" class="grid gap-x-4 sm:grid-cols-2 lg:grid-cols-3" data-test="recurrence-filters" @submit.prevent="apply">
           <ElFormItem :label="t('recurringTransactions.criteria.type')">
             <ElSelect v-model="form.type" clearable data-test="recurrence-filter-type">
               <ElOption v-for="option in typeOptions" :key="option.value" :label="option.label" :value="option.value" />
@@ -87,8 +89,7 @@ function clear() {
             </ElSelect>
           </ElFormItem>
         </ElForm>
-        <template #footer>
-          <div class="filter-actions">
+          <div class="flex flex-wrap justify-end gap-2 max-sm:[&>*]:flex-1" data-test="recurrence-filter-actions">
             <ElButton :icon="RefreshLeft" data-test="recurrence-filter-clear" @click="clear">
               {{ t('recurringTransactions.clear') }}
             </ElButton>
@@ -96,53 +97,7 @@ function clear() {
               {{ t('common.save') }}
             </ElButton>
           </div>
-        </template>
-      </ElCard>
+      </div>
     </ElCollapseItem>
   </ElCollapse>
 </template>
-
-<style scoped>
-.filter-collapse {
-  margin-bottom: 24px;
-}
-
-.filter-collapse-title {
-  align-items: center;
-  display: inline-flex;
-  font-weight: 600;
-  gap: 8px;
-}
-
-.filters {
-  display: grid;
-  gap: 0 16px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.filter-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-}
-
-@media (max-width: 1024px) {
-  .filters {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 639px) {
-  .filters {
-    grid-template-columns: 1fr;
-  }
-
-  .filter-actions {
-    justify-content: stretch;
-  }
-
-  .filter-actions :deep(.el-button) {
-    flex: 1;
-  }
-}
-</style>
