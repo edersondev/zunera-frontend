@@ -12,8 +12,10 @@ import AccountsOverviewCard from '@/components/dashboard/AccountsOverviewCard.vu
 import RecentActivityCard from '@/components/dashboard/RecentActivityCard.vue'
 import UpcomingActivityCard from '@/components/dashboard/UpcomingActivityCard.vue'
 import CreditCardSummary from '@/components/dashboard/CreditCardSummary.vue'
+import DashboardGoalsCard from '@/components/dashboard/DashboardGoalsCard.vue'
 import { useDashboardStore } from '@/stores/dashboard/dashboardStore'
 import { useCreditCardStore } from '@/stores/credit-cards/creditCardStore'
+import { useFinancialGoalStore } from '@/stores/goals/financialGoalStore'
 import { useLocale } from '@/composables/useLocale'
 import { formatDashboardPeriod } from '@/utils/dashboard/dashboardFormatters'
 
@@ -47,6 +49,8 @@ const {
   error: creditCardError,
 } = storeToRefs(creditCardStore)
 
+const goalStore = useFinancialGoalStore()
+const { dashboardGoals, dashboardLoading: goalsLoading, dashboardError: goalsError } = storeToRefs(goalStore)
 const router = useRouter()
 const { t } = useI18n()
 const { activeLocale } = useLocale()
@@ -86,6 +90,7 @@ async function openFinancialAccounts() {
 onMounted(() => {
   store.refreshAll()
   creditCardStore.fetchDashboard()
+  goalStore.fetchDashboard()
 })
 </script>
 
@@ -149,6 +154,8 @@ onMounted(() => {
         :locale="activeLocale"
         @retry="store.fetchUpcomingActivity()"
       />
+
+      <DashboardGoalsCard :goals="dashboardGoals" :loading="goalsLoading" :error="goalsError" @retry="goalStore.fetchDashboard()" @open-goals="router.push({ name: 'goals' })" />
 
       <CreditCardSummary
         class="dashboard-credit-cards-card"

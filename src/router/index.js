@@ -46,6 +46,30 @@ const router = createRouter({
           meta: { requiresAuth: true, titleKey: 'dashboard.title' },
         },
         {
+          path: 'goals', name: 'goals',
+          component: () => import('@/views/goals/GoalOverviewView.vue'),
+          props: { initialStatus: 'active' },
+          meta: { requiresAuth: true, titleKey: 'goals.title' },
+        },
+        {
+          path: 'goals/completed', name: 'goals-completed',
+          component: () => import('@/views/goals/GoalOverviewView.vue'),
+          props: { initialStatus: 'completed' },
+          meta: { requiresAuth: true, titleKey: 'goals.completed' },
+        },
+        {
+          path: 'goals/archived', name: 'goals-archived',
+          component: () => import('@/views/goals/GoalOverviewView.vue'),
+          props: { initialStatus: 'archived' },
+          meta: { requiresAuth: true, titleKey: 'goals.archived' },
+        },
+        {
+          path: 'goals/:goal_id', name: 'goal-detail',
+          component: () => import('@/views/goals/GoalDetailView.vue'),
+          props: (route) => ({ goalId: route.params.goal_id }),
+          meta: { requiresAuth: true, titleKey: 'goals.title' },
+        },
+        {
           path: 'financial-accounts',
           name: 'financial-accounts',
           component: () => import('@/views/financial-accounts/FinancialAccountsListView.vue'),
