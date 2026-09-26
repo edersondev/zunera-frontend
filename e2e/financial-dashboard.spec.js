@@ -51,6 +51,18 @@ test('current month opens with the current balance and realized period result', 
   await expect(page.getByText('R$ 5.000,00').first()).toBeVisible()
 })
 
+test('goals card stays independent of period cash-flow totals', async ({ page }) => {
+  const requests = await mockDashboard(page)
+  await page.goto('/app')
+  await expect(page.getByRole('heading', { name: 'Metas em destaque' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Viagem' })).toBeVisible()
+  await expect(page.getByText('Resultado positivo')).toBeVisible()
+  await page.getByText('Mês anterior').click()
+  await expect(page.getByText('Resultado negativo')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Viagem' })).toBeVisible()
+  expect(requests.goals).toHaveLength(1)
+})
+
 test('custom range applies inclusive boundaries to period sections only', async ({ page }) => {
   const requests = await mockDashboard(page)
 
@@ -181,8 +193,14 @@ async function mockDashboard(page, { distributionFailures = 0 } = {}) {
     evolution: [],
     recent: [],
     upcoming: [],
+    goals: [],
   }
   let distributionCalls = 0
+
+  await page.route('**/api/v1/financial-dashboard/goals', (route) => {
+    requests.goals.push(route.request().url())
+    return route.fulfill({ json: { data: [{ id: 51, name: 'Viagem', allocated_centavos: 30000, target_centavos: 100000, remaining_centavos: 70000, progress_percentage: 30, target_date: null }] }, headers: apiHeaders() })
+  })
 
   await page.route('**/api/v1/auth/session', (route) =>
     route.fulfill({ json: sessionPayload(), headers: apiHeaders() }),
