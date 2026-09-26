@@ -7,7 +7,7 @@ test('owner creates an unlinked goal and completes explicit money and lifecycle 
   await page.goto('/app/goals')
   await expect(page.getByRole('heading', { name: 'Financial goals' })).toBeVisible()
   await expect(page.locator('[data-test="navigation-item-goals"]')).toHaveAttribute('aria-current', 'page')
-  await page.getByRole('button', { name: 'New goal' }).click()
+  await page.locator('[data-test="open-create-goal"]').click()
   const form = page.getByRole('dialog', { name: 'New goal' })
   await form.getByLabel('Name').fill('Trip')
   await form.getByLabel('Target amount').pressSequentially('3000')
@@ -70,17 +70,32 @@ test('linked shortfall and hostile text stay understandable at mobile width', as
   expect(state.accountBalance).toBe(4000)
 })
 
+test('overview shows progress and account attention without horizontal overflow', async ({ page }) => {
+  await pinLocale(page, 'en')
+  await mockGoals(page, { initial: { name: 'Home renovation', target: 10000, allocated: 8000, accountId: 7 }, accountBalance: 4000 })
+  await page.setViewportSize({ width: 320, height: 800 })
+  await page.goto('/app/goals')
+  await expect(page.getByRole('progressbar', { name: 'Overall active goal progress' })).toHaveAttribute('aria-valuenow', '80')
+  await expect(page.getByText('Goals with account shortfall: 1')).toBeVisible()
+  await expect(page.getByText('Linked account is short by')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'View details for Home renovation' })).toBeVisible()
+  for (const colorScheme of ['light', 'dark']) {
+    await page.emulateMedia({ colorScheme })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true)
+  }
+})
+
 test('completed and archived sections remain available with Portuguese copy', async ({ page }) => {
   await pinLocale(page, 'pt-BR')
   await mockGoals(page, { initial: { name: 'Viagem', target: 300000, allocated: 100000 } })
   await page.goto('/app/goals')
   await expect(page.getByRole('heading', { name: 'Metas financeiras' })).toBeVisible()
   await expect(page.getByText('Separado nas metas ativas')).toBeVisible()
-  await page.getByRole('button', { name: 'Concluídas' }).click()
+  await page.getByRole('link', { name: /Concluídas/ }).click()
   await expect(page).toHaveURL(/\/app\/goals\/completed$/)
-  await page.getByRole('button', { name: 'Arquivadas' }).click()
+  await page.getByRole('link', { name: /Arquivadas/ }).click()
   await expect(page).toHaveURL(/\/app\/goals\/archived$/)
-  await page.getByRole('button', { name: 'Ativas' }).click()
+  await page.getByRole('link', { name: /Ativas/ }).click()
   await expect(page.getByText('Viagem')).toBeVisible()
 })
 

@@ -1,6 +1,6 @@
 <script setup>
 import { computed, shallowRef, watch } from 'vue'
-import { Close } from '@element-plus/icons-vue'
+import { Close, Minus, Plus } from '@element-plus/icons-vue'
 import { ElAlert, ElButton, ElDialog, ElForm, ElFormItem } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import CurrencyAmountInput from '@/components/common/CurrencyAmountInput.vue'
@@ -30,7 +30,7 @@ function submit() {
       <p class="amount-note">{{ t(props.action === 'allocate' ? 'goals.allocateHelp' : 'goals.withdrawHelp') }}</p>
       <div class="dialog-actions">
         <ElButton type="danger" :icon="Close" :disabled="props.busy" @click="visible = false">{{ t('common.cancel') }}</ElButton>
-        <ElButton type="primary" native-type="submit" :loading="props.busy">{{ title }}</ElButton>
+        <ElButton type="primary" :icon="props.action === 'allocate' ? Plus : Minus" native-type="submit" :loading="props.busy">{{ title }}</ElButton>
       </div>
     </ElForm>
   </ElDialog>

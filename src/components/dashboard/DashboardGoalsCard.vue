@@ -1,5 +1,6 @@
 <script setup>
 import { useI18n } from 'vue-i18n'
+import { ArrowRight, RefreshRight } from '@element-plus/icons-vue'
 import { ElAlert, ElButton, ElSkeleton } from 'element-plus'
 import { formatBRL } from '@/utils/financial-accounts/currency'
 import GoalProgress from '@/components/goals/GoalProgress.vue'
@@ -12,8 +13,8 @@ function dateLabel(value) { return new Intl.DateTimeFormat(locale.value, { dateS
 
 <template>
   <section v-if="props.error || props.loading || props.goals?.length" class="dashboard-goals" :aria-label="t('goals.dashboardTitle')" data-test="dashboard-goals">
-    <div class="card-head"><h2>{{ t('goals.dashboardTitle') }}</h2><ElButton @click="emit('open-goals')">{{ t('goals.manage') }}</ElButton></div>
-    <ElAlert v-if="props.error" type="error" :title="props.error.message" :closable="false" show-icon><ElButton @click="emit('retry')">{{ t('common.retry') }}</ElButton></ElAlert>
+    <div class="card-head"><h2>{{ t('goals.dashboardTitle') }}</h2><ElButton :icon="ArrowRight" @click="emit('open-goals')">{{ t('goals.manage') }}</ElButton></div>
+    <ElAlert v-if="props.error" type="error" :title="props.error.message" :closable="false" show-icon><ElButton :icon="RefreshRight" @click="emit('retry')">{{ t('common.retry') }}</ElButton></ElAlert>
     <ElSkeleton v-else-if="props.loading && !props.goals?.length" :rows="3" animated />
     <ul v-else class="goal-list">
       <li v-for="goal in props.goals" :key="goal.id">

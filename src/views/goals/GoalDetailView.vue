@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, shallowRef, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { ArrowLeft, Check, Edit, FolderDelete, Minus, Plus, RefreshLeft, RefreshRight } from '@element-plus/icons-vue'
 import { ElAlert, ElButton, ElSkeleton } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -41,8 +42,8 @@ async function transition(action) { const result = await store.transition(props.
 
 <template>
   <div class="goal-detail">
-    <ElButton text @click="router.push({ name: 'goals' })">{{ t('goals.back') }}</ElButton>
-    <ElAlert v-if="error" type="error" :title="error.message" :closable="false" show-icon><ElButton @click="load">{{ t('common.retry') }}</ElButton></ElAlert>
+    <ElButton text :icon="ArrowLeft" @click="router.push({ name: 'goals' })">{{ t('goals.back') }}</ElButton>
+    <ElAlert v-if="error" type="error" :title="error.message" :closable="false" show-icon><ElButton :icon="RefreshRight" @click="load">{{ t('common.retry') }}</ElButton></ElAlert>
     <ElSkeleton v-if="loading && !goal" :rows="5" animated />
     <template v-else-if="goal">
       <PageHeader :title="goal.name" :description="t('goals.description')" />
@@ -59,14 +60,14 @@ async function transition(action) { const result = await store.transition(props.
       <section class="detail-panel" :aria-label="t('goals.actions')">
         <h2>{{ t('goals.actions') }}</h2>
         <div class="action-row" v-if="goal.status === 'active'">
-          <ElButton type="primary" :disabled="submitting" data-test="allocate-goal" @click="openAmount('allocate')">{{ t('goals.allocate') }}</ElButton>
-          <ElButton :disabled="submitting || !availableActions.includes('withdraw')" data-test="withdraw-goal" @click="openAmount('withdraw')">{{ t('goals.withdraw') }}</ElButton>
-          <ElButton :disabled="submitting" @click="openEdit">{{ t('goals.edit') }}</ElButton>
-          <ElButton :disabled="submitting" data-test="complete-goal" @click="transition('complete')">{{ t('goals.complete') }}</ElButton>
-          <ElButton type="warning" :disabled="submitting || !availableActions.includes('archive')" data-test="archive-goal" @click="transition('archive')">{{ t('goals.archive') }}</ElButton>
+          <ElButton type="primary" :icon="Plus" :disabled="submitting" data-test="allocate-goal" @click="openAmount('allocate')">{{ t('goals.allocate') }}</ElButton>
+          <ElButton :icon="Minus" :disabled="submitting || !availableActions.includes('withdraw')" data-test="withdraw-goal" @click="openAmount('withdraw')">{{ t('goals.withdraw') }}</ElButton>
+          <ElButton :icon="Edit" :disabled="submitting" @click="openEdit">{{ t('goals.edit') }}</ElButton>
+          <ElButton :icon="Check" :disabled="submitting" data-test="complete-goal" @click="transition('complete')">{{ t('goals.complete') }}</ElButton>
+          <ElButton type="warning" :icon="FolderDelete" :disabled="submitting || !availableActions.includes('archive')" data-test="archive-goal" @click="transition('archive')">{{ t('goals.archive') }}</ElButton>
         </div>
-        <div class="action-row" v-else-if="goal.status === 'completed'"><ElButton :disabled="submitting" @click="transition('reopen')">{{ t('goals.reopen') }}</ElButton></div>
-        <div class="action-row" v-else><ElButton :disabled="submitting" @click="transition('restore')">{{ t('goals.restore') }}</ElButton></div>
+        <div class="action-row" v-else-if="goal.status === 'completed'"><ElButton :icon="RefreshLeft" :disabled="submitting" @click="transition('reopen')">{{ t('goals.reopen') }}</ElButton></div>
+        <div class="action-row" v-else><ElButton :icon="RefreshLeft" :disabled="submitting" @click="transition('restore')">{{ t('goals.restore') }}</ElButton></div>
         <p v-if="goal.status === 'active' && goal.allocated_centavos > 0" class="action-help">{{ t('goals.archiveHelp') }}</p>
       </section>
       <section class="detail-panel"><h2>{{ t('goals.activity') }}</h2><GoalActivityList :items="activities" :meta="activityMeta" @page-change="store.fetchActivities(props.goalId, $event)" /></section>

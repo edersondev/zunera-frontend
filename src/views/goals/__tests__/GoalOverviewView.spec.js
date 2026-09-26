@@ -19,6 +19,7 @@ const stubs = {
   PageHeader: { props: ['title'], template: '<header><h1>{{ title }}</h1><slot name="actions" /></header>' },
   GoalFormDialog: true,
   GoalCard: { props: ['goal'], template: '<article>{{ goal.name }} {{ goal.account_backing }}</article>' },
+  RouterLink: { props: ['to'], template: '<a><slot /></a>' },
 }
 
 function render(initialStatus = 'active') {
@@ -41,13 +42,56 @@ describe('GoalOverviewView', () => {
   it('shows exact active totals and three independent attention counts', async () => {
     const wrapper = render()
     await flushPromises()
-    expect(wrapper.text()).toMatch(/R\$\s*30\.000,00/)
-    expect(wrapper.text()).toMatch(/R\$\s*3\.000,00/)
-    expect(wrapper.text()).toMatch(/R\$\s*27\.000,00/)
-    expect(wrapper.text()).toMatch(/R\$\s*500,00/)
+    expect(wrapper.text()).toMatch(/R\$\s*30,000\.00/)
+    expect(wrapper.text()).toMatch(/R\$\s*3,000\.00/)
+    expect(wrapper.text()).toMatch(/R\$\s*27,000\.00/)
+    expect(wrapper.text()).toMatch(/R\$\s*500\.00/)
     expect(wrapper.text()).toContain('Overdue underfunded active goals: 1')
     expect(wrapper.text()).toContain('Goals with account shortfall: 2')
     expect(wrapper.text()).toContain('Goals linked to inactive or unavailable accounts: 3')
+    expect(wrapper.get('[aria-label="Goal status"] [aria-current="page"]').text()).toContain('Active')
+  })
+
+  it('shows a quiet all-clear state and status counts without zero attention lines', async () => {
+    service.getGoalSummary.mockResolvedValueOnce({
+      active_count: 2, completed_count: 1, archived_count: 0,
+      active_target_centavos: 5_000_000, active_allocated_centavos: 2500,
+      active_remaining_centavos: 4_997_500, active_excess_centavos: 0, active_unverified_centavos: 0,
+      attention_counts: { overdue_underfunded_active_goals: 0, shortfall_linked_goals: 0, inactive_or_unavailable_linked_goals: 0 },
+    })
+    const wrapper = render()
+    await flushPromises()
+    expect(wrapper.text()).toContain('Everything looks good')
+    expect(wrapper.text()).not.toContain('Overdue underfunded active goals: 0')
+    expect(wrapper.get('[aria-label="Goal status"]').text()).toContain('Active2')
+    expect(wrapper.get('[role="progressbar"]').attributes('aria-valuetext')).toContain('0.05%')
+  })
+
+  it('shows only attention categories with nonzero counts', async () => {
+    service.getGoalSummary.mockResolvedValueOnce({
+      active_count: 1, completed_count: 0, archived_count: 0,
+      active_target_centavos: 100, active_allocated_centavos: 0, active_remaining_centavos: 100,
+      active_excess_centavos: 0, active_unverified_centavos: 0,
+      attention_counts: { overdue_underfunded_active_goals: 0, shortfall_linked_goals: 2, inactive_or_unavailable_linked_goals: 0 },
+    })
+    const wrapper = render()
+    await flushPromises()
+    expect(wrapper.text()).toContain('Goals with account shortfall: 2')
+    expect(wrapper.text()).not.toContain('Overdue underfunded active goals: 0')
+    expect(wrapper.text()).not.toContain('Goals linked to inactive or unavailable accounts: 0')
+  })
+
+  it('does not let excess on one goal offset the remaining target of another', async () => {
+    service.getGoalSummary.mockResolvedValueOnce({
+      active_count: 2, completed_count: 0, archived_count: 0,
+      active_target_centavos: 20000, active_allocated_centavos: 25000,
+      active_remaining_centavos: 5000, active_excess_centavos: 10000, active_unverified_centavos: 0,
+      attention_counts: { overdue_underfunded_active_goals: 0, shortfall_linked_goals: 0, inactive_or_unavailable_linked_goals: 0 },
+    })
+    const wrapper = render()
+    await flushPromises()
+    expect(wrapper.get('[role="progressbar"]').attributes('aria-valuenow')).toBe('75')
+    expect(wrapper.text()).toContain('above target')
   })
 
   it('requests completed and archived filters without mixing their records', async () => {

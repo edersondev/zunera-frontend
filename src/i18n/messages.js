@@ -17,6 +17,9 @@ export const messages = {
       dateGuidance: 'Orientação para a data alvo', targetDateLabel: 'Data alvo: {date}', monthlySuggestion: 'Sugestão: {amount} por mês por {months} meses.', guidanceDisclaimer: 'Orientação de planejamento. Nenhuma transferência ou contribuição automática será criada.',
       dateState: { future: 'Futura', due_today: 'Vence hoje', overdue: 'Atrasada', met: 'Valor alvo atingido' },
       summary: 'Visão geral das metas', totalTarget: 'Alvos ativos', totalAllocated: 'Separado nas metas ativas', totalRemaining: 'Restante das metas ativas', unverifiedTotal: 'Valor sem confirmação por conta', attention: 'Pontos de atenção', overdueCount: 'Metas ativas atrasadas e não alcançadas: {count}', shortfallCount: 'Metas com falta de cobertura: {count}', inactiveCount: 'Metas vinculadas a contas inativas ou indisponíveis: {count}',
+      overallProgress: 'Progresso geral das metas ativas', noActiveTarget: 'Crie uma meta ativa para acompanhar o progresso geral.', allClear: 'Tudo em ordem. Nenhuma meta exige atenção agora.', statusNavigation: 'Situação das metas', listHeading: 'Metas {status}',
+      ofTarget: 'de {amount} de valor alvo', completedOn: 'Concluída em {date}', linkedAccountLabel: 'Conta vinculada: {name}', cardOverdue: 'A data alvo passou e o valor ainda não foi alcançado.', viewDetails: 'Ver detalhes', viewDetailsFor: 'Ver detalhes de {name}',
+      emptyState: { active: 'Nenhuma meta ativa. Crie uma meta para começar a separar dinheiro para seus planos.', completed: 'Nenhuma meta concluída ainda.', archived: 'Nenhuma meta arquivada ainda.' },
       complete: 'Concluir', reopen: 'Reabrir', archive: 'Arquivar', restore: 'Restaurar', archiveHelp: 'Libere todo o valor separado antes de arquivar.', actions: 'Ações da meta', back: 'Voltar às metas', dashboardTitle: 'Metas em destaque', dashboardEmpty: 'Nenhuma meta ativa ainda.', manage: 'Ver metas', retry: 'Tentar novamente',
     },
     common: {
@@ -1036,6 +1039,9 @@ export const messages = {
       dateGuidance: 'Target date guidance', targetDateLabel: 'Target date: {date}', monthlySuggestion: 'Suggestion: {amount} per month for {months} months.', guidanceDisclaimer: 'Planning guidance only. No automatic transfer or contribution will be created.',
       dateState: { future: 'Future', due_today: 'Due today', overdue: 'Overdue', met: 'Target reached' },
       summary: 'Goals overview', totalTarget: 'Active targets', totalAllocated: 'Designated in active goals', totalRemaining: 'Remaining in active goals', unverifiedTotal: 'Unverified by an account', attention: 'Needs attention', overdueCount: 'Overdue underfunded active goals: {count}', shortfallCount: 'Goals with account shortfall: {count}', inactiveCount: 'Goals linked to inactive or unavailable accounts: {count}',
+      overallProgress: 'Overall active goal progress', noActiveTarget: 'Create an active goal to track overall progress.', allClear: 'Everything looks good. No goals need attention right now.', statusNavigation: 'Goal status', listHeading: '{status} goals',
+      ofTarget: 'of {amount} target', completedOn: 'Completed on {date}', linkedAccountLabel: 'Linked account: {name}', cardOverdue: 'The target date has passed and this goal is not yet funded.', viewDetails: 'View details', viewDetailsFor: 'View details for {name}',
+      emptyState: { active: 'No active goals yet. Create a goal to start designating money for your plans.', completed: 'No completed goals yet.', archived: 'No archived goals yet.' },
       complete: 'Complete', reopen: 'Reopen', archive: 'Archive', restore: 'Restore', archiveHelp: 'Release the full designated amount before archiving.', actions: 'Goal actions', back: 'Back to goals', dashboardTitle: 'Featured goals', dashboardEmpty: 'No active goals yet.', manage: 'View goals', retry: 'Try again',
     },
     common: {

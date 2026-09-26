@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, shallowRef, watch } from 'vue'
-import { Close } from '@element-plus/icons-vue'
+import { Check, Close, Plus } from '@element-plus/icons-vue'
 import { ElAlert, ElButton, ElDatePicker, ElDialog, ElForm, ElFormItem, ElInput, ElOption, ElSelect } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import CurrencyAmountInput from '@/components/common/CurrencyAmountInput.vue'
@@ -52,7 +52,7 @@ function submit() {
       <ElAlert v-if="props.error?.message" :title="props.error.message" type="error" :closable="false" show-icon />
       <p v-if="localError" role="alert">{{ localError }}</p>
       <p class="form-note">{{ t('goals.allocationHelp') }}</p>
-      <div class="dialog-actions"><ElButton type="danger" :icon="Close" :disabled="props.busy" @click="visible = false">{{ t('common.cancel') }}</ElButton><ElButton type="primary" native-type="submit" :loading="props.busy">{{ t(props.goal ? 'goals.save' : 'goals.create') }}</ElButton></div>
+      <div class="dialog-actions"><ElButton type="danger" :icon="Close" :disabled="props.busy" @click="visible = false">{{ t('common.cancel') }}</ElButton><ElButton type="primary" :icon="props.goal ? Check : Plus" native-type="submit" :loading="props.busy">{{ t(props.goal ? 'goals.save' : 'goals.create') }}</ElButton></div>
     </ElForm>
   </ElDialog>
 </template>

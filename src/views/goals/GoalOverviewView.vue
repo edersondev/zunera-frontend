@@ -1,16 +1,17 @@
 <script setup>
 import { computed, onMounted, shallowRef, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Plus } from '@element-plus/icons-vue'
-import { ElAlert, ElButton, ElEmpty, ElPagination, ElSkeleton } from 'element-plus'
+import { CircleCheck, FolderDelete, List, Plus, RefreshRight } from '@element-plus/icons-vue'
+import { ElAlert, ElButton, ElEmpty, ElIcon, ElPagination, ElSkeleton } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import GoalCard from '@/components/goals/GoalCard.vue'
+import GoalsOverview from '@/components/goals/GoalsOverview.vue'
+import GoalAttentionSummary from '@/components/goals/GoalAttentionSummary.vue'
 import GoalFormDialog from '@/components/goals/GoalFormDialog.vue'
 import { listFinancialAccounts } from '@/services/financialAccountService'
 import { useFinancialGoalStore } from '@/stores/goals/financialGoalStore'
-import { formatBRL } from '@/utils/financial-accounts/currency'
 
 const props = defineProps({ initialStatus: { type: String, default: 'active' } })
 const store = useFinancialGoalStore()
@@ -23,6 +24,7 @@ const accounts = shallowRef([])
 const accountError = shallowRef(null)
 const records = computed(() => status.value === 'completed' ? completedGoals.value : status.value === 'archived' ? archivedGoals.value : goals.value)
 const statusRoutes = { active: 'goals', completed: 'goals-completed', archived: 'goals-archived' }
+const statusIcons = { active: List, completed: CircleCheck, archived: FolderDelete }
 watch(() => props.initialStatus, (next) => { status.value = next; store.fetchGoals(next) })
 onMounted(() => {
   store.fetchGoals(status.value)
@@ -36,7 +38,6 @@ async function create(payload) {
     await router.push({ name: 'goal-detail', params: { goal_id: outcome.result.id } })
   }
 }
-function switchStatus(next) { router.push({ name: statusRoutes[next] }) }
 function openCreate() { store.clearMutationError(); formOpen.value = true }
 </script>
 
@@ -45,30 +46,25 @@ function openCreate() { store.clearMutationError(); formOpen.value = true }
     <PageHeader :title="t('goals.title')" :description="t('goals.description')">
       <template #actions><ElButton type="primary" :icon="Plus" data-test="open-create-goal" @click="openCreate">{{ t('goals.new') }}</ElButton></template>
     </PageHeader>
-    <ElAlert v-if="error" type="error" :title="error.message" :closable="false" show-icon><ElButton @click="store.fetchGoals(status)">{{ t('common.retry') }}</ElButton></ElAlert>
+    <ElAlert v-if="error" type="error" :title="error.message" :closable="false" show-icon><ElButton :icon="RefreshRight" @click="store.fetchGoals(status)">{{ t('common.retry') }}</ElButton></ElAlert>
     <ElAlert v-if="accountError" type="warning" :title="accountError.message" :closable="false" show-icon />
     <ElSkeleton v-if="summaryLoading && !summary" :rows="2" animated />
-    <ElAlert v-else-if="summaryError" type="error" :title="summaryError.message" :closable="false" show-icon><ElButton @click="store.fetchSummary()">{{ t('common.retry') }}</ElButton></ElAlert>
-    <section v-if="summary" class="goal-summary" :aria-label="t('goals.summary')" data-test="goal-summary">
-      <dl class="summary-grid">
-        <div><dt>{{ t('goals.totalTarget') }}</dt><dd>{{ formatBRL(summary.active_target_centavos) }}</dd></div>
-        <div><dt>{{ t('goals.totalAllocated') }}</dt><dd>{{ formatBRL(summary.active_allocated_centavos) }}</dd></div>
-        <div><dt>{{ t('goals.totalRemaining') }}</dt><dd>{{ formatBRL(summary.active_remaining_centavos) }}</dd></div>
-        <div><dt>{{ t('goals.unverifiedTotal') }}</dt><dd>{{ formatBRL(summary.active_unverified_centavos) }}</dd></div>
-      </dl>
-      <h2>{{ t('goals.attention') }}</h2>
-      <ul class="attention-list">
-        <li>{{ t('goals.overdueCount', { count: summary.attention_counts.overdue_underfunded_active_goals }) }}</li>
-        <li>{{ t('goals.shortfallCount', { count: summary.attention_counts.shortfall_linked_goals }) }}</li>
-        <li>{{ t('goals.inactiveCount', { count: summary.attention_counts.inactive_or_unavailable_linked_goals }) }}</li>
-      </ul>
-    </section>
-    <nav class="status-nav" :aria-label="t('goals.title')">
-      <ElButton v-for="next in ['active', 'completed', 'archived']" :key="next" :type="status === next ? 'primary' : 'default'" :aria-current="status === next ? 'page' : undefined" @click="switchStatus(next)">{{ t(`goals.${next}`) }}</ElButton>
+    <ElAlert v-else-if="summaryError" type="error" :title="summaryError.message" :closable="false" show-icon><ElButton :icon="RefreshRight" @click="store.fetchSummary()">{{ t('common.retry') }}</ElButton></ElAlert>
+    <GoalsOverview v-if="summary" :summary="summary" />
+    <GoalAttentionSummary v-if="summary" :counts="summary.attention_counts" />
+    <nav class="status-nav" :aria-label="t('goals.statusNavigation')">
+      <RouterLink v-for="next in ['active', 'completed', 'archived']" :key="next" :to="{ name: statusRoutes[next] }" class="status-link" :class="{ 'is-current': status === next }" :aria-current="status === next ? 'page' : undefined">
+        <ElIcon aria-hidden="true"><component :is="statusIcons[next]" /></ElIcon>
+        <span>{{ t(`goals.${next}`) }}</span>
+        <span v-if="summary" class="status-count">{{ summary[`${next}_count`] ?? 0 }}</span>
+      </RouterLink>
     </nav>
+    <h2 class="visually-hidden">{{ t('goals.listHeading', { status: t(`goals.${status}`) }) }}</h2>
     <ElSkeleton v-if="loading && records.length === 0" :rows="4" animated />
-    <ElEmpty v-else-if="records.length === 0 && !error" :description="t('goals.empty')" />
-    <div v-else class="goal-grid"><GoalCard v-for="item in records" :key="item.id" :goal="item" /></div>
+    <ElEmpty v-else-if="records.length === 0 && !error" class="goals-empty" :image-size="64" :description="t(`goals.emptyState.${status}`)">
+      <ElButton v-if="status === 'active'" type="primary" :icon="Plus" @click="openCreate">{{ t('goals.new') }}</ElButton>
+    </ElEmpty>
+    <div v-else-if="records.length" class="goal-grid"><GoalCard v-for="item in records" :key="item.id" :goal="item" /></div>
     <ElPagination v-if="listMeta?.last_page > 1" :current-page="listMeta.current_page" :page-count="listMeta.last_page" layout="prev, pager, next" @current-change="store.fetchGoals(status, $event)" />
     <GoalFormDialog v-model="formOpen" :accounts="accounts" :busy="submitting" :error="mutationError" @submit="create" />
   </div>
@@ -76,13 +72,16 @@ function openCreate() { store.clearMutationError(); formOpen.value = true }
 
 <style scoped>
 .goals-page { display: grid; gap: 24px; min-width: 0; }
-.goal-summary { display: grid; gap: 16px; padding: 16px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
-.goal-summary h2 { margin: 0; font-size: 18px; }
-.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 0; }
-.summary-grid div { padding: 12px; border-radius: var(--radius-md); background: var(--color-surface-secondary); }
-.summary-grid dt { color: var(--color-text-muted); font-size: 12px; }
-.summary-grid dd { margin: 4px 0 0; font-variant-numeric: tabular-nums; font-weight: 700; overflow-wrap: anywhere; }
-.attention-list { display: grid; gap: 4px; margin: 0; padding-left: 20px; }
-.status-nav { display: flex; flex-wrap: wrap; gap: 8px; }
-.goal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; }
+.goals-page :deep(.page-header) { margin-bottom: 0; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.status-nav { display: flex; gap: 4px; min-width: 0; overflow-x: auto; border-bottom: 1px solid var(--color-border); }
+.status-link { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 8px; min-height: 44px; padding: 8px 12px; border-bottom: 2px solid transparent; color: var(--color-text-subtle); font-size: 14px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.status-link:hover { color: var(--color-action-primary-hover); }
+.status-link.is-current { border-bottom-color: var(--color-action-primary); color: var(--color-action-primary); }
+.status-link:focus-visible { outline: 2px solid var(--color-action-primary); outline-offset: -3px; }
+.status-count { padding: 1px 7px; border-radius: var(--radius-full); background: var(--color-surface-secondary); color: var(--color-text-subtle); font-variant-numeric: tabular-nums; }
+.status-link.is-current .status-count { background: var(--color-action-primary-subtle); color: var(--color-action-primary); }
+.goal-grid { display: grid; gap: 16px; min-width: 0; grid-template-columns: minmax(0, 1fr); }
+.goals-empty { min-height: 180px; padding: 16px; border: 1px dashed var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
+@media (min-width: 900px) { .goal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>
