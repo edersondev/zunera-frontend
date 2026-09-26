@@ -26,7 +26,7 @@ export const useFinancialGoalStore = defineStore('financial-goals', () => {
   const dashboardError = shallowRef(null)
   const submitting = shallowRef(false)
   const mutationError = shallowRef(null)
-  let pendingMutation = null
+  const pendingMutations = new Map()
 
   async function fetchGoals(status = 'active', page = 1) {
     loading.value = true
@@ -105,11 +105,11 @@ export const useFinancialGoalStore = defineStore('financial-goals', () => {
     if (submitting.value) return { ok: false, result: null }
     submitting.value = true
     mutationError.value = null
-    const key = pendingMutation?.fingerprint === fingerprint ? pendingMutation.key : service.newIdempotencyKey()
-    pendingMutation = { fingerprint, key }
+    const key = pendingMutations.get(fingerprint) ?? service.newIdempotencyKey()
+    pendingMutations.set(fingerprint, key)
     try {
       const result = await perform(key)
-      pendingMutation = null
+      pendingMutations.delete(fingerprint)
       const goalId = id ?? result.id
       await Promise.all([fetchGoals(), fetchSummary(), fetchGoal(goalId), fetchActivities(goalId, 1)])
       return { ok: true, result }

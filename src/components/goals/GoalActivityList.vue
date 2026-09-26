@@ -6,7 +6,7 @@ import { formatBRL } from '@/utils/financial-accounts/currency'
 const props = defineProps({ items: { type: Array, default: () => [] }, meta: { type: Object, default: null } })
 const emit = defineEmits(['page-change'])
 const { t, locale } = useI18n()
-function dateLabel(value) { return new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium' }).format(new Date(`${value}T12:00:00`)) }
+function dateTimeLabel(value) { return new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Sao_Paulo' }).format(new Date(value)) }
 </script>
 
 <template>
@@ -14,7 +14,7 @@ function dateLabel(value) { return new Intl.DateTimeFormat(locale.value, { dateS
     <ElEmpty v-if="props.items.length === 0" :description="t('goals.noActivity')" />
     <ol v-else>
       <li v-for="item in props.items" :key="item.id" class="activity-row">
-        <div><strong>{{ t(`goals.activityType.${item.type}`) }}</strong><span> · {{ dateLabel(item.business_date) }}</span></div>
+        <div><strong>{{ t(`goals.activityType.${item.type}`) }}</strong><span> · {{ dateTimeLabel(item.occurred_at) }}</span></div>
         <p v-if="item.amount_centavos !== null">{{ item.type === 'withdrawn' ? '−' : '+' }}{{ formatBRL(item.amount_centavos) }}</p>
         <p v-if="item.account_at_time">{{ t('goals.accountAtTime', { name: item.account_at_time.name }) }}</p>
         <p v-else-if="item.amount_centavos !== null">{{ t('goals.unverified') }}</p>

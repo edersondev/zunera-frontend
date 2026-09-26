@@ -43,6 +43,20 @@ describe('financialGoalStore', () => {
     expect(service.listGoalActivities).toHaveBeenCalledWith(7, { page: 1 })
   })
 
+  it('preserves an uncertain allocation key across another successful mutation', async () => {
+    const store = useFinancialGoalStore()
+    service.newIdempotencyKey.mockReturnValueOnce('allocation-key').mockReturnValueOnce('edit-key')
+    service.allocateGoal.mockRejectedValueOnce({ status: 0, message: 'offline' }).mockResolvedValueOnce({ id: 7 })
+    service.updateGoal.mockResolvedValue({ id: 7 })
+
+    expect((await store.allocate(7, 50)).ok).toBe(false)
+    expect((await store.update(7, { name: 'Trip' })).ok).toBe(true)
+    expect((await store.allocate(7, 50)).ok).toBe(true)
+    expect(service.allocateGoal).toHaveBeenNthCalledWith(1, 7, 50, 'allocation-key')
+    expect(service.allocateGoal).toHaveBeenNthCalledWith(2, 7, 50, 'allocation-key')
+    expect(service.updateGoal).toHaveBeenCalledWith(7, { name: 'Trip' }, 'edit-key')
+  })
+
   it('pages activity and retries the same withdrawal key before refreshing server state', async () => {
     const store = useFinancialGoalStore()
     service.listGoalActivities.mockResolvedValue({ items: [{ id: 9, type: 'withdrawn' }], meta: { current_page: 2, last_page: 3 } })

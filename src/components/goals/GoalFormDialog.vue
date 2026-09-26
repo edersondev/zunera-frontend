@@ -21,8 +21,22 @@ function submit() {
   if (!form.name.trim() || !Number.isInteger(form.target_centavos) || form.target_centavos <= 0) { localError.value = t('goals.formRequired'); return }
   localError.value = ''
   const payload = { name: form.name.trim(), target_centavos: form.target_centavos, target_date: form.target_date || null, financial_account_id: form.financial_account_id || null, description: form.description || null }
-  if (!props.goal) payload.initial_allocated_centavos = form.initial_allocated_centavos ?? 0
-  emit('submit', payload)
+  if (!props.goal) {
+    payload.initial_allocated_centavos = form.initial_allocated_centavos ?? 0
+    emit('submit', payload)
+    return
+  }
+
+  const original = {
+    name: props.goal.name,
+    target_centavos: props.goal.target_centavos,
+    target_date: props.goal.target_date ?? null,
+    financial_account_id: props.goal.financial_account?.id ?? null,
+    description: props.goal.description ?? null,
+  }
+  const changes = Object.fromEntries(Object.entries(payload).filter(([field, value]) => value !== original[field]))
+  if (Object.keys(changes).length === 0) { visible.value = false; return }
+  emit('submit', changes)
 }
 </script>
 
