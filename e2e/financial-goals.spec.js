@@ -132,13 +132,13 @@ test('future guidance changes to overdue wording without creating recurring acti
   await pinLocale(page, 'en')
   const state = await mockGoals(page, { initial: { name: 'Dated', target: 1200000, allocated: 0, targetDate: '2027-08-31', dateState: 'future', suggested: 100000, periods: 12 } })
   await page.goto('/app/goals/1')
-  await expect(page.getByText('Suggestion:')).toBeVisible()
+  await expect(page.getByText('Suggested monthly allocation')).toBeVisible()
   await expect(page.getByText('No automatic transfer')).toBeVisible()
   state.dateState = 'overdue'
   state.suggested = null
   await page.reload()
   await expect(page.getByText('Overdue')).toBeVisible()
-  await expect(page.getByText('Suggestion:')).toHaveCount(0)
+  await expect(page.getByText('Suggested monthly allocation')).toHaveCount(0)
   expect(state.events.filter((event) => event.type === 'allocated')).toHaveLength(0)
 })
 

@@ -1,20 +1,20 @@
 <script setup>
 import { computed, onMounted, shallowRef, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { ArrowLeft, Check, Edit, FolderDelete, Minus, Plus, RefreshLeft, RefreshRight } from '@element-plus/icons-vue'
-import { ElAlert, ElButton, ElSkeleton } from 'element-plus'
+import { ArrowLeft, RefreshRight } from '@element-plus/icons-vue'
+import { ElAlert, ElButton, ElSkeleton, ElTag } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import PageHeader from '@/components/layout/PageHeader.vue'
-import GoalProgress from '@/components/goals/GoalProgress.vue'
+import GoalProgressSummary from '@/components/goals/GoalProgressSummary.vue'
 import GoalAccountCoverage from '@/components/goals/GoalAccountCoverage.vue'
 import GoalDateGuidance from '@/components/goals/GoalDateGuidance.vue'
 import GoalActivityList from '@/components/goals/GoalActivityList.vue'
+import GoalActions from '@/components/goals/GoalActions.vue'
 import GoalAmountDialog from '@/components/goals/GoalAmountDialog.vue'
 import GoalFormDialog from '@/components/goals/GoalFormDialog.vue'
 import { listFinancialAccounts } from '@/services/financialAccountService'
 import { useFinancialGoalStore } from '@/stores/goals/financialGoalStore'
-import { formatBRL } from '@/utils/financial-accounts/currency'
 
 const props = defineProps({ goalId: { type: [String, Number], required: true } })
 const store = useFinancialGoalStore()
@@ -46,30 +46,13 @@ async function transition(action) { const result = await store.transition(props.
     <ElAlert v-if="error" type="error" :title="error.message" :closable="false" show-icon><ElButton :icon="RefreshRight" @click="load">{{ t('common.retry') }}</ElButton></ElAlert>
     <ElSkeleton v-if="loading && !goal" :rows="5" animated />
     <template v-else-if="goal">
-      <PageHeader :title="goal.name" :description="t('goals.description')" />
+      <PageHeader :title="goal.name" :description="t('goals.description')"><template #title-meta><ElTag :type="goal.status === 'completed' ? 'success' : goal.status === 'archived' ? 'info' : undefined" effect="plain" size="small">{{ t(`goals.status.${goal.status}`) }}</ElTag></template></PageHeader>
       <ElAlert v-if="notice" type="success" :title="notice" :closable="false" show-icon />
       <ElAlert v-if="mutationError" type="error" :title="mutationError.message" :closable="false" show-icon />
       <p v-if="goal.description" class="goal-description">{{ goal.description }}</p>
-      <section class="detail-panel" :aria-label="t('goals.progress')">
-        <p class="goal-status">{{ t(`goals.status.${goal.status}`) }}</p>
-        <GoalProgress :goal="goal" />
-        <p>{{ t('goals.remaining', { amount: formatBRL(goal.remaining_centavos) }) }}</p>
-      </section>
-      <section class="detail-panel"><h2>{{ t('goals.accountCoverage') }}</h2><GoalAccountCoverage :goal="goal" /></section>
-      <section v-if="goal.target_date" class="detail-panel"><GoalDateGuidance :goal="goal" /></section>
-      <section class="detail-panel" :aria-label="t('goals.actions')">
-        <h2>{{ t('goals.actions') }}</h2>
-        <div class="action-row" v-if="goal.status === 'active'">
-          <ElButton type="primary" :icon="Plus" :disabled="submitting" data-test="allocate-goal" @click="openAmount('allocate')">{{ t('goals.allocate') }}</ElButton>
-          <ElButton :icon="Minus" :disabled="submitting || !availableActions.includes('withdraw')" data-test="withdraw-goal" @click="openAmount('withdraw')">{{ t('goals.withdraw') }}</ElButton>
-          <ElButton :icon="Edit" :disabled="submitting" @click="openEdit">{{ t('goals.edit') }}</ElButton>
-          <ElButton :icon="Check" :disabled="submitting" data-test="complete-goal" @click="transition('complete')">{{ t('goals.complete') }}</ElButton>
-          <ElButton type="warning" :icon="FolderDelete" :disabled="submitting || !availableActions.includes('archive')" data-test="archive-goal" @click="transition('archive')">{{ t('goals.archive') }}</ElButton>
-        </div>
-        <div class="action-row" v-else-if="goal.status === 'completed'"><ElButton :icon="RefreshLeft" :disabled="submitting" @click="transition('reopen')">{{ t('goals.reopen') }}</ElButton></div>
-        <div class="action-row" v-else><ElButton :icon="RefreshLeft" :disabled="submitting" @click="transition('restore')">{{ t('goals.restore') }}</ElButton></div>
-        <p v-if="goal.status === 'active' && goal.allocated_centavos > 0" class="action-help">{{ t('goals.archiveHelp') }}</p>
-      </section>
+      <GoalProgressSummary :goal="goal" />
+      <div class="detail-context"><GoalDateGuidance :goal="goal" /><GoalAccountCoverage :goal="goal" /></div>
+      <GoalActions :goal="goal" :available-actions="availableActions" :busy="submitting" @amount="openAmount" @edit="openEdit" @transition="transition" />
       <section class="detail-panel"><h2>{{ t('goals.activity') }}</h2><GoalActivityList :items="activities" :meta="activityMeta" @page-change="store.fetchActivities(props.goalId, $event)" /></section>
       <GoalAmountDialog v-model="amountOpen" :action="amountAction" :busy="submitting" :error="mutationError" @submit="submitAmount" />
       <GoalFormDialog v-model="editOpen" :goal="goal" :accounts="accounts" :busy="submitting" :error="mutationError" @submit="saveEdit" />
@@ -78,12 +61,13 @@ async function transition(action) { const result = await store.transition(props.
 </template>
 
 <style scoped>
-.goal-detail { display: grid; gap: 16px; min-width: 0; }
-.goal-description { white-space: pre-wrap; overflow-wrap: anywhere; }
-.detail-panel { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
-.detail-panel h2, .detail-panel p { margin: 0; }
-.goal-status { font-weight: 700; }
-.action-row { display: flex; flex-wrap: wrap; gap: 8px; }
-.action-row :deep(.el-button) { min-height: 44px; }
-.action-help { color: var(--color-text-muted); }
+.goal-detail { display: grid; gap: 20px; min-width: 0; }
+.goal-detail > :deep(.el-button:first-child) { justify-self: start; margin-bottom: -12px; }
+.goal-detail :deep(.page-header) { margin-bottom: 0; }
+.goal-description { margin: 0; color: var(--color-text-subtle); white-space: pre-wrap; overflow-wrap: anywhere; }
+.detail-context { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 16px; min-width: 0; }
+.detail-panel { display: grid; gap: 12px; padding: 20px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
+.detail-panel h2 { margin: 0; color: var(--color-text); font-size: 18px; line-height: 26px; }
+@media (max-width: 799px) { .detail-context { grid-template-columns: 1fr; } }
+@media (max-width: 639px) { .detail-panel { padding: 16px; } }
 </style>

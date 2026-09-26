@@ -14,7 +14,7 @@ defineProps({
 <template>
   <header class="page-header" :class="{ 'has-center': $slots.center }">
     <div class="page-heading">
-      <h1>{{ title }}</h1>
+      <div class="page-title-row"><h1>{{ title }}</h1><slot name="title-meta" /></div>
       <p v-if="description" class="page-description">{{ description }}</p>
     </div>
     <div v-if="$slots.center" class="page-center">
@@ -47,6 +47,9 @@ defineProps({
 .page-center {
   min-width: 0;
 }
+
+.page-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 0; }
+.page-title-row h1 { overflow-wrap: anywhere; }
 
 .page-center {
   justify-self: center;
