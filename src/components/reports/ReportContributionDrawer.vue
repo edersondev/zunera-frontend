@@ -1,13 +1,24 @@
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { formatDashboardCurrency, formatDashboardDate } from '@/utils/dashboard/dashboardFormatters'
+import { formatDashboardCurrency, formatDashboardDate, resultDirection } from '@/utils/dashboard/dashboardFormatters'
 
 const props = defineProps({ modelValue: Boolean, target: { type: Object, default: null }, detail: { type: Object, default: null }, loading: Boolean, error: { type: Object, default: null }, locale: { type: String, default: 'pt-BR' } })
 const emit = defineEmits(['update:modelValue', 'load-more', 'retry'])
 const { t } = useI18n()
 const sourceLabels = { ordinary_transaction: 'ordinaryTransaction', card_installment: 'cardInstallment', card_credit_adjustment: 'cardAdjustment', transfer: 'transfer', card_statement_payment: 'statementPayment' }
 const title = computed(() => t('reports.contributionTitle', { metric: props.target?.label ?? '' }))
+function amountClass(classification, amount) {
+  if (classification === 'income') return 'report-income-amount'
+  if (classification === 'expense') return 'report-expense-amount'
+  if (classification === 'financial_result' || classification === 'account_net_flow') return `report-result-${resultDirection(amount)}`
+  return ''
+}
+function metricClass(metric, amount) {
+  if (['realized_income', 'income_category', 'account_income'].includes(metric)) return amountClass('income', amount)
+  if (['realized_expenses', 'expense_category', 'account_expenses'].includes(metric)) return amountClass('expense', amount)
+  return amountClass(metric, amount)
+}
 function sourceHref(row) {
   if (row.source_kind === 'ordinary_transaction') return { name: 'transactions', query: { highlight: row.source_id } }
   if (row.related_statement_id) return { name: 'credit-card-statement-detail', params: { statement_id: row.related_statement_id } }
@@ -22,10 +33,10 @@ function sourceHref(row) {
       <ElAlert v-if="error" type="error" :closable="false" :title="t('reports.detailError')"><ElButton @click="emit('retry')">{{ t('reports.retry') }}</ElButton></ElAlert>
       <ElSkeleton v-if="loading && !detail" :rows="4" animated />
       <template v-if="detail">
-        <p class="total"><strong>{{ t('reports.contributionTotal') }}:</strong> {{ formatDashboardCurrency(detail.total.amount_centavos, { locale }) }}</p>
+        <p class="total"><strong>{{ t('reports.contributionTotal') }}:</strong> <span :class="metricClass(detail.metric, detail.total.amount_centavos)">{{ formatDashboardCurrency(detail.total.amount_centavos, { locale }) }}</span></p>
         <p class="period-label">{{ t(detail.which_period === 'previous' ? 'reports.previous' : 'reports.current') }}: {{ detail.scope?.[detail.which_period === 'previous' ? 'previous_period' : 'current_period']?.from }} – {{ detail.scope?.[detail.which_period === 'previous' ? 'previous_period' : 'current_period']?.to }}</p>
         <ol class="contribution-list"><li v-for="row in detail.contributions" :key="`${row.source_kind}-${row.source_id}-${row.related_credit_event_id ?? ''}-${row.recognized_date}`">
-          <div class="contribution-head"><strong>{{ row.description }}</strong><span>{{ formatDashboardCurrency(row.signed_amount.amount_centavos, { locale }) }}</span></div>
+          <div class="contribution-head"><strong>{{ row.description }}</strong><span :class="amountClass(row.classification, row.signed_amount.amount_centavos)">{{ formatDashboardCurrency(row.signed_amount.amount_centavos, { locale }) }}</span></div>
           <p>{{ formatDashboardDate(row.recognized_date, locale) }} · {{ t(`reports.${sourceLabels[row.source_kind]}`) }}</p>
           <p v-if="row.category">{{ row.category.name }}<span v-if="row.category.status === 'archived'"> ({{ t('reports.archived') }})</span></p>
           <p v-if="row.account">{{ row.account.name }}<span v-if="row.account.status === 'archived'"> ({{ t('reports.archived') }})</span></p>

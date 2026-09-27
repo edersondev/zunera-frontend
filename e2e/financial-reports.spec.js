@@ -37,6 +37,7 @@ function detail(params) {
   const category = metric === 'expense_category'
   const total = category ? 300000 : metric === 'financial_result' ? 200000 : metric === 'realized_income' ? 500000 : 300000
   const rows = category ? (cursor ? [contribution('card_credit_adjustment', 99, -20000, 99)] : [contribution('card_installment', 73, 320000)]) : [contribution('ordinary_transaction', 11, total)]
+  if (['realized_income', 'income_category', 'account_income'].includes(metric)) rows.forEach((row) => { row.classification = 'income' })
   return { scope: scope(params), which_period: params.get('which_period') ?? 'current', metric, metric_id: params.get('metric_id') ? Number(params.get('metric_id')) : null, total: money(total), contributions: rows, next_cursor: category && !cursor ? 'page-2' : null }
 }
 async function mockReports(page, options = {}) {
@@ -88,9 +89,55 @@ test('current summary reconciles with evolution, categories, and excluded moveme
   await expect(page.getByRole('heading', { name: 'Financial reports' })).toBeVisible()
   await expect(page.locator('[data-test="report-financial_result"]')).toContainText('R$2,000.00')
   await expect(page.locator('[data-test="report-expense-categories"]')).toContainText('Food')
+  await expect(page.locator('[data-test="report-detailed-breakdown"]')).not.toHaveAttribute('open', '')
+  await page.locator('[data-test="report-detailed-breakdown"] summary').click()
   await expect(page.locator('[data-test="report-evolution"] table')).toContainText('R$3,000.00')
   await expect(page.getByText('Transfers, statement payments, goals, and pending amounts do not enter this result.')).toBeVisible()
   expect(requests.overview[0]).toEqual({ preset: 'current_month' })
+})
+
+test('income and expense currency use financial colors in light and dark modes', async ({ page }) => {
+  await mockReports(page)
+  for (const colorScheme of ['light', 'dark']) {
+    await page.emulateMedia({ colorScheme })
+    await page.goto('/app/reports')
+    const tokenColor = (token) => page.evaluate((variable) => {
+      const probe = document.createElement('span')
+      probe.style.color = `var(${variable})`
+      document.body.append(probe)
+      const color = getComputedStyle(probe).color
+      probe.remove()
+      return color
+    }, token)
+    const income = await tokenColor('--color-financial-positive')
+    const expense = await tokenColor('--color-financial-negative')
+    await expect(page.locator('[data-test="report-realized_income"] .amount')).toHaveCSS('color', income)
+    await expect(page.locator('[data-test="report-realized_expenses"] .amount')).toHaveCSS('color', expense)
+    await expect(page.locator('[data-test="report-realized_income"] .difference span')).toHaveCSS('color', income)
+    await expect(page.locator('[data-test="report-realized_expenses"] .difference span')).toHaveCSS('color', expense)
+    await expect(page.locator('[data-test="report-expense-categories"] .category-heading span').first()).toHaveCSS('color', expense)
+    await expect(page.locator('[data-test="report-income-categories"] .category-heading span').first()).toHaveCSS('color', income)
+    await page.locator('[data-test="report-detailed-breakdown"] summary').click()
+    await expect(page.locator('[data-test="report-detailed-breakdown"] tbody td').nth(0)).toHaveCSS('color', income)
+    await expect(page.locator('[data-test="report-detailed-breakdown"] tbody td').nth(1)).toHaveCSS('color', expense)
+    await expect(page.locator('[data-test="report-comparison"] table').first().locator('tbody tr').nth(0).locator('button').first()).toHaveCSS('color', income)
+    await expect(page.locator('[data-test="report-comparison"] table').first().locator('tbody tr').nth(1).locator('button').first()).toHaveCSS('color', expense)
+    await page.locator('[data-test="report-accounts"] details summary').first().click()
+    await expect(page.locator('[data-test="report-accounts"] details button').nth(0)).toHaveCSS('color', income)
+    await expect(page.locator('[data-test="report-accounts"] details button').nth(1)).toHaveCSS('color', expense)
+    await expect(page.locator('[data-test="report-accounts"] .note .report-expense-amount')).toHaveCSS('color', expense)
+    await page.locator('[data-test="report-category-comparison"] summary').click()
+    await expect(page.locator('[data-test="report-category-comparison"] button').first()).toHaveCSS('color', expense)
+    await page.locator('[data-test="report-expense-categories"] button').first().click()
+    const drawer = page.locator('[data-test="report-contribution-drawer"]')
+    await expect(drawer.locator('.total span')).toHaveCSS('color', expense)
+    await expect(drawer.locator('.contribution-head span').first()).toHaveCSS('color', expense)
+    await drawer.locator('[data-test="report-detail-close"]').click()
+    await expect(drawer).toBeHidden()
+    await page.locator('[data-test="report-income-categories"] button').first().click()
+    await expect(drawer.locator('.total span')).toHaveCSS('color', income)
+    await expect(drawer.locator('.contribution-head span').first()).toHaveCSS('color', income)
+  }
 })
 
 test('category drill down pages through a paid refund and keeps all-record total', async ({ page }) => {
@@ -110,15 +157,47 @@ test('category drill down pages through a paid refund and keeps all-record total
   await expect(drawer).toBeHidden()
 })
 
+test('summary, both categories, account movements, and comparison open matching contributions', async ({ page }) => {
+  test.setTimeout(120000)
+  const requests = await mockReports(page)
+  await page.goto('/app/reports')
+  const drawer = page.locator('[data-test="report-contribution-drawer"]')
+  let count = 0
+  async function check(button, metric, whichPeriod = 'current') {
+    await button.click()
+    count += 1
+    await expect.poll(() => requests.detail.length).toBe(count)
+    expect(requests.detail.at(-1)).toMatchObject({ metric, which_period: whichPeriod })
+    await drawer.locator('[data-test="report-detail-close"]').click()
+    await expect(drawer).toBeHidden()
+  }
+  const summaryButtons = page.locator('[data-test="report-summary"] button')
+  for (const [index, metric] of ['realized_income', 'realized_expenses', 'financial_result'].entries()) await check(summaryButtons.nth(index), metric)
+  await check(page.locator('[data-test="report-expense-categories"] button').first(), 'expense_category')
+  await check(page.locator('[data-test="report-income-categories"] button').first(), 'income_category')
+  await page.locator('[data-test="report-accounts"] details summary').first().click()
+  const accountButtons = page.locator('[data-test="report-accounts"] details').first().locator('button')
+  for (const [index, metric] of ['account_income', 'account_expenses', 'account_net_flow', 'account_transfer_in', 'account_transfer_out', 'account_card_settlement'].entries()) await check(accountButtons.nth(index), metric)
+  const comparisonButtons = page.locator('[data-test="report-comparison"] table').first().locator('button')
+  for (const [index, metric] of ['realized_income', 'realized_expenses', 'financial_result'].entries()) {
+    await check(comparisonButtons.nth(index * 2), metric)
+    await check(comparisonButtons.nth(index * 2 + 1), metric, 'previous')
+  }
+  await page.locator('[data-test="report-category-comparison"] summary').click()
+  const categoryButtons = page.locator('[data-test="report-category-comparison"] button')
+  await check(categoryButtons.nth(0), 'expense_category')
+  await check(categoryButtons.nth(1), 'expense_category', 'previous')
+})
+
 test('historical month, custom dates, prior comparison, and URL restoration share scope', async ({ page }) => {
   const requests = await mockReports(page)
   await page.goto('/app/reports?preset=historical_month&month=2026-07')
   await expect(page.locator('[data-test="report-applied-period"]')).toContainText('Jul')
   await expect(page.locator('[data-test="report-comparison"]')).toContainText('Jun')
-  await expect(page.locator('[data-test="report-comparison"]')).toContainText('Percentage change unavailable')
+  await expect(page.locator('[data-test="report-comparison"]')).toContainText('N/A*')
   await expect(page.locator('[data-test="report-comparison"]')).toContainText('Food')
   await page.locator('[data-test="report-comparison"]').getByRole('button', { name: 'R$0.00' }).first().click()
-  expect(requests.detail.at(-1).which_period).toBe('previous')
+  await expect.poll(() => requests.detail.at(-1)?.which_period).toBe('previous')
   await page.goto('/app/reports?preset=custom&from=2026-08-15&to=2026-09-14')
   await expect(page.locator('[data-test="report-applied-period"]')).toContainText('Aug')
   expect(requests.overview.at(-1)).toMatchObject({ preset: 'custom', from: '2026-08-15', to: '2026-09-14' })
@@ -127,6 +206,7 @@ test('historical month, custom dates, prior comparison, and URL restoration shar
 test('account and type filters update URL, cards, and detail requests; reset restores totals', async ({ page }) => {
   const requests = await mockReports(page)
   await page.goto('/app/reports')
+  await page.locator('[data-test="report-filter-toggle"]').click()
   await page.locator('[data-test="report-type-filter"]').click()
   await page.getByRole('option', { name: 'Expense' }).click()
   await expect(page).toHaveURL(/transaction_type=expense/)
@@ -169,6 +249,18 @@ test('Portuguese, narrow viewport, keyboard focus, and dark theme remain readabl
   await expect(page.getByRole('heading', { name: 'Relatórios financeiros' })).toBeVisible()
   await expect(page.locator('[data-test="report-financial_result"]')).toContainText('R$ 2.000,00')
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true)
+  await expect(page.locator('[data-test="report-evolution"] [role="img"]')).toHaveAttribute('aria-label', /Evolução financeira/)
+  const breakdown = page.locator('[data-test="report-detailed-breakdown"]')
+  await breakdown.locator('summary').focus()
+  await breakdown.locator('summary').press('Enter')
+  await expect(breakdown).toHaveAttribute('open', '')
+  const accountDetails = page.locator('[data-test="report-accounts"] details').first()
+  await accountDetails.locator('summary').focus()
+  await accountDetails.locator('summary').press('Enter')
+  await expect(accountDetails).toHaveAttribute('open', '')
+  await expect(page.locator('[data-test="report-category-comparison"]')).not.toHaveAttribute('open', '')
+  await page.locator('[data-test="report-category-comparison"] summary').press('Enter')
+  await expect(page.locator('[data-test="report-category-comparison"]')).toHaveAttribute('open', '')
   const detailButton = page.locator('[data-test="report-summary"]').getByRole('button', { name: 'Ver contribuições: Resultado financeiro' })
   await detailButton.focus()
   await expect(detailButton).toBeFocused()
@@ -236,7 +328,7 @@ test('light, dark, system, and 200 percent zoom keep report labels and detail re
   await page.goto('/app/reports')
   for (const colorScheme of ['light', 'dark', null]) {
     await page.emulateMedia({ colorScheme })
-    await expect(page.locator('[data-test="report-evolution"] table')).toBeVisible()
+    await expect(page.locator('[data-test="report-detailed-breakdown"] summary')).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true)
   }
   // A 640px window at 200% browser zoom has about 320 CSS pixels for layout.
@@ -250,6 +342,8 @@ test('20 warm navigations keep summary and first source page reachable on the 10
   test.setTimeout(120000)
   await mockReports(page, { scale: true })
   await page.goto('/app/reports')
+  await expect(page.locator('[data-test="report-expense-categories"] li')).toHaveCount(6)
+  await page.locator('[data-test="report-expense-categories"] [data-test="report-categories-expand"]').click()
   await expect(page.locator('[data-test="report-expense-categories"] li')).toHaveCount(100)
   await expect(page.locator('[data-test="report-accounts"] article')).toHaveCount(50)
   const times = []

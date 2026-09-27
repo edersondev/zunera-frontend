@@ -20,4 +20,9 @@ describe('ReportSummary', () => {
     expect(negative.get('[data-test="report-result-cue"]').text()).toBe('Resultado negativo')
     expect(mountSummary({ realized_income: money(0), realized_expenses: money(0), financial_result: money(0) }).get('[data-test="report-result-cue"]').text()).toBe('Resultado neutro')
   })
+  it('shows server differences when comparison is available', () => {
+    const comparison = { financial_result: { difference: money(-2500) } }
+    const wrapper = mount(ReportSummary, { props: { summary, comparison }, global: { plugins: [i18n], stubs: { ElButton: buttonStub } } })
+    expect(wrapper.get('[data-test="report-financial_result"]').text()).toContain('-R$')
+  })
 })

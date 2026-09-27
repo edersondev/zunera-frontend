@@ -19,12 +19,15 @@ describe('ReportFilterBar', () => {
     const wrapper = render({ account_id: 7, category_id: 3, transaction_type: 'expense' })
     expect(wrapper.text()).toContain('Main account')
     expect(wrapper.text()).toContain('Food')
+    expect(wrapper.findComponent({ name: 'ElForm' }).exists()).toBe(false)
+    await wrapper.get('[data-test="report-filter-toggle"]').trigger('click')
     expect(wrapper.text()).toContain('Arquivada')
     await wrapper.findAll('button').find((button) => button.text() === 'Limpar filtros').trigger('click')
     expect(wrapper.emitted('reset')).toHaveLength(1)
   })
-  it('clears an incompatible category when type changes to income', () => {
+  it('clears an incompatible category when type changes to income', async () => {
     const wrapper = render({ account_id: null, category_id: 3, transaction_type: 'expense' })
+    await wrapper.get('[data-test="report-filter-toggle"]').trigger('click')
     wrapper.findAllComponents({ name: 'ElSelect' })[1].vm.$emit('update:modelValue', 'income')
     expect(wrapper.emitted('change')[0][0]).toEqual({ transaction_type: 'income', category_id: null })
   })

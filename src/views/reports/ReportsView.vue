@@ -11,12 +11,12 @@ import ReportCategoryBreakdown from '@/components/reports/ReportCategoryBreakdow
 import ReportComparison from '@/components/reports/ReportComparison.vue'
 import ReportAccountActivity from '@/components/reports/ReportAccountActivity.vue'
 import ReportContributionDrawer from '@/components/reports/ReportContributionDrawer.vue'
+import '@/components/reports/reportAmounts.css'
 import { useReportScope } from '@/composables/reports/useReportScope'
 import { useReportsStore } from '@/stores/reports/reportsStore'
 import { useLocale } from '@/composables/useLocale'
 import { listFinancialAccounts } from '@/services/financialAccountService'
 import { listCategories } from '@/services/categoryService'
-import { formatDashboardPeriod } from '@/utils/dashboard/dashboardFormatters'
 
 const { t } = useI18n()
 const { activeLocale } = useLocale()
@@ -78,21 +78,25 @@ function sectionMessage(name) { return overview.value?.section_states?.[name]?.m
     <PageHeader :title="t('reports.title')" :description="t('reports.description')" />
     <ReportPeriodSelector :scope="displayScope" :locale="activeLocale" :loading="loading" @change="updateScope" />
     <ReportFilterBar :scope="scope" :accounts="accounts" :categories="categories" @change="updateScope" @reset="clearFilters" />
-    <p v-if="applied" class="scope-label" data-test="report-applied-period">{{ formatDashboardPeriod(applied.current_period, activeLocale) }}<span v-if="applied.is_filtered"> · {{ t('reports.filtered') }}</span></p>
     <p v-if="hasIncompletePeriod" class="state-note">{{ t('reports.apply') }} {{ t('reports.period').toLowerCase() }}</p>
     <ElSkeleton v-else-if="loading && !overview" :rows="8" animated data-test="report-loading" />
     <ElAlert v-else-if="error" type="error" :title="t('reports.error')" :closable="false" data-test="report-error"><ElButton data-test="report-retry" @click="store.loadOverview(scope)">{{ t('reports.retry') }}</ElButton></ElAlert>
     <template v-else-if="overview">
       <p v-if="emptyMessage" class="state-note" data-test="report-empty">{{ emptyMessage }}</p>
-      <template v-for="name in ['summary', 'evolution', 'expense_categories', 'income_categories', 'accounts', 'comparison']" :key="name">
-        <ElAlert v-if="sectionUnavailable(name)" type="warning" :title="sectionMessage(name)" :closable="false" :data-test="`report-${name}-unavailable`"><ElButton @click="store.loadOverview(scope)">{{ t('reports.retry') }}</ElButton></ElAlert>
-        <ReportSummary v-else-if="name === 'summary' && overview.summary" :summary="overview.summary" :locale="activeLocale" @detail="openDetail" />
-        <ReportEvolution v-else-if="name === 'evolution' && overview.evolution" :intervals="overview.evolution" :granularity="overview.evolution_granularity" :locale="activeLocale" />
-        <ReportCategoryBreakdown v-else-if="name === 'expense_categories' && overview.expense_categories" :items="overview.expense_categories" kind="expense" :locale="activeLocale" @detail="openDetail" />
-        <ReportCategoryBreakdown v-else-if="name === 'income_categories' && overview.income_categories" :items="overview.income_categories" kind="income" :locale="activeLocale" @detail="openDetail" />
-        <ReportAccountActivity v-else-if="name === 'accounts' && overview.accounts" :accounts="overview.accounts" :unattributed-card-expenses="overview.unattributed_card_expenses" :suppress-movements="Boolean(applied?.filters?.category_id || applied?.filters?.transaction_type)" :locale="activeLocale" @detail="openDetail" />
-        <ReportComparison v-else-if="name === 'comparison' && overview.comparison" :comparison="overview.comparison" :scope="overview.scope" :locale="activeLocale" @detail="openDetail" />
-      </template>
+      <ElAlert v-if="sectionUnavailable('summary')" type="warning" :title="sectionMessage('summary')" :closable="false" data-test="report-summary-unavailable"><ElButton @click="store.loadOverview(scope)">{{ t('reports.retry') }}</ElButton></ElAlert>
+      <ReportSummary v-else-if="overview.summary" :summary="overview.summary" :comparison="sectionUnavailable('comparison') ? null : overview.comparison" :locale="activeLocale" @detail="openDetail" />
+      <ElAlert v-if="sectionUnavailable('evolution')" type="warning" :title="sectionMessage('evolution')" :closable="false" data-test="report-evolution-unavailable"><ElButton @click="store.loadOverview(scope)">{{ t('reports.retry') }}</ElButton></ElAlert>
+      <ReportEvolution v-else-if="overview.evolution" :intervals="overview.evolution" :granularity="overview.evolution_granularity" :locale="activeLocale" />
+      <div class="category-grid">
+        <ElAlert v-if="sectionUnavailable('expense_categories')" type="warning" :title="sectionMessage('expense_categories')" :closable="false" data-test="report-expense_categories-unavailable"><ElButton @click="store.loadOverview(scope)">{{ t('reports.retry') }}</ElButton></ElAlert>
+        <ReportCategoryBreakdown v-else-if="overview.expense_categories" :items="overview.expense_categories" kind="expense" :locale="activeLocale" @detail="openDetail" />
+        <ElAlert v-if="sectionUnavailable('income_categories')" type="warning" :title="sectionMessage('income_categories')" :closable="false" data-test="report-income_categories-unavailable"><ElButton @click="store.loadOverview(scope)">{{ t('reports.retry') }}</ElButton></ElAlert>
+        <ReportCategoryBreakdown v-else-if="overview.income_categories" :items="overview.income_categories" kind="income" :locale="activeLocale" @detail="openDetail" />
+      </div>
+      <ElAlert v-if="sectionUnavailable('accounts')" type="warning" :title="sectionMessage('accounts')" :closable="false" data-test="report-accounts-unavailable"><ElButton @click="store.loadOverview(scope)">{{ t('reports.retry') }}</ElButton></ElAlert>
+      <ReportAccountActivity v-else-if="overview.accounts" :accounts="overview.accounts" :unattributed-card-expenses="overview.unattributed_card_expenses" :suppress-movements="Boolean(applied?.filters?.category_id || applied?.filters?.transaction_type)" :locale="activeLocale" @detail="openDetail" />
+      <ElAlert v-if="sectionUnavailable('comparison')" type="warning" :title="sectionMessage('comparison')" :closable="false" data-test="report-comparison-unavailable"><ElButton @click="store.loadOverview(scope)">{{ t('reports.retry') }}</ElButton></ElAlert>
+      <ReportComparison v-else-if="overview.comparison" :comparison="overview.comparison" :scope="overview.scope" :locale="activeLocale" @detail="openDetail" />
       <p v-if="overview.empty_states?.no_previous_activity" class="state-note">{{ t('reports.noPreviousActivity') }}</p>
     </template>
     <ReportContributionDrawer :model-value="drawerOpen" :target="target" :detail="detail" :loading="detailLoading" :error="detailError" :locale="activeLocale" @update:model-value="closeDetail" @load-more="loadMore" @retry="store.loadDetail(scope, target)" />
@@ -100,5 +104,5 @@ function sectionMessage(name) { return overview.value?.section_states?.[name]?.m
 </template>
 
 <style scoped>
-.reports-view { display: grid; gap: 24px; min-width: 0; } .reports-view :deep(.page-header) { margin-bottom: 0; } .scope-label { margin: 0; padding: 8px 12px; border-left: 3px solid var(--color-action-primary); background: var(--color-action-primary-subtle); font-weight: 600; } .state-note { margin: 0; color: var(--color-text-muted); }
+.reports-view { display: grid; gap: 20px; min-width: 0; } .reports-view :deep(.page-header) { margin-bottom: 0; } .state-note { margin: 0; color: var(--color-text-muted); } .category-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; min-width: 0; align-items: start; } @media(max-width: 900px) { .category-grid { grid-template-columns: minmax(0, 1fr); } }
 </style>

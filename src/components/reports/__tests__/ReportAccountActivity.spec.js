@@ -13,6 +13,7 @@ describe('ReportAccountActivity', () => {
     expect(wrapper.text()).toContain('Transferências enviadas')
     expect(wrapper.text()).toContain('Pagamento de fatura')
     expect(wrapper.text()).toContain('Compras no cartão não são atribuídas')
+    expect(wrapper.get('details').element.open).toBe(false)
     await wrapper.findAll('button')[5].trigger('click')
     expect(wrapper.emitted('detail')[0][0]).toMatchObject({ metric: 'account_card_settlement', metric_id: 7 })
   })
