@@ -15,9 +15,6 @@ const { t } = useI18n()
 
 const navigationItems = computed(() => [
   { id: 'dashboard', routeName: 'dashboard', label: t('dashboard.title'), icon: House },
-  { id: 'reports', routeName: 'reports', label: t('reports.title'), icon: DataAnalysis },
-  { id: 'budgets', routeName: 'budgets', label: t('budgets.title'), icon: Coin },
-  { id: 'goals', routeName: 'goals', activeRouteNames: ['goals', 'goals-completed', 'goals-archived', 'goal-detail'], label: t('goals.title'), icon: Coin },
   {
     id: 'settings',
     label: t('app.settings'),
@@ -54,6 +51,9 @@ const navigationItems = computed(() => [
     label: t('app.creditCards'),
     icon: Money,
   },
+  { id: 'goals', routeName: 'goals', activeRouteNames: ['goals', 'goals-completed', 'goals-archived', 'goal-detail'], label: t('goals.title'), icon: Coin },
+  { id: 'budgets', routeName: 'budgets', label: t('budgets.title'), icon: Coin },
+  { id: 'reports', routeName: 'reports', label: t('reports.title'), icon: DataAnalysis },
 ])
 
 async function navigate(routeName) {
