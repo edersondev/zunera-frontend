@@ -46,6 +46,12 @@ const router = createRouter({
           meta: { requiresAuth: true, titleKey: 'dashboard.title' },
         },
         {
+          path: 'reports',
+          name: 'reports',
+          component: () => import('@/views/reports/ReportsView.vue'),
+          meta: { requiresAuth: true, titleKey: 'reports.title' },
+        },
+        {
           path: 'goals', name: 'goals',
           component: () => import('@/views/goals/GoalOverviewView.vue'),
           props: { initialStatus: 'active' },

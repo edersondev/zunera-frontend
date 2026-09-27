@@ -173,6 +173,17 @@ describe('TransfersListView', () => {
     expect(wrapper.get('[data-test="transfer-row-route"]').text()).toContain('Conta corrente → Poupança (arquivada)')
   })
 
+  it('opens an owned transfer highlighted from report contribution detail', async () => {
+    route.query = { highlight: '21' }
+    store.items = [row(21)]
+    const wrapper = mount(TransfersListView, { global: stubs() })
+    await flushPromises()
+
+    expect(store.setFilters).toHaveBeenCalledWith({ per_page: 50, view: 'active' })
+    expect(store.select).toHaveBeenCalledWith(21)
+    expect(wrapper.get('[data-test="transfer-detail-drawer"]').text()).toContain('21')
+  })
+
   it('classifies transfers in text, never by color or income sign, and marks archived sides', async () => {
     store.items = [row(1)]
     const wrapper = mount(TransfersListView, { global: stubs() })
