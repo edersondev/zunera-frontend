@@ -1,0 +1,49 @@
+.report-income-amount {
+  color: var(--color-financial-positive);
+  --el-button-text-color: var(--color-financial-positive);
+  --el-button-hover-text-color: var(--color-financial-positive);
+}
+
+.report-expense-amount {
+  color: var(--color-financial-negative);
+  --el-button-text-color: var(--color-financial-negative);
+  --el-button-hover-text-color: var(--color-financial-negative);
+}
+
+.report-result-positive {
+  color: var(--color-financial-positive);
+  --el-button-text-color: var(--color-financial-positive);
+  --el-button-hover-text-color: var(--color-financial-positive);
+}
+
+.report-result-negative {
+  color: var(--color-financial-negative);
+  --el-button-text-color: var(--color-financial-negative);
+  --el-button-hover-text-color: var(--color-financial-negative);
+}
+
+.report-income-chart .apexcharts-tooltip-text-y-value {
+  color: var(--color-financial-positive);
+}
+
+.report-expense-chart .apexcharts-tooltip-text-y-value {
+  color: var(--color-financial-negative);
+}
+
+button.el-button.is-link.report-income-amount,
+button.el-button.is-link.report-income-amount:hover,
+button.el-button.is-link.report-income-amount:focus-visible,
+button.el-button.is-link.report-result-positive,
+button.el-button.is-link.report-result-positive:hover,
+button.el-button.is-link.report-result-positive:focus-visible {
+  color: var(--color-financial-positive);
+}
+
+button.el-button.is-link.report-expense-amount,
+button.el-button.is-link.report-expense-amount:hover,
+button.el-button.is-link.report-expense-amount:focus-visible,
+button.el-button.is-link.report-result-negative,
+button.el-button.is-link.report-result-negative:hover,
+button.el-button.is-link.report-result-negative:focus-visible {
+  color: var(--color-financial-negative);
+}

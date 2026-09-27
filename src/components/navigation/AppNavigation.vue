@@ -41,7 +41,7 @@ const defaultOpeneds = computed(() => (activeGroup.value === null ? [] : [active
       <template v-for="item in props.items" :key="item.id">
         <ElSubMenu v-if="item.children" :index="item.id" :data-test="`navigation-group-${item.id}`">
           <template #title>
-            <ElIcon v-if="item.icon">
+            <ElIcon v-if="item.icon" :size="19">
               <component :is="item.icon" />
             </ElIcon>
             <span>{{ item.label }}</span>
