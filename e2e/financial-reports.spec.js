@@ -41,7 +41,7 @@ function detail(params) {
   return { scope: scope(params), which_period: params.get('which_period') ?? 'current', metric, metric_id: params.get('metric_id') ? Number(params.get('metric_id')) : null, total: money(total), contributions: rows, next_cursor: category && !cursor ? 'page-2' : null }
 }
 async function mockReports(page, options = {}) {
-  const requests = { overview: [], detail: [], delayedFinished: 0 }
+  const requests = { overview: [], detail: [], revisions: { overview: [], detail: [] }, delayedFinished: 0 }
   await page.route('**/api/v1/auth/session', (route) => route.fulfill({ json: session(), headers: headers() }))
   await page.route('**/sanctum/csrf-cookie', (route) => route.fulfill({ status: 204, headers: headers() }))
   await page.route('**/api/v1/financial-accounts**', (route) => route.fulfill({ json: { data: new URL(route.request().url()).searchParams.get('status') === 'archived' ? [{ ...account, id: 8, name: 'Old account', status: 'archived' }] : [account] }, headers: headers() }))
@@ -50,13 +50,25 @@ async function mockReports(page, options = {}) {
     const url = new URL(route.request().url())
     if (url.pathname.endsWith('/contributions')) {
       requests.detail.push(Object.fromEntries(url.searchParams))
+      if (options.changeOnFirstDetail && !options.changed) {
+        options.changed = true
+        options.revision = 'revised-source'
+      }
       const body = detail(url.searchParams)
+      body.source_revision = options.revision ?? 'mock-source'
+      if (options.changed && url.searchParams.get('metric') === 'expense_category') {
+        body.total = money(options.changeOnFirstDetail === 'amount' ? 310000 : 300000)
+        body.contributions = [contribution('ordinary_transaction', 999, body.total.amount_centavos)]
+        body.contributions[0].description = options.changeOnFirstDetail === 'amount' ? 'Updated Food purchase' : 'Replacement Food purchase'
+        body.next_cursor = null
+      }
       if (options.scale && url.searchParams.get('metric') === 'realized_expenses') {
         const pageNumber = Number(url.searchParams.get('cursor') ?? '1')
         body.total = money(1_000_000)
         body.contributions = Array.from({ length: 100 }, (_, index) => contribution('ordinary_transaction', (pageNumber - 1) * 100 + index + 1, 100))
         body.next_cursor = pageNumber < 100 ? String(pageNumber + 1) : null
       }
+      requests.revisions.detail.push(body.source_revision)
       return route.fulfill({ json: { data: body }, headers: headers() })
     }
     requests.overview.push(Object.fromEntries(url.searchParams))
@@ -68,6 +80,14 @@ async function mockReports(page, options = {}) {
       requests.delayedFinished += 1
     }
     const body = overview(url.searchParams, options)
+    body.source_revision = options.revision ?? 'mock-source'
+    if (options.changed && options.changeOnFirstDetail === 'amount') {
+      body.summary.realized_expenses = money(310000)
+      body.summary.financial_result = money(190000)
+      body.expense_categories[0].total = money(310000)
+      body.evolution[0].realized_expenses = money(310000)
+      body.evolution[0].financial_result = money(190000)
+    }
     if (options.scale) {
       body.summary.realized_expenses = money(1_000_000)
       body.summary.financial_result = money(-500_000)
@@ -76,6 +96,7 @@ async function mockReports(page, options = {}) {
       body.evolution[0].realized_expenses = money(1_000_000)
       body.evolution[0].financial_result = money(-500_000)
     }
+    requests.revisions.overview.push(body.source_revision)
     return route.fulfill({ json: { data: body }, headers: headers() })
   })
   return requests
@@ -156,6 +177,27 @@ test('category drill down pages through a paid refund and keeps all-record total
   await drawer.locator('[data-test="report-detail-close"]').click()
   await expect(drawer).toBeHidden()
 })
+
+for (const [change, amount, description] of [
+  ['amount', 'R$3,100.00', 'Updated Food purchase'],
+  ['contributors', 'R$3,000.00', 'Replacement Food purchase'],
+]) {
+  test(`opening detail refreshes changed ${change} with preserved custom category scope`, async ({ page }) => {
+    const requests = await mockReports(page, { changeOnFirstDetail: change })
+    await page.goto('/app/reports?preset=custom&from=2026-08-15&to=2026-09-14&category_id=3')
+    await expect(page.locator('[data-test="report-expense-categories"]')).toBeVisible()
+    await page.locator('[data-test="report-expense-categories"]').getByRole('button', { name: 'View contributions: Food' }).click()
+
+    const drawer = page.locator('[data-test="report-contribution-drawer"]')
+    await expect(page.locator('[data-test="report-source-changed"]')).toContainText('Records changed')
+    await expect(drawer).toContainText(description)
+    await expect(drawer).toContainText(amount)
+    await expect(page).toHaveURL(/preset=custom.*category_id=3/)
+    expect(requests.revisions.overview).toEqual(['mock-source', 'revised-source'])
+    expect(requests.revisions.detail).toEqual(['revised-source', 'revised-source'])
+    expect(requests.detail.every((item) => item.from === '2026-08-15' && item.to === '2026-09-14' && item.category_id === '3')).toBe(true)
+  })
+}
 
 test('summary, both categories, account movements, and comparison open matching contributions', async ({ page }) => {
   test.setTimeout(120000)
