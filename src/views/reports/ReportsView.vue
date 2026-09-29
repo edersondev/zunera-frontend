@@ -22,7 +22,7 @@ const { t } = useI18n()
 const { activeLocale } = useLocale()
 const { scope, key, updateScope, clearFilters } = useReportScope()
 const store = useReportsStore()
-const { overview, loading, error, detail, detailLoading, detailError } = storeToRefs(store)
+const { overview, loading, error, detail, detailLoading, detailError, changeNotice } = storeToRefs(store)
 const accounts = shallowRef([])
 const categories = shallowRef([])
 const drawerOpen = shallowRef(false)
@@ -43,6 +43,12 @@ watch(key, () => {
   if (hasIncompletePeriod.value) { store.clearOverview(); return }
   store.loadOverview(scope.value)
 }, { immediate: true })
+
+watch(changeNotice, (visible, _previous, onCleanup) => {
+  if (!visible) return
+  const timeout = setTimeout(() => store.clearChangeNotice(), 6000)
+  onCleanup(() => clearTimeout(timeout))
+})
 
 onMounted(async () => {
   const results = await Promise.allSettled([
@@ -69,6 +75,11 @@ function loadMore() {
   store.loadDetail(scope.value, { ...target.value, cursor: detail.value.next_cursor }, { append: true })
 }
 
+function retryCurrent() {
+  if (drawerOpen.value && target.value) store.loadDetail(scope.value, target.value)
+  else store.loadOverview(scope.value)
+}
+
 function sectionUnavailable(name) { return overview.value?.section_states?.[name]?.status === 'unavailable' }
 function sectionMessage(name) { return overview.value?.section_states?.[name]?.message || t('reports.sectionUnavailable') }
 </script>
@@ -78,9 +89,10 @@ function sectionMessage(name) { return overview.value?.section_states?.[name]?.m
     <PageHeader :title="t('reports.title')" :description="t('reports.description')" />
     <ReportPeriodSelector :scope="displayScope" :locale="activeLocale" :loading="loading" @change="updateScope" />
     <ReportFilterBar :scope="scope" :accounts="accounts" :categories="categories" @change="updateScope" @reset="clearFilters" />
+    <ElAlert v-if="changeNotice && overview" type="info" :title="t('reports.sourceChanged')" show-icon data-test="report-source-changed" @close="store.clearChangeNotice()" />
     <p v-if="hasIncompletePeriod" class="state-note">{{ t('reports.apply') }} {{ t('reports.period').toLowerCase() }}</p>
     <ElSkeleton v-else-if="loading && !overview" :rows="8" animated data-test="report-loading" />
-    <ElAlert v-else-if="error" type="error" :title="t('reports.error')" :closable="false" data-test="report-error"><ElButton data-test="report-retry" @click="store.loadOverview(scope)">{{ t('reports.retry') }}</ElButton></ElAlert>
+    <ElAlert v-else-if="error" type="error" :title="t('reports.error')" :closable="false" data-test="report-error"><ElButton data-test="report-retry" @click="retryCurrent">{{ t('reports.retry') }}</ElButton></ElAlert>
     <template v-else-if="overview">
       <p v-if="emptyMessage" class="state-note" data-test="report-empty">{{ emptyMessage }}</p>
       <ElAlert v-if="sectionUnavailable('summary')" type="warning" :title="sectionMessage('summary')" :closable="false" data-test="report-summary-unavailable"><ElButton @click="store.loadOverview(scope)">{{ t('reports.retry') }}</ElButton></ElAlert>
@@ -99,7 +111,7 @@ function sectionMessage(name) { return overview.value?.section_states?.[name]?.m
       <ReportComparison v-else-if="overview.comparison" :comparison="overview.comparison" :scope="overview.scope" :locale="activeLocale" @detail="openDetail" />
       <p v-if="overview.empty_states?.no_previous_activity" class="state-note">{{ t('reports.noPreviousActivity') }}</p>
     </template>
-    <ReportContributionDrawer :model-value="drawerOpen" :target="target" :detail="detail" :loading="detailLoading" :error="detailError" :locale="activeLocale" @update:model-value="closeDetail" @load-more="loadMore" @retry="store.loadDetail(scope, target)" />
+    <ReportContributionDrawer :model-value="drawerOpen" :target="target" :detail="detail" :loading="detailLoading" :error="detailError" :locale="activeLocale" @update:model-value="closeDetail" @load-more="loadMore" @retry="retryCurrent" />
   </div>
 </template>
 
