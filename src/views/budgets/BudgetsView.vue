@@ -1,7 +1,8 @@
 <script setup>
-import { computed, onMounted, shallowRef, watch } from 'vue'
+import { computed, shallowRef, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 import BudgetEmptyState from '@/components/budgets/BudgetEmptyState.vue'
 import BudgetPlanFormDialog from '@/components/budgets/BudgetPlanFormDialog.vue'
 import BudgetPlanList from '@/components/budgets/BudgetPlanList.vue'
@@ -14,6 +15,8 @@ import { useBudgetStore } from '@/stores/budgets/budgetStore'
 
 const { t } = useI18n()
 const store = useBudgetStore()
+const route = useRoute()
+const router = useRouter()
 
 const planFormOpen = shallowRef(false)
 const editingPlan = shallowRef(null)
@@ -27,6 +30,11 @@ const isLoading = computed(() => store.loading)
 const hasBudget = computed(() => store.hasBudget)
 const hasPlans = computed(() => store.plans.length > 0)
 const canCopyPrevious = computed(() => !hasBudget.value && store.copySource !== null)
+const planId = computed(() => {
+  const id = Number(route.query.plan_id)
+  return Number.isSafeInteger(id) && id > 0 ? id : null
+})
+const selectedPlan = computed(() => store.plans.find((plan) => plan.id === planId.value) ?? null)
 
 async function reload() {
   await store.fetchMonth()
@@ -37,8 +45,7 @@ async function reload() {
 }
 
 async function changeMonth(nextMonth) {
-  store.setSelectedMonth(nextMonth.year, nextMonth.month)
-  await reload()
+  await router.replace({ query: { year: String(nextMonth.year), month: String(nextMonth.month) } })
 }
 
 function openCreatePlan() {
@@ -120,7 +127,18 @@ watch(
   },
 )
 
-onMounted(reload)
+watch(
+  () => [route.query.year, route.query.month],
+  async ([yearParam, monthParam]) => {
+    const year = Number(yearParam)
+    const month = Number(monthParam)
+    if (Number.isInteger(year) && year >= 1900 && year <= 2100 && Number.isInteger(month) && month >= 1 && month <= 12) {
+      store.setSelectedMonth(year, month)
+    }
+    await reload()
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -170,12 +188,14 @@ onMounted(reload)
         <BudgetEmptyState v-if="!hasPlans" state="no-plans" @add="openCreatePlan" />
         <BudgetPlanList
           :plans="store.plans"
+          :highlight-plan-id="planId"
           :loading="store.submitting"
           @add="openCreatePlan"
           @copy="openCopy()"
           @edit="openEditPlan"
           @remove="openRemovePlan"
         />
+        <p v-if="selectedPlan" data-test="notification-budget-target">{{ t('notifications.budgetTarget', { name: selectedPlan.category.name }) }}</p>
       </template>
     </template>
 

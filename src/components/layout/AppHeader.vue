@@ -3,6 +3,7 @@ import { ArrowDown, Menu, UserFilled } from '@element-plus/icons-vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useLocale } from '@/composables/useLocale'
+import NotificationIndicator from '@/components/notifications/NotificationIndicator.vue'
 
 const props = defineProps({
   user: {
@@ -43,6 +44,8 @@ function handleAccountCommand(command) {
         <span>{{ t('app.workspace') }}</span>
         <strong>{{ t('app.personal') }}</strong>
       </p>
+
+      <NotificationIndicator />
 
       <ElDropdown trigger="click" @command="handleAccountCommand">
         <ElButton

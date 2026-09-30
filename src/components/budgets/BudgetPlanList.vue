@@ -6,6 +6,7 @@ import BudgetPlanRow from './BudgetPlanRow.vue'
 const props = defineProps({
   plans: { type: Array, required: true },
   loading: { type: Boolean, default: false },
+  highlightPlanId: { type: Number, default: null },
 })
 const emit = defineEmits(['add', 'copy', 'edit', 'remove'])
 const { t } = useI18n()
@@ -44,6 +45,8 @@ const { t } = useI18n()
         v-for="plan in props.plans"
         :key="plan.id"
         :plan="plan"
+        :aria-current="plan.id === props.highlightPlanId ? 'location' : undefined"
+        :id="plan.id === props.highlightPlanId ? 'notification-budget-plan' : undefined"
         @edit="emit('edit', $event)"
         @remove="emit('remove', $event)"
       />
@@ -67,6 +70,8 @@ const { t } = useI18n()
   margin: 0;
   padding: 0;
 }
+
+.budget-plan-list-items :deep(.budget-plan-row[aria-current='location']) { border-color: var(--color-action-primary); }
 
 .budget-plan-list-actions {
   display: flex;

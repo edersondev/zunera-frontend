@@ -1,17 +1,40 @@
 <script setup>
-import { computed, shallowRef } from 'vue'
+import { computed, onMounted, onUnmounted, shallowRef, watch } from 'vue'
 import { Calendar, Coin, CollectionTag, DataAnalysis, Delete, House, Money, Setting, Wallet } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppNavigation from '@/components/navigation/AppNavigation.vue'
 import { useSessionStore } from '@/stores/auth/sessionStore'
+import { useNotificationStore } from '@/stores/notifications/notificationStore'
 import { useI18n } from 'vue-i18n'
 
 const route = useRoute()
 const router = useRouter()
 const sessionStore = useSessionStore()
+const notificationStore = useNotificationStore()
 const navigationOpen = shallowRef(false)
 const { t } = useI18n()
+
+function refreshNotifications() {
+  if (sessionStore.user?.id && !document.hidden) notificationStore.loadSummary()
+}
+
+watch(() => sessionStore.user?.id ?? null, (id) => {
+  notificationStore.bindOwner(id)
+  if (id) notificationStore.loadSummary()
+}, { immediate: true })
+
+let refreshInterval = null
+onMounted(() => {
+  window.addEventListener('focus', refreshNotifications)
+  document.addEventListener('visibilitychange', refreshNotifications)
+  refreshInterval = window.setInterval(refreshNotifications, 60_000)
+})
+onUnmounted(() => {
+  window.removeEventListener('focus', refreshNotifications)
+  document.removeEventListener('visibilitychange', refreshNotifications)
+  window.clearInterval(refreshInterval)
+})
 
 const navigationItems = computed(() => [
   { id: 'dashboard', routeName: 'dashboard', label: t('dashboard.title'), icon: House },
