@@ -58,7 +58,7 @@ function cancelReviewLookup() {
 }
 
 onMounted(async () => {
-  const { highlight, ...routeFilters } = route.query
+  const { highlight, occurrence_id: occurrenceIdParam, ...routeFilters } = route.query
   const query = { ...routeFilters, per_page: Number(routeFilters.per_page ?? 50) }
 
   try {
@@ -73,6 +73,22 @@ onMounted(async () => {
     if (Number.isInteger(ruleId) && ruleId > 0) {
       await store.select(ruleId)
       detailOpen.value = true
+      const occurrenceId = Number(occurrenceIdParam)
+      if (Number.isSafeInteger(occurrenceId) && occurrenceId > 0 && store.selected?.id === ruleId) {
+        const occurrence = await store.findOccurrenceById(ruleId, occurrenceId)
+        if (occurrence) {
+          selectedOccurrence.value = occurrence
+          if (!store.occurrences.some((row) => row.id === occurrenceId)) {
+            store.occurrences = [occurrence, ...store.occurrences]
+          }
+          if (store.selected.destination_type === 'credit_card' && ['expected', 'awaiting_over_limit', 'failed'].includes(occurrence.state)) {
+            occurrenceRule.value = store.selected
+            occurrenceOpen.value = true
+          }
+        } else {
+          store.error = { message: t('notifications.sourceUnavailable') }
+        }
+      }
     }
   } catch {
     /* Feedback comes from the relevant store error state. */
@@ -342,6 +358,7 @@ async function retryOccurrence() {
       :rule="store.selected"
       :occurrences="store.occurrences"
       :loading-occurrences="store.loadingOccurrences"
+      :highlight-occurrence-id="selectedOccurrence?.id"
       @open-occurrence="openOccurrence"
     />
     <RecurringCardOccurrenceDialog

@@ -17,6 +17,7 @@ const props = defineProps({
   rule: { type: Object, default: null },
   occurrences: { type: Array, default: () => [] },
   loadingOccurrences: Boolean,
+  highlightOccurrenceId: { type: Number, default: null },
 })
 const emit = defineEmits(['update:modelValue', 'open-occurrence'])
 const { t } = useI18n()
@@ -96,6 +97,7 @@ function occurrenceLabel(row) {
       </p>
 
       <h3>{{ t('recurringTransactions.occurrences') }}</h3>
+      <p v-if="highlightOccurrenceId" data-test="notification-occurrence-target">{{ t('notifications.occurrenceTarget', { id: highlightOccurrenceId }) }}</p>
       <p class="muted">{{ t('recurringTransactions.occurrencesDescription') }}</p>
       <p v-if="loadingOccurrences" class="hint" data-test="recurrence-occurrences-loading">
         {{ t('common.loading') }}
@@ -103,7 +105,7 @@ function occurrenceLabel(row) {
       <p v-else-if="occurrences.length === 0" class="hint" data-test="recurrence-occurrences-empty">
         {{ t('recurringTransactions.emptyOccurrences') }}
       </p>
-      <ElTable v-else :data="occurrences" data-test="recurrence-occurrence-table" row-key="id">
+      <ElTable v-else :data="occurrences" data-test="recurrence-occurrence-table" row-key="id" :row-class-name="({ row }) => row.id === highlightOccurrenceId ? 'notification-occurrence-highlight' : ''">
         <ElTableColumn :label="t('recurringTransactions.scheduledDate')" width="140">
           <template #default="{ row }">{{ formatRecurrenceDate(row.scheduled_date) }}</template>
         </ElTableColumn>

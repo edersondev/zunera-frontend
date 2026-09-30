@@ -2,7 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick, reactive } from 'vue'
 import { mount } from '@vue/test-utils'
 
-const hoisted = vi.hoisted(() => ({ store: null }))
+const hoisted = vi.hoisted(() => ({ store: null, route: null, router: null }))
+
+vi.mock('vue-router', () => ({
+  useRoute: () => hoisted.route,
+  useRouter: () => hoisted.router,
+}))
 
 vi.mock('@/stores/budgets/budgetStore', () => ({
   useBudgetStore: () => hoisted.store,
@@ -123,6 +128,8 @@ function mountView() {
 describe('BudgetsView', () => {
   beforeEach(() => {
     hoisted.store = createStore()
+    hoisted.route = reactive({ query: {} })
+    hoisted.router = { replace: vi.fn() }
   })
 
   it('keeps a month without a budget as a normal empty state with a create action', async () => {

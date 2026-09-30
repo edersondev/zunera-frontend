@@ -128,6 +128,21 @@ export const useRecurringTransactionStore = defineStore('recurring-transactions'
     return null
   }
 
+  async function findOccurrenceById(ruleId, occurrenceId) {
+    let page = 1
+    let result = { items: occurrences.value, meta: occurrenceMeta.value }
+    while (page <= (result.meta?.last_page ?? 1)) {
+      const match = result.items.find((row) => row.id === occurrenceId)
+      if (match) return match
+      page += 1
+      if (page <= (result.meta?.last_page ?? 1)) {
+        result = await listRecurringTransactionOccurrences(ruleId, { per_page: 50, page })
+        if (selected.value?.id !== ruleId) return null
+      }
+    }
+    return null
+  }
+
   async function runOccurrenceAction(ruleId, occurrenceId, operation, action) {
     const actionId = `${ruleId}:${occurrenceId}`
     saving.value = true
@@ -247,6 +262,7 @@ export const useRecurringTransactionStore = defineStore('recurring-transactions'
     select,
     fetchOccurrences,
     findNewestReviewableOccurrence,
+    findOccurrenceById,
     create,
     update,
     pause,
