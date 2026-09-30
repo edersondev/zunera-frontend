@@ -24,7 +24,7 @@ const groups = computed(() => {
   const yesterday = new Date(Date.UTC(year, month - 1, day - 1)).toISOString().slice(0, 10)
   const result = []
   for (const item of props.items) {
-    const date = new Date(item.created_at ?? item.event_at)
+    const date = new Date(item.event_at)
     const key = Number.isNaN(date.getTime()) ? 'earlier' : dayKey(date)
     const section = key === today ? 'today' : key === yesterday ? 'yesterday' : 'earlier'
     const previous = result.at(-1)

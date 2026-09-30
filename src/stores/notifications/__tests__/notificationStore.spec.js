@@ -22,6 +22,7 @@ describe('notification shared store', () => {
     store.bindOwner(12)
     await store.loadSummary()
     expect(store.unreadLabel).toBe('99+')
+    expect(store.summaryLoaded).toBe(true)
     await store.loadFirst('unread')
     await store.loadMore()
     expect(store.view).toBe('unread')
@@ -41,6 +42,50 @@ describe('notification shared store', () => {
     expect(store.items[0]).toMatchObject({ read_at: 'now', requires_action: true })
     await store.markAllRead()
     expect(store.summary).toEqual({ unread_count: 0, requires_action_count: 1 })
+  })
+
+  it('ignores list and summary responses started before read-all', async () => {
+    let resolvePage
+    let resolveSummary
+    service.getNotifications.mockImplementation(() => new Promise((resolve) => { resolvePage = resolve }))
+    service.getNotificationSummary.mockImplementation(() => new Promise((resolve) => { resolveSummary = resolve }))
+    service.markAllNotificationsRead.mockResolvedValue({ changed_count: 1, summary: { unread_count: 0, requires_action_count: 1 } })
+    const store = useNotificationStore()
+    store.bindOwner(12)
+    const pendingPage = store.loadFirst('unread')
+    const pendingSummary = store.loadSummary()
+
+    await store.markAllRead()
+    resolvePage({ data: [{ id: 4, read_at: null }], next_cursor: 'stale' })
+    resolveSummary({ unread_count: 1, requires_action_count: 1 })
+    await Promise.all([pendingPage, pendingSummary])
+
+    expect(store.items).toEqual([])
+    expect(store.nextCursor).toBeNull()
+    expect(store.summary.unread_count).toBe(0)
+    expect(store.summaryLoaded).toBe(true)
+    expect(store.loading).toBe(false)
+    expect(store.summaryLoading).toBe(false)
+  })
+
+  it('ignores a pending unread load-more response after read-all', async () => {
+    let resolvePage
+    service.getNotifications.mockImplementation(() => new Promise((resolve) => { resolvePage = resolve }))
+    service.markAllNotificationsRead.mockResolvedValue({ changed_count: 2, summary: { unread_count: 0, requires_action_count: 0 } })
+    const store = useNotificationStore()
+    store.bindOwner(12)
+    store.view = 'unread'
+    store.items = [{ id: 4, read_at: null }]
+    store.nextCursor = 'next'
+    const pendingPage = store.loadMore()
+
+    await store.markAllRead()
+    resolvePage({ data: [{ id: 3, read_at: null }], next_cursor: null })
+    await pendingPage
+
+    expect(store.items).toEqual([])
+    expect(store.nextCursor).toBeNull()
+    expect(store.summary.unread_count).toBe(0)
   })
 
   it('resets on session switch and ignores an old owner response', async () => {

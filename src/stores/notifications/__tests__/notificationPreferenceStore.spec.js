@@ -24,10 +24,22 @@ describe('notification preferences', () => {
     store.items = [{ id: 3, category: 'budgets', title: 'Old event' }]
     await store.loadPreferences()
     expect(store.preferences).toEqual(defaults)
+    expect(store.preferencesLoaded).toBe(true)
     await store.setPreference('budgets', false)
     expect(store.preferences.budgets).toBe(false)
     expect(store.items).toEqual([{ id: 3, category: 'budgets', title: 'Old event' }])
     expect(service.updateNotificationPreference).toHaveBeenCalledWith('budgets', false)
+  })
+
+  it('does not expose default switches when the first preference request fails', async () => {
+    service.getNotificationPreferences.mockRejectedValue({ status: 503 })
+    const store = useNotificationStore()
+    store.bindOwner(12)
+
+    await store.loadPreferences()
+
+    expect(store.preferencesLoaded).toBe(false)
+    expect(store.preferencesError.status).toBe(503)
   })
 
   it('keeps confirmed server values on failure and clears owner preferences on switch', async () => {
@@ -40,6 +52,7 @@ describe('notification preferences', () => {
     expect(store.preferencesError.status).toBe(503)
     store.bindOwner(13)
     expect(store.preferences.credit_cards).toBe(true)
+    expect(store.preferencesLoaded).toBe(false)
     expect(store.preferencesError).toBeNull()
   })
 })

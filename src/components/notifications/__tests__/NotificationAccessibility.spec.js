@@ -16,4 +16,14 @@ describe('notification accessibility', () => {
     expect(wrapper.text()).not.toContain('Unread')
     expect(wrapper.find('button').exists()).toBe(false)
   })
+
+  it('does not call an unresolved item resolved when its source disappears', () => {
+    i18n.global.locale.value = 'en'
+    const item = { id: 4, type: 'recurrence_review', origin: 'recurring_transactions', title: 'Review occurrence',
+      summary: 'Review pending transaction', event_at: '2026-09-29T12:00:00Z', read_at: null,
+      resolved_at: null, requires_action: false, source_available: false, destination: null }
+    const wrapper = mount(NotificationItem, { props: { item } })
+    expect(wrapper.text()).toContain('The source record is no longer available.')
+    expect(wrapper.text()).not.toContain('Resolved')
+  })
 })

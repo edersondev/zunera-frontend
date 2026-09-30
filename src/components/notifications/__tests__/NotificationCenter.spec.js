@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount, RouterLinkStub } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import NotificationIndicator from '../NotificationIndicator.vue'
 import NotificationItem from '../NotificationItem.vue'
+import NotificationList from '../NotificationList.vue'
 import { useNotificationStore } from '@/stores/notifications/notificationStore'
 import { i18n } from '@/i18n'
 
@@ -28,6 +29,24 @@ describe('notification center presentation', () => {
     await wrapper.vm.$nextTick()
     expect(wrapper.get('.notification-count').text()).toBe('99+')
     expect(wrapper.get('a').attributes('aria-label')).toContain('100 unread')
+  })
+
+  it('groups notifications by the event date shown in each row', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-09-30T15:00:00Z'))
+    try {
+      const items = [
+        { id: 2, created_at: '2026-09-30T14:00:00Z', event_at: '2026-09-30T13:00:00Z' },
+        { id: 1, created_at: '2026-09-30T12:00:00Z', event_at: '2026-09-28T12:00:00Z' },
+      ]
+      const wrapper = mount(NotificationList, {
+        props: { items, view: 'all' },
+        global: { stubs: { NotificationItem: true } },
+      })
+      expect(wrapper.findAll('.group-heading').map((heading) => heading.text())).toEqual(['Today', 'Earlier'])
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('keeps read state distinct from pending action and treats hostile text as text', async () => {

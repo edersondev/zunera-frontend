@@ -6,6 +6,7 @@ import NotificationSourceIcon from './NotificationSourceIcon.vue'
 defineProps({
   preferences: { type: Object, required: true },
   loading: { type: Boolean, default: false },
+  loaded: { type: Boolean, default: false },
   updatingCategory: { type: String, default: null },
   error: { type: Boolean, default: false },
 })
@@ -20,7 +21,7 @@ const categories = ['credit_cards', 'recurring_transactions', 'budgets', 'financ
     <ElAlert v-if="error" type="warning" :closable="false" :title="t('notifications.preferences.error')">
       <ElButton text @click="emit('retry')">{{ t('notifications.preferences.retry') }}</ElButton>
     </ElAlert>
-    <div class="preference-list">
+    <div v-if="loaded" class="preference-list">
       <div v-for="category in categories" :key="category" class="preference-row">
         <NotificationSourceIcon :source="category" />
         <div class="preference-copy">
@@ -31,7 +32,7 @@ const categories = ['credit_cards', 'recurring_transactions', 'budgets', 'financ
           :model-value="preferences[category]"
           :aria-label="t(`notifications.preferences.${category}`)"
           :aria-labelledby="`notification-preference-${category}`"
-          :disabled="loading || Boolean(updatingCategory)"
+          :disabled="loading || error || Boolean(updatingCategory)"
           @change="emit('change', category, $event)"
         />
       </div>

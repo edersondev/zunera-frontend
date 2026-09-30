@@ -16,11 +16,10 @@ const { t } = useI18n()
 const actionError = shallowRef('')
 const settingsOpen = shallowRef(false)
 const settingsTrigger = shallowRef(null)
-const summaryReady = shallowRef(false)
 
 onMounted(() => {
   store.loadFirst(store.view)
-  store.loadSummary().then((result) => { if (result) summaryReady.value = true })
+  store.loadSummary()
   store.loadPreferences()
 })
 
@@ -74,7 +73,7 @@ async function open(id) {
     <ElAlert v-if="actionError" :title="actionError" type="warning" show-icon :closable="false" />
     <div class="feed-toolbar">
       <NotificationFilterBar :view="store.view" @change="store.loadFirst($event)" />
-      <p v-if="summaryReady" class="feed-summary">{{ t('notifications.summary', { unread: store.summary.unread_count, attention: store.summary.requires_action_count }) }}</p>
+      <p v-if="store.summaryLoaded" class="feed-summary">{{ t('notifications.summary', { unread: store.summary.unread_count, attention: store.summary.requires_action_count }) }}</p>
     </div>
     <NotificationList
       :items="store.items" :view="store.view" :loading="store.loading" :error="Boolean(store.error)"
@@ -83,7 +82,7 @@ async function open(id) {
     />
     <ElDrawer v-model="settingsOpen" size="min(94vw, 520px)" :title="t('notifications.preferences.title')" @closed="restoreSettingsFocus">
       <NotificationPreferences
-        :preferences="store.preferences" :loading="store.preferencesLoading"
+        :preferences="store.preferences" :loaded="store.preferencesLoaded" :loading="store.preferencesLoading"
         :updating-category="store.updatingCategory" :error="Boolean(store.preferencesError)"
         @change="store.setPreference" @retry="store.loadPreferences"
       />

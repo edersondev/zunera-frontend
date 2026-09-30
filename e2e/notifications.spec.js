@@ -99,9 +99,9 @@ test('compact feed groups history, preserves order, and offers actions only for 
   await pinLocale(page, 'en')
   const now = Date.now()
   const state = await mockCenter(page, [
-    item(63, { created_at: new Date(now).toISOString() }),
-    item(62, { created_at: new Date(now - 86400000).toISOString(), read_at: new Date(now).toISOString(), requires_action: false, resolved_at: new Date(now).toISOString() }),
-    item(61, { created_at: new Date(now - 3 * 86400000).toISOString(), source_available: false, destination: null, requires_action: false }),
+    item(63, { created_at: new Date(now).toISOString(), event_at: new Date(now).toISOString() }),
+    item(62, { created_at: new Date(now - 86400000).toISOString(), event_at: new Date(now - 86400000).toISOString(), read_at: new Date(now).toISOString(), requires_action: false, resolved_at: new Date(now).toISOString() }),
+    item(61, { created_at: new Date(now - 3 * 86400000).toISOString(), event_at: new Date(now - 3 * 86400000).toISOString(), source_available: false, destination: null, requires_action: false }),
   ])
   await page.goto('/app/notifications')
   await expect(page.getByText('2 unread · 1 require attention')).toBeVisible()

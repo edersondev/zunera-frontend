@@ -28,9 +28,8 @@ const eventDate = computed(() => {
 })
 const secondaryStatus = computed(() => {
   if (props.item.requires_action) return ''
-  return props.item.type === 'goal_reached' && !props.item.resolved_at
-    ? t('notifications.informational')
-    : t('notifications.resolved')
+  if (props.item.type === 'goal_reached') return t('notifications.informational')
+  return props.item.resolved_at ? t('notifications.resolved') : ''
 })
 function openWithSpace(event) {
   if (!canOpen.value) return
@@ -56,7 +55,7 @@ function openWithSpace(event) {
       </div>
       <div class="item-states">
         <span v-if="item.requires_action" class="attention-badge"><ElIcon aria-hidden="true"><Warning /></ElIcon>{{ t('notifications.pending') }}</span>
-        <span v-else class="secondary-status">{{ secondaryStatus }}</span>
+        <span v-else-if="secondaryStatus" class="secondary-status">{{ secondaryStatus }}</span>
         <span v-if="!item.source_available" class="unavailable">{{ t('notifications.sourceUnavailable') }}</span>
       </div>
     </div>

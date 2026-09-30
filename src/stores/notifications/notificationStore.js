@@ -16,6 +16,7 @@ const DEFAULT_PREFERENCES = Object.freeze({ credit_cards: true, recurring_transa
 export const useNotificationStore = defineStore('notifications', () => {
   const ownerId = shallowRef(null)
   const summary = shallowRef({ ...EMPTY_SUMMARY })
+  const summaryLoaded = shallowRef(false)
   const items = shallowRef([])
   const view = shallowRef('all')
   const nextCursor = shallowRef(null)
@@ -23,11 +24,13 @@ export const useNotificationStore = defineStore('notifications', () => {
   const summaryLoading = shallowRef(false)
   const error = shallowRef(null)
   const preferences = shallowRef({ ...DEFAULT_PREFERENCES })
+  const preferencesLoaded = shallowRef(false)
   const preferencesLoading = shallowRef(false)
   const preferencesError = shallowRef(null)
   const updatingCategory = shallowRef(null)
   let ownerEpoch = 0
   let pageEpoch = 0
+  let summaryEpoch = 0
 
   const unreadLabel = computed(() => {
     const count = summary.value.unread_count
@@ -38,8 +41,10 @@ export const useNotificationStore = defineStore('notifications', () => {
   function reset() {
     ownerEpoch += 1
     pageEpoch += 1
+    summaryEpoch += 1
     ownerId.value = null
     summary.value = { ...EMPTY_SUMMARY }
+    summaryLoaded.value = false
     items.value = []
     view.value = 'all'
     nextCursor.value = null
@@ -47,6 +52,7 @@ export const useNotificationStore = defineStore('notifications', () => {
     summaryLoading.value = false
     error.value = null
     preferences.value = { ...DEFAULT_PREFERENCES }
+    preferencesLoaded.value = false
     preferencesLoading.value = false
     preferencesError.value = null
     updatingCategory.value = null
@@ -65,16 +71,20 @@ export const useNotificationStore = defineStore('notifications', () => {
   async function loadSummary() {
     if (ownerId.value == null) return null
     const epoch = ownerEpoch
+    const request = ++summaryEpoch
     summaryLoading.value = true
     try {
       const result = await getNotificationSummary()
-      if (epoch === ownerEpoch) summary.value = result
-      return epoch === ownerEpoch ? result : null
+      if (epoch === ownerEpoch && request === summaryEpoch) {
+        summary.value = result
+        summaryLoaded.value = true
+      }
+      return epoch === ownerEpoch && request === summaryEpoch ? result : null
     } catch (requestError) {
-      if (epoch === ownerEpoch && requestError?.status === 401) reset()
+      if (epoch === ownerEpoch && request === summaryEpoch && requestError?.status === 401) reset()
       return null
     } finally {
-      if (epoch === ownerEpoch) summaryLoading.value = false
+      if (epoch === ownerEpoch && request === summaryEpoch) summaryLoading.value = false
     }
   }
 
@@ -138,6 +148,8 @@ export const useNotificationStore = defineStore('notifications', () => {
     try {
       const updated = await markNotificationRead(id)
       if (epoch !== ownerEpoch) return null
+      pageEpoch += 1
+      loading.value = false
       replaceItem(updated)
       await loadSummary()
       return updated
@@ -152,12 +164,19 @@ export const useNotificationStore = defineStore('notifications', () => {
     try {
       const result = await markAllNotificationsRead()
       if (epoch !== ownerEpoch) return null
+      const pageWasLoading = loading.value
+      pageEpoch += 1
+      loading.value = false
+      summaryEpoch += 1
+      summaryLoading.value = false
       summary.value = result.summary
+      summaryLoaded.value = true
       if (view.value === 'unread') {
         items.value = []
         nextCursor.value = null
       } else {
         items.value = items.value.map((item) => ({ ...item, read_at: item.read_at ?? new Date().toISOString() }))
+        if (pageWasLoading && items.value.length === 0) await loadFirst(view.value)
       }
       return result
     } catch (requestError) {
@@ -171,6 +190,8 @@ export const useNotificationStore = defineStore('notifications', () => {
     try {
       const updated = await openNotification(id)
       if (epoch !== ownerEpoch) return null
+      pageEpoch += 1
+      loading.value = false
       replaceItem(updated)
       await loadSummary()
       return updated
@@ -187,7 +208,10 @@ export const useNotificationStore = defineStore('notifications', () => {
     preferencesError.value = null
     try {
       const result = await getNotificationPreferences()
-      if (epoch === ownerEpoch) preferences.value = result
+      if (epoch === ownerEpoch) {
+        preferences.value = result
+        preferencesLoaded.value = true
+      }
       return epoch === ownerEpoch ? result : null
     } catch (requestError) {
       if (epoch === ownerEpoch && requestError?.status === 401) reset()
@@ -205,7 +229,10 @@ export const useNotificationStore = defineStore('notifications', () => {
     preferencesError.value = null
     try {
       const result = await updateNotificationPreference(category, enabled)
-      if (epoch === ownerEpoch) preferences.value = result
+      if (epoch === ownerEpoch) {
+        preferences.value = result
+        preferencesLoaded.value = true
+      }
       return epoch === ownerEpoch ? result : null
     } catch (requestError) {
       if (epoch === ownerEpoch && requestError?.status === 401) reset()
@@ -217,8 +244,8 @@ export const useNotificationStore = defineStore('notifications', () => {
   }
 
   return {
-    ownerId, summary, items, view, nextCursor, loading, summaryLoading, error,
-    preferences, preferencesLoading, preferencesError, updatingCategory,
+    ownerId, summary, summaryLoaded, items, view, nextCursor, loading, summaryLoading, error,
+    preferences, preferencesLoaded, preferencesLoading, preferencesError, updatingCategory,
     unreadLabel, hasMore, reset, bindOwner, loadSummary, loadFirst, loadMore, markRead, markAllRead, open,
     loadPreferences, setPreference,
   }
