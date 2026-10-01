@@ -83,9 +83,6 @@ async function confirmArchive() {
   <section class="credit-cards" data-test="credit-cards-view">
     <PageHeader :title="t('creditCards.title')" :description="t('creditCards.description')">
       <template #actions>
-        <ElButton :icon="FolderOpened" data-test="credit-cards-archived-link" @click="openArchived">
-          {{ t('creditCards.archived') }}
-        </ElButton>
         <ElButton
           type="primary"
           :icon="Plus"
@@ -93,6 +90,14 @@ async function confirmArchive() {
           @click="openCreateDialog"
         >
           {{ t('creditCards.new') }}
+        </ElButton>
+        <ElButton
+          type="warning"
+          :icon="FolderOpened"
+          data-test="credit-cards-archived-link"
+          @click="openArchived"
+        >
+          {{ t('creditCards.archived') }}
         </ElButton>
       </template>
     </PageHeader>
