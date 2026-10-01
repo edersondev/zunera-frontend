@@ -3,6 +3,8 @@ import { computed, onMounted, onUnmounted, shallowRef, watch } from 'vue'
 import { Calendar, Coin, CollectionTag, DataAnalysis, Delete, House, Money, Setting, Wallet } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
+import ProfileDialog from '@/components/auth/ProfileDialog.vue'
+import ChangePasswordDialog from '@/components/auth/ChangePasswordDialog.vue'
 import AppNavigation from '@/components/navigation/AppNavigation.vue'
 import { useSessionStore } from '@/stores/auth/sessionStore'
 import { useNotificationStore } from '@/stores/notifications/notificationStore'
@@ -13,6 +15,9 @@ const router = useRouter()
 const sessionStore = useSessionStore()
 const notificationStore = useNotificationStore()
 const navigationOpen = shallowRef(false)
+const profileOpen = shallowRef(false)
+const passwordOpen = shallowRef(false)
+const headerRef = shallowRef(null)
 const { t } = useI18n()
 
 function refreshNotifications() {
@@ -94,9 +99,21 @@ async function signOut() {
   <div class="app-shell">
     <a class="skip-link" href="#main-content">{{ t('app.skipToContent') }}</a>
     <AppHeader
+      ref="headerRef"
       :user="sessionStore.user"
       @open-navigation="navigationOpen = true"
+      @edit-profile="profileOpen = true"
+      @change-password="passwordOpen = true"
       @sign-out="signOut"
+    />
+    <ProfileDialog
+      v-model="profileOpen"
+      :user="sessionStore.user"
+      @closed="headerRef?.focusAccount()"
+    />
+    <ChangePasswordDialog
+      v-model="passwordOpen"
+      @closed="headerRef?.focusAccount()"
     />
     <div class="app-body">
       <aside class="desktop-navigation">

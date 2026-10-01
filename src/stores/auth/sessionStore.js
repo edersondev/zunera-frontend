@@ -8,6 +8,8 @@ import {
   resetPassword,
   signIn,
   signOut,
+  updateProfileName as updateProfileNameRequest,
+  changeCurrentPassword as changeCurrentPasswordRequest,
 } from '@/services/authService'
 
 export const useSessionStore = defineStore('auth.session', () => {
@@ -86,6 +88,16 @@ export const useSessionStore = defineStore('auth.session', () => {
     }
   }
 
+  async function updateProfileName(name) {
+    const updatedUser = await updateProfileNameRequest(name)
+    user.value = updatedUser
+    return updatedUser
+  }
+
+  async function changeCurrentPassword(payload) {
+    await changeCurrentPasswordRequest(payload)
+  }
+
   async function continueCurrentSession() {
     const nextSession = await continueSessionRequest()
     session.value = nextSession
@@ -103,6 +115,8 @@ export const useSessionStore = defineStore('auth.session', () => {
     login,
     logout,
     continueCurrentSession,
+    updateProfileName,
+    changeCurrentPassword,
     requestPasswordRecovery,
     resetPassword,
     clearSession,
