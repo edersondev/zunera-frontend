@@ -118,6 +118,15 @@ export const messages = {
       absoluteExpires: 'Expiração absoluta',
       skipToContent: 'Pular para o conteúdo principal',
     },
+    profile: {
+      edit: 'Editar perfil',
+      nameSaved: 'Nome atualizado.',
+      changePassword: 'Alterar senha',
+      currentPassword: 'Senha atual',
+      currentPasswordRequired: 'Informe sua senha atual.',
+      newPassword: 'Nova senha',
+      passwordSaved: 'Senha alterada. Outros dispositivos foram desconectados.',
+    },
     notifications: {
       title: 'Notificações',
       description: 'Acompanhe atividades financeiras importantes.',
@@ -1178,6 +1187,15 @@ export const messages = {
       idleExpires: 'Idle expires',
       absoluteExpires: 'Absolute expires',
       skipToContent: 'Skip to main content',
+    },
+    profile: {
+      edit: 'Edit profile',
+      nameSaved: 'Name updated.',
+      changePassword: 'Change password',
+      currentPassword: 'Current password',
+      currentPasswordRequired: 'Enter your current password.',
+      newPassword: 'New password',
+      passwordSaved: 'Password changed. Other devices were signed out.',
     },
     notifications: {
       title: 'Notifications',

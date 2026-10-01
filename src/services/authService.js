@@ -51,6 +51,21 @@ export async function continueSession() {
   return response.data
 }
 
+export async function updateProfileName(name) {
+  const response = await apiRequest(
+    { method: 'patch', url: '/api/v1/auth/profile', data: { name } },
+    { csrf: true },
+  )
+  return response.data.data
+}
+
+export async function changeCurrentPassword(payload) {
+  await apiRequest(
+    { method: 'patch', url: '/api/v1/auth/password', data: payload },
+    { csrf: true },
+  )
+}
+
 export async function signOut() {
   await apiRequest(
     {
