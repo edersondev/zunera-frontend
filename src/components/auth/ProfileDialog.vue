@@ -1,4 +1,5 @@
 <script setup>
+import { Check, Close } from '@element-plus/icons-vue'
 import { computed, reactive, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSessionStore } from '@/stores/auth/sessionStore'
@@ -76,20 +77,14 @@ async function saveName() {
       </ElFormItem>
       <ElAlert v-if="nameError?.message" type="error" :title="nameError.message" :closable="false" show-icon />
       <ElAlert v-if="nameSuccess" type="success" :title="t('profile.nameSaved')" :closable="false" show-icon />
-      <div class="form-actions">
-        <ElButton type="primary" native-type="submit" :loading="nameBusy">{{ t('profile.saveName') }}</ElButton>
-      </div>
     </ElForm>
     <template #footer>
-      <ElButton :disabled="nameBusy" @click="visible = false">{{ t('profile.close') }}</ElButton>
+      <ElButton type="danger" :icon="Close" :disabled="nameBusy" @click="visible = false">
+        {{ t('common.cancel') }}
+      </ElButton>
+      <ElButton type="primary" :icon="Check" :loading="nameBusy" @click="saveName">
+        {{ t('common.save') }}
+      </ElButton>
     </template>
   </ElDialog>
 </template>
-
-<style scoped>
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 12px;
-}
-</style>

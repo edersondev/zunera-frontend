@@ -121,14 +121,11 @@ export const messages = {
     profile: {
       edit: 'Editar perfil',
       nameSaved: 'Nome atualizado.',
-      saveName: 'Salvar nome',
       changePassword: 'Alterar senha',
       currentPassword: 'Senha atual',
       currentPasswordRequired: 'Informe sua senha atual.',
       newPassword: 'Nova senha',
-      savePassword: 'Salvar senha',
       passwordSaved: 'Senha alterada. Outros dispositivos foram desconectados.',
-      close: 'Fechar',
     },
     notifications: {
       title: 'Notificações',
@@ -1194,14 +1191,11 @@ export const messages = {
     profile: {
       edit: 'Edit profile',
       nameSaved: 'Name updated.',
-      saveName: 'Save name',
       changePassword: 'Change password',
       currentPassword: 'Current password',
       currentPasswordRequired: 'Enter your current password.',
       newPassword: 'New password',
-      savePassword: 'Save password',
       passwordSaved: 'Password changed. Other devices were signed out.',
-      close: 'Close',
     },
     notifications: {
       title: 'Notifications',

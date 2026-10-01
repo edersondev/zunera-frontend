@@ -1,4 +1,5 @@
 <script setup>
+import { Check, Close } from '@element-plus/icons-vue'
 import { computed, reactive, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PasswordRequirements from '@/components/auth/PasswordRequirements.vue'
@@ -97,20 +98,14 @@ async function savePassword() {
       </ElFormItem>
       <ElAlert v-if="error?.message" type="error" :title="error.message" :closable="false" show-icon />
       <ElAlert v-if="success" type="success" :title="t('profile.passwordSaved')" :closable="false" show-icon />
-      <div class="form-actions">
-        <ElButton type="primary" native-type="submit" :loading="busy">{{ t('profile.savePassword') }}</ElButton>
-      </div>
     </ElForm>
     <template #footer>
-      <ElButton :disabled="busy" @click="visible = false">{{ t('profile.close') }}</ElButton>
+      <ElButton type="danger" :icon="Close" :disabled="busy" @click="visible = false">
+        {{ t('common.cancel') }}
+      </ElButton>
+      <ElButton type="primary" :icon="Check" :loading="busy" @click="savePassword">
+        {{ t('common.save') }}
+      </ElButton>
     </template>
   </ElDialog>
 </template>
-
-<style scoped>
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 12px;
-}
-</style>
