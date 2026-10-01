@@ -354,3 +354,37 @@ test('notification center stays keyboard usable in Portuguese, dark mode, and na
   await page.emulateMedia({ colorScheme: 'light' })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true)
 })
+
+
+test('header theme control sits left of notifications and persists Light, Dark, and System', async ({ page }) => {
+  await pinLocale(page, 'en')
+  await page.setViewportSize({ width: 320, height: 800 })
+  await page.emulateMedia({ colorScheme: 'light' })
+  await mockCenter(page)
+  await page.goto('/app/notifications')
+
+  const themeButton = page.getByRole('button', { name: 'Theme: System' })
+  const notifications = page.getByRole('link', { name: '2 unread notifications' })
+  await expect(themeButton).toBeVisible()
+  expect((await themeButton.boundingBox()).x).toBeLessThan((await notifications.boundingBox()).x)
+
+  await themeButton.focus()
+  await themeButton.press('Enter')
+  await page.getByRole('menuitem', { name: 'Dark' }).click()
+  await expect(page.getByRole('button', { name: 'Theme: Dark' })).toBeVisible()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  await page.reload()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+
+  await page.getByRole('button', { name: 'Theme: Dark' }).click()
+  await page.getByRole('menuitem', { name: 'Light' }).click()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+
+  await page.getByRole('button', { name: 'Theme: Light' }).click()
+  await page.getByRole('menuitem', { name: 'System' }).click()
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true)
+  await page.emulateMedia({ colorScheme: 'light' })
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+})

@@ -4,6 +4,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useLocale } from '@/composables/useLocale'
 import NotificationIndicator from '@/components/notifications/NotificationIndicator.vue'
+import ThemeControl from '@/components/layout/ThemeControl.vue'
 
 const props = defineProps({
   user: {
@@ -45,6 +46,7 @@ function handleAccountCommand(command) {
         <strong>{{ t('app.personal') }}</strong>
       </p>
 
+      <ThemeControl />
       <NotificationIndicator />
 
       <ElDropdown trigger="click" @command="handleAccountCommand">

@@ -1,4 +1,5 @@
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed } from 'vue'
+import { useTheme } from '@/composables/useTheme'
 
 const chartColorVariables = {
   canvas: '--color-canvas',
@@ -16,10 +17,10 @@ const chartColorVariables = {
   chartCyan: '--chart-cyan',
 }
 
-function readTheme(_revision = 0) {
+function readTheme(mode) {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     return {
-      mode: 'light',
+      mode,
       canvas: '#ffffff',
       surface: '#ffffff',
       border: '#dcdfe6',
@@ -44,39 +45,11 @@ function readTheme(_revision = 0) {
     ]),
   )
 
-  const mediaQuery = typeof window.matchMedia === 'function'
-    ? window.matchMedia('(prefers-color-scheme: dark)')
-    : null
-
-  return {
-    mode: mediaQuery?.matches ? 'dark' : 'light',
-    ...colors,
-  }
+  return { mode, ...colors }
 }
 
 export function useChartTheme() {
-  const revision = ref(0)
-  let mediaQuery
-
-  function refresh() {
-    revision.value += 1
-  }
-
-  onMounted(() => {
-    if (typeof window.matchMedia !== 'function') return
-
-    mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    mediaQuery.addEventListener('change', refresh)
-    refresh()
-  })
-
-  onUnmounted(() => {
-    mediaQuery?.removeEventListener('change', refresh)
-  })
-
-  const theme = computed(() => {
-    return readTheme(revision.value)
-  })
-
+  const { activeTheme } = useTheme()
+  const theme = computed(() => readTheme(activeTheme.value))
   return { theme }
 }
