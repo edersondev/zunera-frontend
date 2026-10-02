@@ -3,6 +3,8 @@ import { computed, reactive, shallowRef } from 'vue'
 import { useRouter } from 'vue-router'
 import AuthFormAlert from './AuthFormAlert.vue'
 import PasswordRequirements from './PasswordRequirements.vue'
+import PasswordStrength from './PasswordStrength.vue'
+import { evaluatePasswordStrength } from '@/composables/usePasswordStrength'
 import { useSessionStore } from '@/stores/auth/sessionStore'
 import { useI18n } from 'vue-i18n'
 
@@ -17,6 +19,11 @@ const form = reactive({
   password: '',
   password_confirmation: '',
 })
+const passwordUserInputs = computed(() => [
+  ...form.name.trim().split(/\s+/).filter(Boolean),
+  form.email,
+  form.email.split('@')[0],
+])
 const rules = computed(() => ({
   name: [
     { required: true, message: t('auth.nameRequired'), trigger: 'blur' },
@@ -28,7 +35,19 @@ const rules = computed(() => ({
   ],
   password: [
     { required: true, message: t('auth.passwordRequired'), trigger: 'blur' },
-    { min: 15, message: t('auth.passwordMin'), trigger: 'blur' },
+    { min: 8, message: t('auth.passwordMin'), trigger: 'blur' },
+    { max: 64, message: t('auth.passwordMax'), trigger: 'blur' },
+    {
+      validator: (_rule, value, callback) => {
+        if (value.length < 8 || value.length > 64) {
+          callback()
+          return
+        }
+        const score = evaluatePasswordStrength(value, passwordUserInputs.value)
+        callback(score === null || score >= 3 ? undefined : new Error(t('auth.passwordWeak')))
+      },
+      trigger: 'blur',
+    },
   ],
   password_confirmation: [
     { required: true, message: t('auth.confirmPassword'), trigger: 'blur' },
@@ -84,6 +103,7 @@ async function submit() {
         show-password
       />
     </ElFormItem>
+    <PasswordStrength :password="form.password" :user-inputs="passwordUserInputs" />
     <PasswordRequirements />
     <ElFormItem :label="t('auth.confirmPassword')" prop="password_confirmation">
       <ElInput
