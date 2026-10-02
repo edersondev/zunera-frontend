@@ -5,16 +5,34 @@ function authPayload(response) {
 }
 
 export async function registerAccount(payload) {
-  return authPayload(
-    await apiRequest(
-      {
-        method: 'post',
-        url: '/api/v1/auth/register',
-        data: payload,
-      },
-      { csrf: true },
-    ),
+  const response = await apiRequest(
+    {
+      method: 'post',
+      url: '/api/v1/auth/register',
+      data: payload,
+    },
+    { csrf: true },
   )
+
+  return response.data
+}
+
+export async function confirmAccountActivation(payload) {
+  const response = await apiRequest(
+    { method: 'post', url: '/api/v1/auth/activation/confirm', data: payload },
+    { csrf: true },
+  )
+
+  return response.data
+}
+
+export async function resendAccountActivation(payload) {
+  const response = await apiRequest(
+    { method: 'post', url: '/api/v1/auth/activation/resend', data: payload },
+    { csrf: true },
+  )
+
+  return response.data
 }
 
 export async function signIn(payload) {

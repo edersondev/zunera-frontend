@@ -17,6 +17,12 @@ const router = createRouter({
       meta: { guestOnly: true, titleKey: 'auth.createAccount' },
     },
     {
+      path: '/activate-account',
+      name: 'activate-account',
+      component: () => import('@/views/auth/ActivateAccountView.vue'),
+      meta: { titleKey: 'auth.activateAccount' },
+    },
+    {
       path: '/login',
       name: 'sign-in',
       component: () => import('@/views/auth/SignInView.vue'),

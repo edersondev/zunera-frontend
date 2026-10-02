@@ -72,13 +72,13 @@ describe('RegisterForm', () => {
     wrapper.vm.form.password = 'SilverCloud2026!'
     wrapper.vm.form.password_confirmation = 'SilverCloud2026!'
 
-    await expect(wrapper.vm.submit()).rejects.toThrow()
+    await expect(wrapper.vm.submit()).rejects.toThrow('Escolha uma senha mais forte.')
     expect(register).not.toHaveBeenCalled()
 
     wrapper.vm.form.name = 'Ana da Silva'
     wrapper.vm.form.password = 'person@example.com2026!'
     wrapper.vm.form.password_confirmation = 'person@example.com2026!'
-    await expect(wrapper.vm.submit()).rejects.toThrow()
+    await expect(wrapper.vm.submit()).rejects.toThrow('Escolha uma senha mais forte.')
     expect(register).not.toHaveBeenCalled()
 
     wrapper.vm.form.password = 'correct horse battery staple'

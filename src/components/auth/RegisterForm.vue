@@ -1,6 +1,5 @@
 <script setup>
 import { computed, reactive, shallowRef } from 'vue'
-import { useRouter } from 'vue-router'
 import AuthFormAlert from './AuthFormAlert.vue'
 import PasswordRequirements from './PasswordRequirements.vue'
 import PasswordStrength from './PasswordStrength.vue'
@@ -8,7 +7,7 @@ import { evaluatePasswordStrength } from '@/composables/usePasswordStrength'
 import { useSessionStore } from '@/stores/auth/sessionStore'
 import { useI18n } from 'vue-i18n'
 
-const router = useRouter()
+const emit = defineEmits(['registered'])
 const sessionStore = useSessionStore()
 const { t } = useI18n()
 const formRef = shallowRef(null)
@@ -78,8 +77,12 @@ async function submit() {
 
   try {
     await sessionStore.register({ ...form })
-    await router.push({ name: 'dashboard' })
+    form.password = ''
+    form.password_confirmation = ''
+    emit('registered', form.email.trim())
   } catch (error) {
+    form.password = ''
+    form.password_confirmation = ''
     serverError.value = error
   }
 }

@@ -36,6 +36,10 @@ const alertMessage = computed(() => {
     return t('auth.invalidCredentials')
   }
 
+  if (serverError.value?.code === 'account_inactive') {
+    return t('auth.accountInactive')
+  }
+
   return serverError.value?.message ?? ''
 })
 
@@ -56,6 +60,11 @@ async function submit() {
 
 <template>
   <AuthFormAlert :message="alertMessage" :type="route.query.expired ? 'warning' : 'error'" />
+  <RouterLink
+    v-if="serverError?.code === 'account_inactive'"
+    class="auth-link activation-link"
+    :to="{ name: 'activate-account', query: { email: form.email } }"
+  >{{ t('auth.resendActivation') }}</RouterLink>
   <ElForm ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent="submit">
     <ElFormItem :label="t('common.email')" prop="email" :error="serverError?.errors?.email?.[0]">
       <ElInput v-model="form.email" name="email" autocomplete="email" />
@@ -76,6 +85,7 @@ async function submit() {
   <nav class="form-links" :aria-label="t('auth.accountOptions')">
     <RouterLink class="auth-link" :to="{ name: 'forgot-password' }">{{ t('auth.forgotPassword') }}</RouterLink>
     <RouterLink class="auth-link" :to="{ name: 'register' }">{{ t('auth.createAccount') }}</RouterLink>
+    <RouterLink class="auth-link" :to="{ name: 'activate-account' }">{{ t('auth.resendActivation') }}</RouterLink>
   </nav>
 </template>
 
@@ -87,10 +97,16 @@ async function submit() {
 
 .form-links {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 16px;
   margin-top: 20px;
   font-size: 14px;
   line-height: 20px;
+}
+
+.activation-link {
+  display: inline-block;
+  margin-bottom: 16px;
 }
 </style>

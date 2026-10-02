@@ -5,7 +5,7 @@ vi.mock('../httpClient', () => ({
 }))
 
 const { apiRequest } = await import('../httpClient')
-const { registerAccount } = await import('../authService')
+const { registerAccount, confirmAccountActivation, resendAccountActivation } = await import('../authService')
 
 describe('authService registration', () => {
   beforeEach(() => {
@@ -15,10 +15,8 @@ describe('authService registration', () => {
   it('posts registration through CSRF protected transport', async () => {
     apiRequest.mockResolvedValue({
       data: {
-        data: {
-          user: { id: 1, email: 'person@example.com' },
-          session: { idle_expires_at: '2026-08-30T10:00:00Z', absolute_expires_at: '2026-08-30T18:00:00Z' },
-        },
+        message: 'Check your email.',
+        activation_required: true,
       },
     })
 
@@ -29,8 +27,8 @@ describe('authService registration', () => {
     }
 
     await expect(registerAccount(payload)).resolves.toEqual({
-      user: { id: 1, email: 'person@example.com' },
-      session: { idle_expires_at: '2026-08-30T10:00:00Z', absolute_expires_at: '2026-08-30T18:00:00Z' },
+      message: 'Check your email.',
+      activation_required: true,
     })
     expect(apiRequest).toHaveBeenCalledWith(
       {
@@ -38,6 +36,22 @@ describe('authService registration', () => {
         url: '/api/v1/auth/register',
         data: payload,
       },
+      { csrf: true },
+    )
+  })
+
+  it('posts activation and resend through CSRF protected transport', async () => {
+    apiRequest.mockResolvedValue({ data: { message: 'Done.' } })
+
+    await confirmAccountActivation({ email: 'person@example.com', token: 'a'.repeat(64) })
+    await resendAccountActivation({ email: 'person@example.com' })
+
+    expect(apiRequest).toHaveBeenNthCalledWith(1,
+      { method: 'post', url: '/api/v1/auth/activation/confirm', data: { email: 'person@example.com', token: 'a'.repeat(64) } },
+      { csrf: true },
+    )
+    expect(apiRequest).toHaveBeenNthCalledWith(2,
+      { method: 'post', url: '/api/v1/auth/activation/resend', data: { email: 'person@example.com' } },
       { csrf: true },
     )
   })
