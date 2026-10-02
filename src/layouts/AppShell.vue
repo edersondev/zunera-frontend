@@ -93,6 +93,20 @@ async function signOut() {
   await sessionStore.logout()
   await router.push({ name: 'sign-in' })
 }
+
+async function onPasswordDialogClosed({ passwordChanged }) {
+  if (!passwordChanged) {
+    headerRef.value?.focusAccount()
+    return
+  }
+
+  try {
+    await sessionStore.logout()
+  } catch {
+    // The store clears local authentication even if the logout request fails.
+  }
+  await router.replace({ name: 'sign-in' })
+}
 </script>
 
 <template>
@@ -113,7 +127,7 @@ async function signOut() {
     />
     <ChangePasswordDialog
       v-model="passwordOpen"
-      @closed="headerRef?.focusAccount()"
+      @closed="onPasswordDialogClosed"
     />
     <div class="app-body">
       <aside class="desktop-navigation">
