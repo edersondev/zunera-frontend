@@ -3,6 +3,8 @@ import { computed, reactive, shallowRef } from 'vue'
 import { useRouter } from 'vue-router'
 import AuthFormAlert from './AuthFormAlert.vue'
 import PasswordRequirements from './PasswordRequirements.vue'
+import PasswordStrength from './PasswordStrength.vue'
+import { evaluatePasswordStrength } from '@/composables/usePasswordStrength'
 import RecoveryLinkState from './RecoveryLinkState.vue'
 import { useSessionStore } from '@/stores/auth/sessionStore'
 import { useI18n } from 'vue-i18n'
@@ -38,7 +40,19 @@ const rules = computed(() => ({
   token: [{ required: true, message: t('auth.recoveryTokenRequired'), trigger: 'blur' }],
   password: [
     { required: true, message: t('auth.newPasswordRequired'), trigger: 'blur' },
-    { min: 15, message: t('auth.passwordMin'), trigger: 'blur' },
+    { min: 8, message: t('auth.passwordMin'), trigger: 'blur' },
+    { max: 64, message: t('auth.passwordMax'), trigger: 'blur' },
+    {
+      validator: (_rule, value, callback) => {
+        if (value.length < 8 || value.length > 64) {
+          callback()
+          return
+        }
+        const score = evaluatePasswordStrength(value)
+        callback(score === null || score >= 3 ? undefined : new Error(t('auth.passwordWeak')))
+      },
+      trigger: 'blur',
+    },
   ],
   password_confirmation: [
     { required: true, message: t('auth.confirmNewPassword'), trigger: 'blur' },
@@ -100,6 +114,7 @@ async function submit() {
         show-password
       />
     </ElFormItem>
+    <PasswordStrength :password="form.password" />
     <PasswordRequirements />
     <ElFormItem :label="t('auth.confirmNewPassword')" prop="password_confirmation">
       <ElInput

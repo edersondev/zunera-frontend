@@ -43,6 +43,18 @@ const stubs = {
 }
 
 describe('RegisterForm', () => {
+  it('rejects a weak password and accepts a strong one in form validation', () => {
+    const wrapper = mount(RegisterForm, { global: { stubs } })
+    const validateStrength = wrapper.vm.rules.password[3].validator
+    const weak = vi.fn()
+    validateStrength(null, 'qwerty12345', weak)
+    expect(weak).toHaveBeenCalledWith(expect.any(Error))
+
+    const strong = vi.fn()
+    validateStrength(null, 'correct horse battery staple', strong)
+    expect(strong).toHaveBeenCalledWith(undefined)
+  })
+
   it('uses Element Plus top-label form and privacy-ready fields', () => {
     const wrapper = mount(RegisterForm, { global: { stubs } })
 
@@ -50,6 +62,6 @@ describe('RegisterForm', () => {
     expect(wrapper.text()).toContain('E-mail')
     expect(wrapper.text()).toContain('Senha')
     expect(wrapper.text()).toContain('Confirme a senha')
-    expect(wrapper.text()).toContain('Use de 15 a 64 caracteres')
+    expect(wrapper.text()).toContain('Use de 8 a 64 caracteres')
   })
 })

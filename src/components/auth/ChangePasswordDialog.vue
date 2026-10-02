@@ -3,6 +3,8 @@ import { Check, Close } from '@element-plus/icons-vue'
 import { computed, reactive, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PasswordRequirements from '@/components/auth/PasswordRequirements.vue'
+import PasswordStrength from '@/components/auth/PasswordStrength.vue'
+import { evaluatePasswordStrength } from '@/composables/usePasswordStrength'
 import { useSessionStore } from '@/stores/auth/sessionStore'
 
 const props = defineProps({ modelValue: { type: Boolean, default: false } })
@@ -22,7 +24,19 @@ const rules = computed(() => ({
   current_password: [{ required: true, message: t('profile.currentPasswordRequired'), trigger: 'blur' }],
   password: [
     { required: true, message: t('auth.newPasswordRequired'), trigger: 'blur' },
-    { min: 15, message: t('auth.passwordMin'), trigger: 'blur' },
+    { min: 8, message: t('auth.passwordMin'), trigger: 'blur' },
+    { max: 64, message: t('auth.passwordMax'), trigger: 'blur' },
+    {
+      validator: (_rule, value, callback) => {
+        if (value.length < 8 || value.length > 64) {
+          callback()
+          return
+        }
+        const score = evaluatePasswordStrength(value)
+        callback(score === null || score >= 3 ? undefined : new Error(t('auth.passwordWeak')))
+      },
+      trigger: 'blur',
+    },
   ],
   password_confirmation: [
     { required: true, message: t('auth.confirmNewPassword'), trigger: 'blur' },
@@ -92,7 +106,8 @@ async function savePassword() {
       <ElFormItem :label="t('profile.newPassword')" prop="password" :error="error?.errors?.password?.[0]">
         <ElInput v-model="form.password" name="password" type="password" autocomplete="new-password" show-password :disabled="busy" />
       </ElFormItem>
-      <PasswordRequirements compact />
+      <PasswordStrength :password="form.password" compact />
+    <PasswordRequirements compact />
       <ElFormItem :label="t('auth.confirmNewPassword')" prop="password_confirmation" :error="error?.errors?.password_confirmation?.[0]">
         <ElInput v-model="form.password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" show-password :disabled="busy" />
       </ElFormItem>
