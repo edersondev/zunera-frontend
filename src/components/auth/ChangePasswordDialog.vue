@@ -64,9 +64,11 @@ watch(() => props.modelValue, (open) => {
 })
 
 function onClosed() {
+  const passwordChanged = success.value
   error.value = null
   clearFields()
-  emit('closed')
+  success.value = false
+  emit('closed', { passwordChanged })
 }
 
 async function savePassword() {
