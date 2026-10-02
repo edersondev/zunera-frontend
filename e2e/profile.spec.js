@@ -75,6 +75,7 @@ test('account menu opens separate name and password dialogs without allowing ema
   await passwordDialog.getByLabel('Confirm new password').fill('new correct battery staple')
   await passwordDialog.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(passwordDialog.getByText('Password changed. Other devices were signed out.')).toBeVisible()
+  await expect(passwordDialog.getByRole('button', { name: 'Save', exact: true })).toBeDisabled()
   expect(state.passwordPayload).toEqual({
     current_password: 'old correct battery staple',
     password: 'new correct battery staple',

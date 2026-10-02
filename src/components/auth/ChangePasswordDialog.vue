@@ -72,7 +72,7 @@ function onClosed() {
 }
 
 async function savePassword() {
-  if (busy.value) return
+  if (busy.value || success.value) return
   error.value = null
   success.value = false
   const valid = await formRef.value?.validate().catch(() => false)
@@ -120,7 +120,7 @@ async function savePassword() {
       <ElButton type="danger" :icon="Close" :disabled="busy" @click="visible = false">
         {{ t('common.cancel') }}
       </ElButton>
-      <ElButton type="primary" :icon="Check" :loading="busy" @click="savePassword">
+      <ElButton type="primary" :icon="Check" :loading="busy" :disabled="success" @click="savePassword">
         {{ t('common.save') }}
       </ElButton>
     </template>
