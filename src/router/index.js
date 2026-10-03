@@ -17,6 +17,18 @@ const router = createRouter({
       meta: { guestOnly: true, titleKey: 'auth.createAccount' },
     },
     {
+      path: '/privacy',
+      name: 'privacy',
+      component: () => import('@/views/legal/PrivacyNoticeView.vue'),
+      meta: { titleKey: 'auth.privacyNotice' },
+    },
+    {
+      path: '/privacy-rights',
+      name: 'privacy-rights',
+      component: () => import('@/views/legal/PrivacyRightsView.vue'),
+      meta: { titleKey: 'auth.privacyRights' },
+    },
+    {
       path: '/activate-account',
       name: 'activate-account',
       component: () => import('@/views/auth/ActivateAccountView.vue'),
