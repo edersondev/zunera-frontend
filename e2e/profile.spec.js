@@ -56,7 +56,7 @@ test('account menu opens separate name and password dialogs without allowing ema
 
   await dialog.getByRole('textbox', { name: 'Full name' }).fill('Updated Name')
   await dialog.getByRole('button', { name: 'Save', exact: true }).click()
-  await expect(dialog.getByText('Name updated.')).toBeVisible()
+  await expect(page.locator('.el-message--success').getByText('Name updated.')).toBeVisible()
   await expect(page.locator('.account-menu')).toHaveAttribute('aria-label', 'Account menu for Updated Name')
   expect(state.profilePayload).toEqual({ name: 'Updated Name' })
 
@@ -74,7 +74,7 @@ test('account menu opens separate name and password dialogs without allowing ema
   await passwordDialog.getByLabel('New password', { exact: true }).fill('new correct battery staple')
   await passwordDialog.getByLabel('Confirm new password').fill('new correct battery staple')
   await passwordDialog.getByRole('button', { name: 'Save', exact: true }).click()
-  await expect(passwordDialog.getByText('Password changed. Other devices were signed out.')).toBeVisible()
+  await expect(page.locator('.el-message--success').getByText('Password changed. Other devices were signed out.')).toBeVisible()
   await expect(passwordDialog.getByRole('button', { name: 'Save', exact: true })).toBeDisabled()
   expect(state.passwordPayload).toEqual({
     current_password: 'old correct battery staple',
@@ -103,7 +103,7 @@ for (const { closeMethod, close } of [
     await dialog.getByLabel('New password', { exact: true }).fill('new correct battery staple')
     await dialog.getByLabel('Confirm new password').fill('new correct battery staple')
     await dialog.getByRole('button', { name: 'Save', exact: true }).click()
-    await expect(dialog.getByText('Password changed. Other devices were signed out.')).toBeVisible()
+    await expect(page.locator('.el-message--success').getByText('Password changed. Other devices were signed out.')).toBeVisible()
 
     await close(page, dialog)
 

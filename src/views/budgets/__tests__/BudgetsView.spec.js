@@ -13,9 +13,7 @@ vi.mock('@/stores/budgets/budgetStore', () => ({
   useBudgetStore: () => hoisted.store,
 }))
 
-vi.mock('element-plus', () => ({
-  ElMessage: { success: vi.fn(), error: vi.fn() },
-}))
+vi.mock('@/services/actionMessage', () => ({ showActionSuccess: vi.fn() }))
 
 const BudgetsView = (await import('../BudgetsView.vue')).default
 

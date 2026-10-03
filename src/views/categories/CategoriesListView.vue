@@ -6,6 +6,7 @@ import CategoryForm from '@/components/categories/CategoryForm.vue'
 import CategoryLifecycleDialog from '@/components/categories/CategoryLifecycleDialog.vue'
 import CategoryList from '@/components/categories/CategoryList.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import { showActionSuccess } from '@/services/actionMessage'
 import { useCategoryStore } from '@/stores/categories/categoryStore'
 import { useI18n } from 'vue-i18n'
 
@@ -16,12 +17,10 @@ const formRef = shallowRef(null)
 const createDialogVisible = shallowRef(false)
 const editDialogVisible = shallowRef(false)
 const editingCategory = shallowRef(null)
-const successMessage = shallowRef('')
 const lifecycle = reactive({ visible: false, action: 'archive', category: null })
 onMounted(() => store.fetchCategories('active').catch(() => {}))
 
 function openCreateDialog() {
-  successMessage.value = ''
   createDialogVisible.value = true
 }
 function openArchivedCategories() {
@@ -31,7 +30,6 @@ function closeCreateDialog() {
   if (!store.creating) createDialogVisible.value = false
 }
 function openEditDialog(category) {
-  successMessage.value = ''
   editingCategory.value = category
   editDialogVisible.value = true
 }
@@ -42,23 +40,21 @@ function closeEditDialog() {
   }
 }
 async function createCategory(payload) {
-  successMessage.value = ''
   try {
     await store.create(payload)
     formRef.value?.resetCreateForm?.()
     createDialogVisible.value = false
-    successMessage.value = t('categories.created')
+    showActionSuccess(t('categories.created'))
   } catch {
     // The store exposes request feedback.
   }
 }
 async function updateCategory(payload) {
   if (!editingCategory.value) return
-  successMessage.value = ''
   try {
     await store.update(editingCategory.value.id, payload)
     closeEditDialog()
-    successMessage.value = t('categories.saved')
+    showActionSuccess(t('categories.saved'))
   } catch {
     // The store exposes request feedback.
   }
@@ -72,7 +68,7 @@ async function confirmLifecycle() {
   try {
     await store.archive(lifecycle.category)
     lifecycle.visible = false
-    successMessage.value = t('categories.archivedSuccess')
+    showActionSuccess(t('categories.archivedSuccess'))
   } catch {
     // The store exposes request feedback.
   }
@@ -104,13 +100,6 @@ async function confirmLifecycle() {
         </ElButton>
       </template>
     </PageHeader>
-    <ElAlert
-      v-if="successMessage"
-      class="feedback"
-      :title="successMessage"
-      type="success"
-      show-icon
-    />
     <ElAlert
       v-if="store.error"
       class="feedback"

@@ -14,6 +14,7 @@ import GoalActions from '@/components/goals/GoalActions.vue'
 import GoalAmountDialog from '@/components/goals/GoalAmountDialog.vue'
 import GoalFormDialog from '@/components/goals/GoalFormDialog.vue'
 import { listFinancialAccounts } from '@/services/financialAccountService'
+import { showActionSuccess } from '@/services/actionMessage'
 import { useFinancialGoalStore } from '@/stores/goals/financialGoalStore'
 
 const props = defineProps({ goalId: { type: [String, Number], required: true } })
@@ -26,7 +27,6 @@ const amountOpen = shallowRef(false)
 const amountAction = shallowRef('allocate')
 const editOpen = shallowRef(false)
 const accounts = shallowRef([])
-const notice = shallowRef('')
 function load() { store.fetchGoal(props.goalId); store.fetchActivities(props.goalId) }
 watch(() => props.goalId, load)
 onMounted(() => { load(); listFinancialAccounts().then((items) => { accounts.value = items }).catch(() => { accounts.value = [] }) })
@@ -34,10 +34,10 @@ function openAmount(action) { store.clearMutationError(); amountAction.value = a
 function openEdit() { store.clearMutationError(); editOpen.value = true }
 async function submitAmount(amount) {
   const result = amountAction.value === 'allocate' ? await store.allocate(props.goalId, amount) : await store.withdraw(props.goalId, amount)
-  if (result.ok) { amountOpen.value = false; notice.value = t(amountAction.value === 'allocate' ? 'goals.allocate' : 'goals.withdraw') }
+  if (result.ok) { amountOpen.value = false; showActionSuccess(t(`goals.feedback.${amountAction.value}`)) }
 }
-async function saveEdit(payload) { const result = await store.update(props.goalId, payload); if (result.ok) { editOpen.value = false; notice.value = t('goals.save') } }
-async function transition(action) { const result = await store.transition(props.goalId, action); if (result.ok) notice.value = t(`goals.${action}`) }
+async function saveEdit(payload) { const result = await store.update(props.goalId, payload); if (result.ok) { editOpen.value = false; showActionSuccess(t('goals.feedback.updated')) } }
+async function transition(action) { const result = await store.transition(props.goalId, action); if (result.ok) showActionSuccess(t(`goals.feedback.${action}`)) }
 </script>
 
 <template>
@@ -47,7 +47,6 @@ async function transition(action) { const result = await store.transition(props.
     <ElSkeleton v-if="loading && !goal" :rows="5" animated />
     <template v-else-if="goal">
       <PageHeader :title="goal.name" :description="t('goals.description')"><template #title-meta><ElTag :type="goal.status === 'completed' ? 'success' : goal.status === 'archived' ? 'info' : undefined" effect="plain" size="small">{{ t(`goals.status.${goal.status}`) }}</ElTag></template></PageHeader>
-      <ElAlert v-if="notice" type="success" :title="notice" :closable="false" show-icon />
       <ElAlert v-if="mutationError" type="error" :title="mutationError.message" :closable="false" show-icon />
       <p v-if="goal.description" class="goal-description">{{ goal.description }}</p>
       <GoalProgressSummary :goal="goal" />

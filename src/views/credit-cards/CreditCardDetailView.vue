@@ -5,6 +5,7 @@ import { ArrowLeft, Plus } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import { showActionSuccess } from '@/services/actionMessage'
 import CreditCardCurrentStatementCard from '@/components/credit-cards/CreditCardCurrentStatementCard.vue'
 import CreditCardDetailOverview from '@/components/credit-cards/CreditCardDetailOverview.vue'
 import CreditCardPurchaseForm from '@/components/credit-cards/CreditCardPurchaseForm.vue'
@@ -27,7 +28,6 @@ const card = computed(() => store.card)
 const currentStatement = computed(() => card.value?.current_statement ?? null)
 const purchaseDialogVisible = shallowRef(false)
 const createdPurchase = shallowRef(null)
-const successMessage = shallowRef('')
 const correctionTarget = shallowRef(null)
 const creditEventTarget = shallowRef(null)
 const correctionVisible = shallowRef(false)
@@ -51,7 +51,6 @@ function goBack() {
 }
 
 function openPurchaseDialog() {
-  successMessage.value = ''
   createdPurchase.value = null
   store.dismissOverLimit()
   purchaseDialogVisible.value = true
@@ -62,7 +61,7 @@ async function submitPurchase(payload) {
   const outcome = await store.submitPurchase(cardId, payload)
   if (outcome.ok) {
     createdPurchase.value = outcome.purchase
-    successMessage.value = t('creditCards.purchase.created')
+    showActionSuccess(t('creditCards.purchase.created'))
     purchaseDialogVisible.value = false
     await refreshCardActivity(cardId)
   }
@@ -73,7 +72,7 @@ async function confirmOverLimit() {
   const outcome = await store.submitOverLimit()
   if (outcome.ok) {
     createdPurchase.value = outcome.purchase
-    successMessage.value = t('creditCards.purchase.created')
+    showActionSuccess(t('creditCards.purchase.created'))
     purchaseDialogVisible.value = false
     await refreshCardActivity(cardId)
   }
@@ -84,13 +83,11 @@ async function refreshCardActivity(cardId) {
 }
 
 function openCorrection(purchase) {
-  successMessage.value = ''
   correctionTarget.value = purchase
   correctionVisible.value = true
 }
 
 function openCreditEvent(purchase) {
-  successMessage.value = ''
   creditEventTarget.value = purchase
   creditEventVisible.value = true
 }
@@ -103,7 +100,7 @@ async function submitCorrection(payload) {
 
   correctionVisible.value = false
   correctionTarget.value = null
-  successMessage.value = t('creditCards.correction.saved')
+  showActionSuccess(t('creditCards.correction.saved'))
   await store.fetchPurchases(Number(props.cardId ?? route.params.card_id))
 }
 
@@ -115,7 +112,7 @@ async function submitCreditEvent(payload) {
 
   creditEventVisible.value = false
   creditEventTarget.value = null
-  successMessage.value = t('creditCards.creditEvent.saved')
+  showActionSuccess(t('creditCards.creditEvent.saved'))
   await store.fetchPurchases(Number(props.cardId ?? route.params.card_id))
 }
 
@@ -153,13 +150,6 @@ function openStatement(statement) {
       :closable="false"
       :title="store.error.message"
       data-test="credit-card-detail-error"
-    />
-    <ElAlert
-      v-if="successMessage"
-      type="success"
-      :closable="false"
-      :title="successMessage"
-      data-test="credit-card-purchase-success"
     />
     <ElSkeleton
       v-if="store.loading && !card"

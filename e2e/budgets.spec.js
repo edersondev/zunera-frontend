@@ -276,7 +276,7 @@ test('values, status, and month controls stay usable at 320px with keyboard only
   await mockBudgets(page)
   await page.setViewportSize({ width: 320, height: 720 })
 
-  await page.goto('/app/budgets')
+  await page.goto('/app/budgets?year=2026&month=9')
 
   await expect(page.getByRole('heading', { name: 'Orçamentos' })).toBeVisible()
   // Progress keeps a textual equivalent instead of relying on colour.

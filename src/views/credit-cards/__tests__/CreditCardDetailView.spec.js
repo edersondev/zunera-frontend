@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { reactive } from 'vue'
 import { i18n } from '@/i18n'
+import { showActionSuccess } from '@/services/actionMessage'
 
 const store = reactive({
   card: null,
@@ -24,6 +25,7 @@ const store = reactive({
 const routerPush = vi.fn()
 
 vi.mock('@/stores/credit-cards/creditCardStore', () => ({ useCreditCardStore: () => store }))
+vi.mock('@/services/actionMessage', () => ({ showActionSuccess: vi.fn() }))
 vi.mock('vue-router', () => ({
   useRoute: () => ({ params: { card_id: '7' } }),
   useRouter: () => ({ push: routerPush }),
@@ -102,7 +104,7 @@ describe('CreditCardDetailView', () => {
     expect(store.fetchStatements).toHaveBeenLastCalledWith(7)
     expect(store.fetchPurchases).toHaveBeenLastCalledWith(7)
     expect(wrapper.get('[data-test="purchase-dialog"]').attributes('data-visible')).toBe('false')
-    expect(wrapper.text()).toContain('Compra registrada.')
+    expect(showActionSuccess).toHaveBeenCalledWith('Compra registrada.')
   })
 
   it('keeps current-statement navigation on the existing statement-detail route', async () => {

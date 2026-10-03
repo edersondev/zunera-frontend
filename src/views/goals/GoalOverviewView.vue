@@ -11,6 +11,7 @@ import GoalsOverview from '@/components/goals/GoalsOverview.vue'
 import GoalAttentionSummary from '@/components/goals/GoalAttentionSummary.vue'
 import GoalFormDialog from '@/components/goals/GoalFormDialog.vue'
 import { listFinancialAccounts } from '@/services/financialAccountService'
+import { showActionSuccess } from '@/services/actionMessage'
 import { useFinancialGoalStore } from '@/stores/goals/financialGoalStore'
 
 const props = defineProps({ initialStatus: { type: String, default: 'active' } })
@@ -35,6 +36,7 @@ async function create(payload) {
   const outcome = await store.create(payload)
   if (outcome.ok) {
     formOpen.value = false
+    showActionSuccess(t('goals.feedback.created'))
     await router.push({ name: 'goal-detail', params: { goal_id: outcome.result.id } })
   }
 }

@@ -4,6 +4,7 @@ import { Money, RefreshLeft } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import { showActionSuccess } from '@/services/actionMessage'
 import TransferLifecycleConfirmDialog from '@/components/transfers/TransferLifecycleConfirmDialog.vue'
 import RemovedTransferCard from '@/components/transfers/RemovedTransferCard.vue'
 import { useTransferStore } from '@/stores/transfers/transferStore'
@@ -47,6 +48,7 @@ function requestRestore(transfer) {
 async function confirmRestore() {
   try {
     await store.restore(pending.value.id, {})
+    showActionSuccess(t('transfers.restored'))
   } catch {
     /* Feedback comes from the store error state. */
   } finally {
@@ -84,7 +86,7 @@ async function confirmRestore() {
     <ElAlert
       v-for="impact in store.lastBalanceImpact ?? []"
       :key="impact.id"
-      type="success"
+      type="info"
       show-icon
       :title="t('transfers.balanceUpdated', { impact: impact.name })"
       class="feedback"

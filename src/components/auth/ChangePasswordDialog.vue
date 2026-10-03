@@ -6,6 +6,7 @@ import PasswordRequirements from '@/components/auth/PasswordRequirements.vue'
 import PasswordStrength from '@/components/auth/PasswordStrength.vue'
 import { evaluatePasswordStrength } from '@/composables/usePasswordStrength'
 import { useSessionStore } from '@/stores/auth/sessionStore'
+import { showActionSuccess } from '@/services/actionMessage'
 
 const props = defineProps({ modelValue: { type: Boolean, default: false } })
 const emit = defineEmits(['update:modelValue', 'closed'])
@@ -82,6 +83,7 @@ async function savePassword() {
     await sessionStore.changeCurrentPassword({ ...form })
     clearFields()
     success.value = true
+    showActionSuccess(t('profile.passwordSaved'))
   } catch (requestError) {
     error.value = requestError
     clearFields()
@@ -114,7 +116,6 @@ async function savePassword() {
         <ElInput v-model="form.password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" show-password :disabled="busy" />
       </ElFormItem>
       <ElAlert v-if="error?.message" type="error" :title="error.message" :closable="false" show-icon />
-      <ElAlert v-if="success" type="success" :title="t('profile.passwordSaved')" :closable="false" show-icon />
     </ElForm>
     <template #footer>
       <ElButton type="danger" :icon="Close" :disabled="busy" @click="visible = false">

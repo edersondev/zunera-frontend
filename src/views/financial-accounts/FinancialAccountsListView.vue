@@ -7,6 +7,7 @@ import FinancialAccountLifecycleDialog from '@/components/financial-accounts/Fin
 import FinancialAccountList from '@/components/financial-accounts/FinancialAccountList.vue'
 import FinancialAccountSummary from '@/components/financial-accounts/FinancialAccountSummary.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import { showActionSuccess } from '@/services/actionMessage'
 import { useFinancialAccountStore } from '@/stores/financial-accounts/financialAccountStore'
 import { useI18n } from 'vue-i18n'
 
@@ -17,7 +18,6 @@ const formRef = shallowRef(null)
 const createDialogVisible = shallowRef(false)
 const editDialogVisible = shallowRef(false)
 const editingAccount = shallowRef(null)
-const successMessage = shallowRef('')
 const lifecycle = reactive({
   visible: false,
   action: 'archive',
@@ -29,22 +29,19 @@ onMounted(async () => {
 })
 
 async function createAccount(payload) {
-  successMessage.value = ''
-
   try {
     await store.create(payload)
     if (typeof formRef.value?.resetCreateForm === 'function') {
       formRef.value.resetCreateForm()
     }
     createDialogVisible.value = false
-    successMessage.value = t('financialAccounts.created')
+    showActionSuccess(t('financialAccounts.created'))
   } catch {
     // Store keeps the server error for the alert.
   }
 }
 
 function openCreateDialog() {
-  successMessage.value = ''
   createDialogVisible.value = true
 }
 
@@ -61,20 +58,17 @@ async function updateAccount(payload) {
     return
   }
 
-  successMessage.value = ''
-
   try {
     await store.update(editingAccount.value.id, payload)
     editDialogVisible.value = false
     editingAccount.value = null
-    successMessage.value = t('financialAccounts.saved')
+    showActionSuccess(t('financialAccounts.saved'))
   } catch {
     // Store keeps the server error for the alert.
   }
 }
 
 function openEditDialog(account) {
-  successMessage.value = ''
   editingAccount.value = account
   editDialogVisible.value = true
 }
@@ -91,12 +85,10 @@ function askArchive(account) {
 }
 
 async function confirmLifecycle() {
-  successMessage.value = ''
-
   try {
     await store.archive(lifecycle.account)
     lifecycle.visible = false
-    successMessage.value = t('financialAccounts.archivedSuccess')
+    showActionSuccess(t('financialAccounts.archivedSuccess'))
   } catch {
     // Store keeps the server error for the alert.
   }
@@ -129,13 +121,6 @@ async function confirmLifecycle() {
       </template>
     </PageHeader>
 
-    <ElAlert
-      v-if="successMessage"
-      class="feedback"
-      :title="successMessage"
-      type="success"
-      show-icon
-    />
     <ElAlert
       v-if="store.error"
       class="feedback"

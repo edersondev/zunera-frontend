@@ -7,6 +7,7 @@ import PasswordStrength from './PasswordStrength.vue'
 import { evaluatePasswordStrength } from '@/composables/usePasswordStrength'
 import RecoveryLinkState from './RecoveryLinkState.vue'
 import { useSessionStore } from '@/stores/auth/sessionStore'
+import { showActionSuccess } from '@/services/actionMessage'
 import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
@@ -86,6 +87,7 @@ async function submit() {
     form.password = ''
     form.password_confirmation = ''
     success.value = response.message
+    showActionSuccess(response.message)
   } catch (error) {
     form.password = ''
     form.password_confirmation = ''
@@ -97,7 +99,6 @@ async function submit() {
 <template>
   <RecoveryLinkState :code="serverError?.code" />
   <AuthFormAlert :message="alertMessage" />
-  <ElAlert v-if="success" class="success-alert" type="success" :title="success" show-icon />
   <ElForm ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent="submit">
     <ElFormItem :label="t('common.email')" prop="email" :error="serverError?.errors?.email?.[0]">
       <ElInput v-model="form.email" name="email" autocomplete="email" />
@@ -146,10 +147,6 @@ async function submit() {
 .auth-submit {
   width: 100%;
   min-height: 44px;
-}
-
-.success-alert {
-  margin-bottom: 16px;
 }
 
 .form-switch {

@@ -45,7 +45,7 @@ test('authenticated user creates and sees an active account', async ({ page }) =
   await createDialog.getByRole('button', { name: 'Create account' }).click()
 
   await expect(page.getByText('Financial account created.')).toBeVisible()
-  await expect(page.locator('.feedback')).toHaveCSS('background-color', 'rgb(21, 58, 39)')
+  await expect(page.locator('.el-message--success')).toContainText('Financial account created.')
   await expect(page.getByRole('button', { name: 'Conta principal' })).toBeVisible()
   await expect(page.getByText('R$20.32').first()).toBeVisible()
   expect(createPayload.initial_balance_centavos).toBe(2_032)

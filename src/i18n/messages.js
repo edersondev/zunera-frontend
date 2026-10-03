@@ -3,6 +3,7 @@ export const messages = {
     goals: {
       title: 'Metas financeiras', description: 'Separe dinheiro para seus planos sem alterar o saldo das contas.',
       new: 'Nova meta', edit: 'Editar meta', create: 'Criar meta', save: 'Salvar alterações',
+      feedback: { created: 'Meta criada.', updated: 'Meta atualizada.', allocate: 'Dinheiro separado para a meta.', withdraw: 'Dinheiro liberado da meta.', complete: 'Meta concluída.', reopen: 'Meta reaberta.', archive: 'Meta arquivada.', restore: 'Meta restaurada.' },
       name: 'Nome', target: 'Valor alvo', targetDate: 'Data alvo (opcional)', account: 'Conta vinculada (opcional)', notes: 'Notas (opcional)', initialAmount: 'Valor inicial separado (opcional)', amount: 'Valor', optional: 'Opcional', unlinked: 'Sem conta vinculada',
       progress: 'Progresso da meta', progressText: '{percentage}% · {allocated} de {target}', remaining: 'Faltam {amount}', excess: 'Acima do alvo em {amount}',
       allocationHelp: 'Separar dinheiro para uma meta não muda o saldo da conta nem cria uma despesa.', formRequired: 'Informe nome e valor alvo positivo.', amountRequired: 'Informe um valor positivo.',
@@ -202,6 +203,7 @@ export const messages = {
       history: 'Histórico de notificações', pending: 'Exige atenção',
       informational: 'Informativa', resolved: 'Resolvida', unreadItem: 'Não lida',
       markRead: 'Marcar como lida', markAllRead: 'Marcar todas como lidas', open: 'Abrir origem',
+      markedRead: 'Notificação marcada como lida.', allMarkedRead: 'Notificações marcadas como lidas.', preferenceSaved: 'Preferência de notificação salva.',
       settings: 'Configurações de notificações',
       summary: '{unread} não lidas · {attention} exigem atenção',
       group: { today: 'Hoje', yesterday: 'Ontem', earlier: 'Anteriores' },
@@ -816,6 +818,7 @@ export const messages = {
     },
     transactions: {
       title: 'Transações',
+      feedback: { created: 'Transação criada.', updated: 'Transação atualizada.', statusUpdated: 'Situação da transação atualizada.', removed: 'Transação removida.' },
       description: 'Registre e acompanhe suas receitas e despesas.',
       new: 'Nova transação',
       removed: 'Transações removidas',
@@ -909,6 +912,7 @@ export const messages = {
       },
     },
     transfers: {
+      feedback: { created: 'Transferência criada.', updated: 'Transferência atualizada.', statusUpdated: 'Situação da transferência atualizada.' },
       title: 'Transferências',
       description:
         'Registre movimentações entre suas próprias contas sem criar ou destruir dinheiro.',
@@ -1086,6 +1090,7 @@ export const messages = {
       pausedSuccess: 'Recorrência pausada.',
       resumedSuccess: 'Recorrência retomada.',
       endedSuccess: 'Recorrência encerrada.',
+      occurrenceRecorded: 'Ocorrência registrada.', occurrenceDismissed: 'Ocorrência dispensada.',
       occurrences: 'Ocorrências',
       occurrenceReview: 'Revisar ocorrência',
       occurrencesDescription:
@@ -1138,6 +1143,7 @@ export const messages = {
     goals: {
       title: 'Financial goals', description: 'Designate money for plans without changing account balances.',
       new: 'New goal', edit: 'Edit goal', create: 'Create goal', save: 'Save changes',
+      feedback: { created: 'Goal created.', updated: 'Goal updated.', allocate: 'Money designated to goal.', withdraw: 'Money released from goal.', complete: 'Goal completed.', reopen: 'Goal reopened.', archive: 'Goal archived.', restore: 'Goal restored.' },
       name: 'Name', target: 'Target amount', targetDate: 'Target date (optional)', account: 'Linked account (optional)', notes: 'Notes (optional)', initialAmount: 'Initial designation (optional)', amount: 'Amount', optional: 'Optional', unlinked: 'No linked account',
       progress: 'Goal progress', progressText: '{percentage}% · {allocated} of {target}', remaining: '{amount} remaining', excess: '{amount} above target',
       allocationHelp: 'Designating money for a goal does not change an account balance or create an expense.', formRequired: 'Enter a name and positive target.', amountRequired: 'Enter a positive amount.',
@@ -1336,6 +1342,7 @@ export const messages = {
       history: 'Notification history', pending: 'Requires attention',
       informational: 'Informational', resolved: 'Resolved', unreadItem: 'Unread',
       markRead: 'Mark as read', markAllRead: 'Mark all as read', open: 'Open source',
+      markedRead: 'Notification marked as read.', allMarkedRead: 'Notifications marked as read.', preferenceSaved: 'Notification preference saved.',
       settings: 'Notification settings',
       summary: '{unread} unread · {attention} require attention',
       group: { today: 'Today', yesterday: 'Yesterday', earlier: 'Earlier' },
@@ -1944,6 +1951,7 @@ export const messages = {
     },
     transactions: {
       title: 'Transactions',
+      feedback: { created: 'Transaction created.', updated: 'Transaction updated.', statusUpdated: 'Transaction status updated.', removed: 'Transaction removed.' },
       description: 'Record and track your income and expenses.',
       new: 'New transaction',
       removed: 'Removed transactions',
@@ -2037,6 +2045,7 @@ export const messages = {
       },
     },
     transfers: {
+      feedback: { created: 'Transfer created.', updated: 'Transfer updated.', statusUpdated: 'Transfer status updated.' },
       title: 'Transfers',
       description:
         'Record movements between your own accounts without creating or destroying money.',
@@ -2208,6 +2217,7 @@ export const messages = {
       pausedSuccess: 'Recurring transaction paused.',
       resumedSuccess: 'Recurring transaction resumed.',
       endedSuccess: 'Recurring transaction ended.',
+      occurrenceRecorded: 'Occurrence recorded.', occurrenceDismissed: 'Occurrence dismissed.',
       occurrences: 'Occurrences',
       occurrenceReview: 'Review occurrence',
       occurrencesDescription: 'Transactions generated by this rule, newest first.',

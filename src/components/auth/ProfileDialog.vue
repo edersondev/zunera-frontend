@@ -3,6 +3,7 @@ import { Check, Close } from '@element-plus/icons-vue'
 import { computed, reactive, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSessionStore } from '@/stores/auth/sessionStore'
+import { showActionSuccess } from '@/services/actionMessage'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -19,7 +20,6 @@ const nameFormRef = shallowRef(null)
 const nameForm = reactive({ name: '' })
 const nameBusy = shallowRef(false)
 const nameError = shallowRef(null)
-const nameSuccess = shallowRef(false)
 const nameRules = computed(() => ({
   name: [
     { required: true, message: t('auth.nameRequired'), trigger: 'blur' },
@@ -30,7 +30,6 @@ watch(() => props.modelValue, (open) => {
   if (!open) return
   nameForm.name = props.user?.name ?? ''
   nameError.value = null
-  nameSuccess.value = false
 })
 
 function onClosed() {
@@ -42,14 +41,13 @@ function onClosed() {
 async function saveName() {
   if (nameBusy.value) return
   nameError.value = null
-  nameSuccess.value = false
   const valid = await nameFormRef.value?.validate().catch(() => false)
   if (!valid) return
   nameBusy.value = true
   try {
     await sessionStore.updateProfileName(nameForm.name.trim())
     nameForm.name = sessionStore.user?.name ?? nameForm.name
-    nameSuccess.value = true
+    showActionSuccess(t('profile.nameSaved'))
   } catch (error) {
     nameError.value = error
   } finally {
@@ -76,7 +74,6 @@ async function saveName() {
         <ElInput :model-value="user?.email ?? ''" name="email" autocomplete="email" disabled />
       </ElFormItem>
       <ElAlert v-if="nameError?.message" type="error" :title="nameError.message" :closable="false" show-icon />
-      <ElAlert v-if="nameSuccess" type="success" :title="t('profile.nameSaved')" :closable="false" show-icon />
     </ElForm>
     <template #footer>
       <ElButton type="danger" :icon="Close" :disabled="nameBusy" @click="visible = false">

@@ -5,6 +5,7 @@ import { ArrowLeft, Close, RefreshLeft } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import { showActionSuccess } from '@/services/actionMessage'
 import { useCreditCardStore } from '@/stores/credit-cards/creditCardStore'
 import { cardIdentityLabel, formatBRL } from '@/utils/credit-cards/creditCardFormatters'
 
@@ -13,12 +14,9 @@ const { t } = useI18n()
 const router = useRouter()
 const restoreDialogVisible = shallowRef(false)
 const restoringCard = shallowRef(null)
-const successMessage = shallowRef('')
-
 onMounted(() => store.fetchCards('archived'))
 
 function openRestoreDialog(card) {
-  successMessage.value = ''
   restoringCard.value = card
   restoreDialogVisible.value = true
 }
@@ -38,7 +36,7 @@ async function confirmRestore() {
 
   restoreDialogVisible.value = false
   restoringCard.value = null
-  successMessage.value = t('creditCards.restoredSuccess')
+  showActionSuccess(t('creditCards.restoredSuccess'))
 }
 </script>
 
@@ -59,13 +57,6 @@ async function confirmRestore() {
       </template>
     </PageHeader>
 
-    <ElAlert
-      v-if="successMessage"
-      class="!mb-4"
-      type="success"
-      :closable="false"
-      :title="successMessage"
-    />
     <ElAlert
       v-if="store.error"
       class="!mb-4"

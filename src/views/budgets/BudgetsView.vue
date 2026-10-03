@@ -1,6 +1,5 @@
 <script setup>
 import { computed, shallowRef, watch } from 'vue'
-import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import BudgetEmptyState from '@/components/budgets/BudgetEmptyState.vue'
@@ -9,6 +8,7 @@ import BudgetPlanList from '@/components/budgets/BudgetPlanList.vue'
 import BudgetSummary from '@/components/budgets/BudgetSummary.vue'
 import CopyBudgetDialog from '@/components/budgets/CopyBudgetDialog.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import { showActionSuccess } from '@/services/actionMessage'
 import MonthNavigator from '@/components/common/MonthNavigator.vue'
 import RemoveBudgetPlanDialog from '@/components/budgets/RemoveBudgetPlanDialog.vue'
 import { useBudgetStore } from '@/stores/budgets/budgetStore'
@@ -26,6 +26,9 @@ const copyDialogOpen = shallowRef(false)
 const copySource = shallowRef(null)
 
 const fieldErrors = computed(() => store.mutationError?.errors ?? {})
+const mutationMessage = computed(() => store.mutationError?.code === 'budget_plan_conflict'
+  ? t('budgets.errors.planConflict')
+  : '')
 const isLoading = computed(() => store.loading)
 const hasBudget = computed(() => store.hasBudget)
 const hasPlans = computed(() => store.plans.length > 0)
@@ -84,7 +87,7 @@ async function submitPlan(payload) {
 
   planFormOpen.value = false
   editingPlan.value = null
-  ElMessage.success(t(wasEditing ? 'budgets.messages.planUpdated' : 'budgets.messages.planCreated'))
+  showActionSuccess(t(wasEditing ? 'budgets.messages.planUpdated' : 'budgets.messages.planCreated'))
 }
 
 async function confirmRemove(plan) {
@@ -94,7 +97,7 @@ async function confirmRemove(plan) {
 
   removeDialogOpen.value = false
   removingPlan.value = null
-  ElMessage.success(t('budgets.messages.planRemoved'))
+  showActionSuccess(t('budgets.messages.planRemoved'))
 }
 
 async function confirmCopy(destination) {
@@ -104,7 +107,7 @@ async function confirmCopy(destination) {
   if (result === null) return
 
   copyDialogOpen.value = false
-  ElMessage.success(t('budgets.messages.copied'))
+  showActionSuccess(t('budgets.messages.copied'))
   await reload()
 }
 
@@ -113,19 +116,8 @@ async function createMonth() {
 
   if (result === null) return
 
-  ElMessage.success(t('budgets.messages.created'))
+  showActionSuccess(t('budgets.messages.created'))
 }
-
-watch(
-  () => store.mutationError,
-  (error) => {
-    if (!error) return
-
-    if (error.code === 'budget_plan_conflict') {
-      ElMessage.error(t('budgets.errors.planConflict'))
-    }
-  },
-)
 
 watch(
   () => [route.query.year, route.query.month],
@@ -205,6 +197,7 @@ watch(
       :categories="store.availableExpenseCategories"
       :submitting="store.submitting"
       :field-errors="fieldErrors"
+      :error="mutationMessage"
       @submit="submitPlan"
     />
     <RemoveBudgetPlanDialog

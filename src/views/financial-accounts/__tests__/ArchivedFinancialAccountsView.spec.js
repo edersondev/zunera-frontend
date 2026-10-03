@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import ElementPlus from 'element-plus'
 import ArchivedFinancialAccountsView from '../ArchivedFinancialAccountsView.vue'
+import { showActionSuccess } from '@/services/actionMessage'
 
 const store = vi.hoisted(() => ({
   accounts: [],
@@ -25,6 +26,7 @@ const routerPush = vi.hoisted(() => vi.fn())
 vi.mock('@/stores/financial-accounts/financialAccountStore', () => ({
   useFinancialAccountStore: () => store,
 }))
+vi.mock('@/services/actionMessage', () => ({ showActionSuccess: vi.fn() }))
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: routerPush }),
 }))
@@ -61,7 +63,7 @@ describe('ArchivedFinancialAccountsView', () => {
     await flushPromises()
 
     expect(store.restore).toHaveBeenCalledWith(archived)
-    expect(wrapper.text()).toContain('Conta financeira restaurada.')
+    expect(showActionSuccess).toHaveBeenCalledWith('Conta financeira restaurada.')
   })
 })
 

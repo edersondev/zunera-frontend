@@ -8,6 +8,7 @@ import NotificationFilterBar from '@/components/notifications/NotificationFilter
 import NotificationList from '@/components/notifications/NotificationList.vue'
 import NotificationPreferences from '@/components/notifications/NotificationPreferences.vue'
 import { notificationDestination } from '@/services/notificationDestination'
+import { showActionSuccess } from '@/services/actionMessage'
 import { useNotificationStore } from '@/stores/notifications/notificationStore'
 
 const store = useNotificationStore()
@@ -31,7 +32,7 @@ async function restoreSettingsFocus() {
 async function markRead(id) {
   actionError.value = ''
   try {
-    await store.markRead(id)
+    if (await store.markRead(id)) showActionSuccess(t('notifications.markedRead'))
   } catch {
     actionError.value = t('notifications.actionError')
   }
@@ -40,7 +41,7 @@ async function markRead(id) {
 async function markAllRead() {
   actionError.value = ''
   try {
-    await store.markAllRead()
+    if (await store.markAllRead()) showActionSuccess(t('notifications.allMarkedRead'))
   } catch {
     actionError.value = t('notifications.actionError')
   }
@@ -57,6 +58,10 @@ async function open(id) {
   } catch {
     actionError.value = t('notifications.actionError')
   }
+}
+
+async function updatePreference(category, enabled) {
+  if (await store.setPreference(category, enabled)) showActionSuccess(t('notifications.preferenceSaved'))
 }
 </script>
 
@@ -84,7 +89,7 @@ async function open(id) {
       <NotificationPreferences
         :preferences="store.preferences" :loaded="store.preferencesLoaded" :loading="store.preferencesLoading"
         :updating-category="store.updatingCategory" :error="Boolean(store.preferencesError)"
-        @change="store.setPreference" @retry="store.loadPreferences"
+        @change="updatePreference" @retry="store.loadPreferences"
       />
     </ElDrawer>
   </div>

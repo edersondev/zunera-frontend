@@ -5,6 +5,7 @@ import { ArrowLeft, Plus } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import { showActionSuccess } from '@/services/actionMessage'
 import CreditCardStatementBreakdown from '@/components/credit-cards/CreditCardStatementBreakdown.vue'
 import CreditCardStatementCreditEvents from '@/components/credit-cards/CreditCardStatementCreditEvents.vue'
 import CreditCardCorrectionDialog from '@/components/credit-cards/CreditCardCorrectionDialog.vue'
@@ -25,7 +26,6 @@ const router = useRouter()
 const statement = computed(() => store.statement)
 const paymentDialogVisible = shallowRef(false)
 const editingPayment = shallowRef(null)
-const successMessage = shallowRef('')
 const actionMessage = shallowRef('')
 const correctionTarget = shallowRef(null)
 const creditEventTarget = shallowRef(null)
@@ -77,7 +77,6 @@ function goBack() {
 }
 
 function openPaymentDialog(payment = null) {
-  successMessage.value = ''
   editingPayment.value = payment
   paymentDialogVisible.value = true
 }
@@ -90,23 +89,21 @@ async function submitPayment(payload) {
 
   paymentDialogVisible.value = false
   editingPayment.value = null
-  successMessage.value = t('creditCards.payment.saved')
+  showActionSuccess(t('creditCards.payment.saved'))
 }
 
 async function removePayment(payment) {
   const outcome = await store.removeStatementPayment(payment.id)
-  if (outcome.ok) successMessage.value = t('creditCards.payment.removed')
+  if (outcome.ok) showActionSuccess(t('creditCards.payment.removed'))
 }
 
 async function restorePayment(payment) {
   const outcome = await store.restoreStatementPayment(payment.id)
-  if (outcome.ok) successMessage.value = t('creditCards.payment.restored')
+  if (outcome.ok) showActionSuccess(t('creditCards.payment.restored'))
 }
 
 async function openPurchaseAction(installment, action) {
   if (loadingPurchaseId.value !== null || store.submitting || !installment.purchase_id) return
-
-  successMessage.value = ''
   actionMessage.value = ''
   store.dismissMutationError()
   loadingPurchaseId.value = installment.purchase_id
@@ -139,7 +136,7 @@ async function submitCorrection(payload) {
 
   correctionVisible.value = false
   correctionTarget.value = null
-  successMessage.value = t('creditCards.correction.saved')
+  showActionSuccess(t('creditCards.correction.saved'))
   await store.fetchStatement(Number(props.statementId ?? route.params.statement_id))
 }
 
@@ -151,7 +148,7 @@ async function submitCreditEvent(payload) {
 
   creditEventVisible.value = false
   creditEventTarget.value = null
-  successMessage.value = t('creditCards.creditEvent.saved')
+  showActionSuccess(t('creditCards.creditEvent.saved'))
   await store.fetchStatement(Number(props.statementId ?? route.params.statement_id))
 }
 </script>
@@ -181,13 +178,6 @@ async function submitCreditEvent(payload) {
       :closable="false"
       :title="store.error.message"
       data-test="credit-card-statement-error"
-    />
-    <ElAlert
-      v-if="successMessage"
-      type="success"
-      :closable="false"
-      :title="successMessage"
-      data-test="credit-card-payment-success"
     />
     <ElAlert
       v-if="actionMessage"

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { i18n } from '@/i18n'
 import ArchivedCreditCardsView from '../ArchivedCreditCardsView.vue'
+import { showActionSuccess } from '@/services/actionMessage'
 
 const store = vi.hoisted(() => ({
   archivedCards: [],
@@ -17,6 +18,7 @@ const routerPush = vi.hoisted(() => vi.fn())
 vi.mock('@/stores/credit-cards/creditCardStore', () => ({
   useCreditCardStore: () => store,
 }))
+vi.mock('@/services/actionMessage', () => ({ showActionSuccess: vi.fn() }))
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: routerPush }),
 }))
@@ -57,7 +59,7 @@ describe('ArchivedCreditCardsView', () => {
     await flushPromises()
 
     expect(store.restoreCard).toHaveBeenCalledWith(7)
-    expect(wrapper.text()).toContain('Cartão restaurado.')
+    expect(showActionSuccess).toHaveBeenCalledWith('Cartão restaurado.')
   })
 })
 

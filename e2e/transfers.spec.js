@@ -619,6 +619,7 @@ test('owner filters and searches owned transfers and clears the criteria', async
 })
 
 test('owner corrects, removes, and restores a transfer with an archived association', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-09-15T12:00:00-03:00'))
   const archived = account({ id: 4, name: 'Conta encerrada', status: 'archived', balance: 0 })
   const current = account({ id: 1, name: 'Conta corrente', balance: 500_000 })
   const savings = account({ id: 2, name: 'Poupança', balance: 0 })
@@ -683,6 +684,7 @@ test('owner corrects, removes, and restores a transfer with an archived associat
 })
 
 test('mixed history labels a transfer beside income and expense without changing totals', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-09-15T12:00:00-03:00'))
   const current = account({ id: 1, name: 'Conta corrente', balance: 900_000 })
   const savings = account({ id: 2, name: 'Poupança', balance: 0 })
   const incomeCategory = { id: 3, name: 'Salário', classification: 'income' }

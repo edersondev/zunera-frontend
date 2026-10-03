@@ -19,6 +19,7 @@ const ElForm = defineComponent({
 })
 
 const stubs = {
+  ElAlert: { props: ['title', 'type'], template: '<div role="alert" :data-type="type">{{ title }}</div>' },
   ElDialog: {
     name: 'ElDialog',
     props: ['modelValue', 'title'],
@@ -94,6 +95,13 @@ describe('BudgetPlanFormDialog', () => {
     })
 
     expect(wrapper.text()).toContain('Informe um valor entre')
+  })
+
+  it('shows an action conflict inside the open form', () => {
+    const wrapper = mountDialog({ error: 'A plan already exists for this category.' })
+
+    expect(wrapper.get('[role="alert"]').text()).toBe('A plan already exists for this category.')
+    expect(wrapper.get('[role="alert"]').attributes('data-type')).toBe('error')
   })
 
   it('ignores a second submission while the first one is still in flight', async () => {

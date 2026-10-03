@@ -4,6 +4,7 @@ import { Delete, Plus, Refresh } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import { showActionSuccess } from '@/services/actionMessage'
 import TransactionFormDialog from '@/components/transactions/TransactionFormDialog.vue'
 import TransferFormDialog from '@/components/transfers/TransferFormDialog.vue'
 import TransferFilterBar from '@/components/transfers/TransferFilterBar.vue'
@@ -94,8 +95,10 @@ async function reload() {
 
 async function save(payload) {
   try {
+    const wasEditing = Boolean(editing.value)
     if (editing.value) await store.update(editing.value.id, payload)
     else await store.create(payload)
+    showActionSuccess(t(`transfers.feedback.${wasEditing ? 'updated' : 'created'}`))
     dialog.value = false
     editing.value = null
   } catch {
@@ -107,6 +110,7 @@ async function saveCreation({ kind, payload }) {
   try {
     if (kind === 'transfer') await store.create(payload)
     else await transactionStore.create(payload)
+    showActionSuccess(t(`${kind === 'transfer' ? 'transfers' : 'transactions'}.feedback.created`))
     creationDialog.value = false
   } catch {
     /* Feedback comes from the relevant store error state. */
@@ -147,6 +151,7 @@ function requestLifecycle(transfer, action) {
 async function updateStatus(transfer, status) {
   try {
     await store.update(transfer.id, { status })
+    showActionSuccess(t('transfers.feedback.statusUpdated'))
   } catch {
     /* Feedback comes from the store error state. */
   }
@@ -156,6 +161,7 @@ async function confirmLifecycle() {
   try {
     if (confirmAction.value === 'restore') await store.restore(pending.value.id, {})
     else await store.remove(pending.value.id)
+    showActionSuccess(t(confirmAction.value === 'restore' ? 'transfers.restored' : 'transfers.removedSuccess'))
     detailOpen.value = false
   } catch {
     /* Feedback comes from the store error state. */
@@ -242,7 +248,7 @@ const clearedFilters = {
     <ElAlert
       v-for="impact in store.lastBalanceImpact ?? []"
       :key="impact.id"
-      type="success"
+      type="info"
       show-icon
       :title="t('transfers.balanceUpdated', { impact: impactMessage(impact) })"
       class="feedback"

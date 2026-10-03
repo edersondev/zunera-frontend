@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, RouterLinkStub } from '@vue/test-utils'
 import ActivationPanel from '../ActivationPanel.vue'
 import ResendActivationForm from '../ResendActivationForm.vue'
+import { showActionSuccess } from '@/services/actionMessage'
 
 const { confirmAccountActivation, resendAccountActivation, replace } = vi.hoisted(() => ({
   confirmAccountActivation: vi.fn(),
@@ -10,6 +11,7 @@ const { confirmAccountActivation, resendAccountActivation, replace } = vi.hoiste
 }))
 
 vi.mock('@/services/authService', () => ({ confirmAccountActivation, resendAccountActivation }))
+vi.mock('@/services/actionMessage', () => ({ showActionSuccess: vi.fn() }))
 vi.mock('vue-router', () => ({ useRouter: () => ({ replace }) }))
 
 const stubs = {
@@ -66,6 +68,6 @@ describe('account activation UI', () => {
 
     await wrapper.vm.submit()
     expect(resendAccountActivation).toHaveBeenCalledWith({ email: 'person@example.com' })
-    expect(wrapper.text()).toContain('Se existir uma conta inativa')
+    expect(showActionSuccess).toHaveBeenCalledWith(expect.stringContaining('Se existir uma conta inativa'))
   })
 })

@@ -1,17 +1,17 @@
 <script setup>
-import { onMounted, reactive, shallowRef } from 'vue'
+import { onMounted, reactive } from 'vue'
 import { Wallet } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import FinancialAccountLifecycleDialog from '@/components/financial-accounts/FinancialAccountLifecycleDialog.vue'
 import FinancialAccountList from '@/components/financial-accounts/FinancialAccountList.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import { showActionSuccess } from '@/services/actionMessage'
 import { useFinancialAccountStore } from '@/stores/financial-accounts/financialAccountStore'
 import { useI18n } from 'vue-i18n'
 
 const store = useFinancialAccountStore()
 const { t } = useI18n()
 const router = useRouter()
-const successMessage = shallowRef('')
 const lifecycle = reactive({
   visible: false,
   action: 'restore',
@@ -32,12 +32,10 @@ function openFinancialAccounts() {
 }
 
 async function confirmRestore() {
-  successMessage.value = ''
-
   try {
     await store.restore(lifecycle.account)
     lifecycle.visible = false
-    successMessage.value = t('financialAccounts.restored')
+    showActionSuccess(t('financialAccounts.restored'))
   } catch {
     // Store keeps the server error for the alert.
   }
@@ -57,13 +55,6 @@ async function confirmRestore() {
       </template>
     </PageHeader>
 
-    <ElAlert
-      v-if="successMessage"
-      class="feedback"
-      :title="successMessage"
-      type="success"
-      show-icon
-    />
     <ElAlert
       v-if="store.error"
       class="feedback"

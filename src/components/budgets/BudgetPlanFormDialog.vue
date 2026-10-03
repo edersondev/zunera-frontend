@@ -10,6 +10,7 @@ const props = defineProps({
   categories: { type: Array, default: () => [] },
   submitting: { type: Boolean, default: false },
   fieldErrors: { type: Object, default: () => ({}) },
+  error: { type: String, default: '' },
 })
 const emit = defineEmits(['update:modelValue', 'submit'])
 const { t } = useI18n()
@@ -118,6 +119,7 @@ async function submit() {
     :close-on-click-modal="!props.submitting"
     @update:model-value="emit('update:modelValue', $event)"
   >
+    <ElAlert v-if="props.error" type="error" :title="props.error" :closable="false" show-icon />
     <ElForm ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent>
       <ElFormItem
         :label="t('budgets.form.category')"

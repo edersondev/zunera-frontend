@@ -3,6 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import ElementPlus from 'element-plus'
 import RemovedTransactionsView from '../RemovedTransactionsView.vue'
 import { i18n } from '@/i18n'
+import { showActionSuccess } from '@/services/actionMessage'
 
 const store = vi.hoisted(() => ({
   items: [],
@@ -17,6 +18,7 @@ const routerPush = vi.hoisted(() => vi.fn())
 vi.mock('@/stores/transactions/transactionStore', () => ({
   useTransactionStore: () => store,
 }))
+vi.mock('@/services/actionMessage', () => ({ showActionSuccess: vi.fn() }))
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: routerPush }),
 }))
@@ -107,9 +109,8 @@ describe('RemovedTransactionsView', () => {
     await flushPromises()
 
     expect(store.restoreHistoryEntry).toHaveBeenCalledWith(expect.objectContaining({ id: 4 }), {})
-    expect(wrapper.get('[data-test="removed-feedback"]').text()).toContain(
-      'Transação restaurada.',
-    )
+    expect(showActionSuccess).toHaveBeenCalledWith('Transação restaurada.')
+    expect(wrapper.find('[data-test="restore-error"]').exists()).toBe(false)
   })
 
   it('reports a rejected restore', async () => {
@@ -128,7 +129,8 @@ describe('RemovedTransactionsView', () => {
 
     await wrapper.get('[data-test="restore-transaction"]').trigger('click')
     await flushPromises()
-    expect(wrapper.get('[data-test="removed-feedback"]').text()).toContain('Restore rejected.')
+    expect(wrapper.get('[data-test="restore-error"]').text()).toContain('Restore rejected.')
+    expect(showActionSuccess).not.toHaveBeenCalled()
   })
 
   it('restores a removed transfer with its transfer lifecycle action', async () => {
@@ -150,7 +152,7 @@ describe('RemovedTransactionsView', () => {
     await flushPromises()
 
     expect(store.restoreHistoryEntry).toHaveBeenCalledWith(expect.objectContaining({ id: 9, movement_kind: 'transfer' }), {})
-    expect(wrapper.get('[data-test="removed-feedback"]').text()).toContain('Transferência restaurada.')
+    expect(showActionSuccess).toHaveBeenCalledWith('Transferência restaurada.')
   })
 
   it('shows the empty state when no transaction was removed', async () => {

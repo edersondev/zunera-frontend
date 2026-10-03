@@ -8,6 +8,7 @@ import CreditCardForm from '@/components/credit-cards/CreditCardForm.vue'
 import CreditCardManagementCard from '@/components/credit-cards/CreditCardManagementCard.vue'
 import CreditCardsOverview from '@/components/credit-cards/CreditCardsOverview.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import { showActionSuccess } from '@/services/actionMessage'
 import { useCreditCardStore } from '@/stores/credit-cards/creditCardStore'
 
 const store = useCreditCardStore()
@@ -17,18 +18,15 @@ const formRef = shallowRef(null)
 const createDialogVisible = shallowRef(false)
 const editDialogVisible = shallowRef(false)
 const editingCard = shallowRef(null)
-const successMessage = shallowRef('')
 const lifecycle = reactive({ visible: false, card: null })
 
 onMounted(() => store.fetchCards('active'))
 
 function openCreateDialog() {
-  successMessage.value = ''
   createDialogVisible.value = true
 }
 
 function openEditDialog(card) {
-  successMessage.value = ''
   editingCard.value = card
   editDialogVisible.value = true
 }
@@ -47,7 +45,7 @@ async function createCard(payload) {
 
   formRef.value?.resetCreateForm?.()
   createDialogVisible.value = false
-  successMessage.value = t('creditCards.created')
+  showActionSuccess(t('creditCards.created'))
 }
 
 async function updateCard(payload) {
@@ -58,11 +56,10 @@ async function updateCard(payload) {
 
   editDialogVisible.value = false
   editingCard.value = null
-  successMessage.value = t('creditCards.saved')
+  showActionSuccess(t('creditCards.saved'))
 }
 
 function openLifecycle(card) {
-  successMessage.value = ''
   lifecycle.card = card
   lifecycle.visible = true
 }
@@ -75,7 +72,7 @@ async function confirmArchive() {
 
   lifecycle.visible = false
   lifecycle.card = null
-  successMessage.value = t('creditCards.archivedSuccess')
+  showActionSuccess(t('creditCards.archivedSuccess'))
 }
 </script>
 
@@ -102,14 +99,6 @@ async function confirmArchive() {
       </template>
     </PageHeader>
 
-    <ElAlert
-      v-if="successMessage"
-      type="success"
-      :closable="false"
-      :title="successMessage"
-      class="!mb-4"
-      data-test="credit-cards-success"
-    />
     <ElAlert
       v-if="store.error"
       type="error"

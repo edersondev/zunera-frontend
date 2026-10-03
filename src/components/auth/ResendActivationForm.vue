@@ -2,6 +2,7 @@
 import { computed, reactive, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { resendAccountActivation } from '@/services/authService'
+import { showActionSuccess } from '@/services/actionMessage'
 import AuthFormAlert from './AuthFormAlert.vue'
 
 const props = defineProps({
@@ -12,7 +13,6 @@ const { t } = useI18n()
 const formRef = shallowRef(null)
 const loading = shallowRef(false)
 const serverError = shallowRef(null)
-const sent = shallowRef(false)
 const form = reactive({ email: props.initialEmail })
 const rules = computed(() => ({
   email: [
@@ -23,13 +23,12 @@ const rules = computed(() => ({
 
 async function submit() {
   serverError.value = null
-  sent.value = false
   await formRef.value?.validate()
   loading.value = true
 
   try {
     await resendAccountActivation({ email: form.email })
-    sent.value = true
+    showActionSuccess(t('auth.activationResent'))
   } catch (error) {
     serverError.value = error
   } finally {
@@ -41,7 +40,6 @@ async function submit() {
 <template>
   <section class="resend-section" :aria-label="t('auth.resendActivation')">
     <p class="resend-hint">{{ t('auth.resendHint') }}</p>
-    <AuthFormAlert v-if="sent" :message="t('auth.activationResent')" type="success" />
     <AuthFormAlert :message="serverError?.message" />
     <ElForm ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent="submit">
       <ElFormItem :label="t('common.email')" prop="email" :error="serverError?.errors?.email?.[0]">

@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import MonthNavigator from '@/components/common/MonthNavigator.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import { showActionSuccess } from '@/services/actionMessage'
 import TransactionDetailDrawer from '@/components/transactions/TransactionDetailDrawer.vue'
 import TransactionFilterBar from '@/components/transactions/TransactionFilterBar.vue'
 import TransactionFinancialSummary from '@/components/transactions/TransactionFinancialSummary.vue'
@@ -175,15 +176,20 @@ watch(
 
 async function save({ kind, payload }) {
   try {
+    const wasEditing = kind === 'transfer' ? Boolean(editingTransfer.value) : Boolean(editing.value)
     if (kind === 'transfer') {
       if (editingTransfer.value) await transferStore.update(editingTransfer.value.id, payload)
       else await transferStore.create(payload)
-      await store.fetch()
-    } else if (editing.value) await store.update(editing.value.id, payload)
-    else await store.create(payload)
+      showActionSuccess(t(`transfers.feedback.${wasEditing ? 'updated' : 'created'}`))
+    } else {
+      if (editing.value) await store.update(editing.value.id, payload)
+      else await store.create(payload)
+      showActionSuccess(t(`transactions.feedback.${wasEditing ? 'updated' : 'created'}`))
+    }
     dialog.value = false
     editing.value = null
     editingTransfer.value = null
+    if (kind === 'transfer') await store.fetch()
     loadSummary(store.filters)
   } catch {
     /* Feedback comes from store error state. */
@@ -204,6 +210,7 @@ async function editTransfer(transfer) {
 async function updateTransferStatus(transfer, status) {
   try {
     await transferStore.update(transfer.id, { status })
+    showActionSuccess(t('transfers.feedback.statusUpdated'))
     await store.fetch()
     loadSummary(store.filters)
   } catch {
@@ -219,6 +226,7 @@ function requestTransferRemove(transfer) {
 async function removeTransfer() {
   try {
     await transferStore.remove(removingTransfer.value.id)
+    showActionSuccess(t('transfers.removedSuccess'))
     await store.fetch()
     loadSummary(store.filters)
   } catch {
@@ -255,6 +263,7 @@ function requestRemove(transaction) {
 async function updateStatus(transaction, status) {
   try {
     await store.update(transaction.id, { status })
+    showActionSuccess(t('transactions.feedback.statusUpdated'))
     loadSummary(store.filters)
   } catch {
     /* Feedback comes from store error state. */
@@ -264,6 +273,7 @@ async function updateStatus(transaction, status) {
 async function remove() {
   try {
     await store.remove(removingTransaction.value.id)
+    showActionSuccess(t('transactions.feedback.removed'))
     detailOpen.value = false
     loadSummary(store.filters)
   } catch {
@@ -401,7 +411,7 @@ function updateDialog(visible) {
     <ElAlert
       v-for="impact in store.lastBalanceImpact ?? []"
       :key="impact.id"
-      type="success"
+      type="info"
       show-icon
       :title="t('transactions.balanceUpdated', { impact: impactMessage(impact) })"
       class="feedback"
@@ -410,7 +420,7 @@ function updateDialog(visible) {
     <ElAlert
       v-for="impact in transferStore.lastBalanceImpact ?? []"
       :key="`transfer-${impact.id}`"
-      type="success"
+      type="info"
       show-icon
       :title="t('transfers.balanceUpdated', { impact: impactMessage(impact) })"
       class="feedback"

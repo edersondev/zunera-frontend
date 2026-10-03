@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import ElementPlus from 'element-plus'
 import FinancialAccountsListView from '../FinancialAccountsListView.vue'
+import { showActionSuccess } from '@/services/actionMessage'
 
 const store = vi.hoisted(() => ({
   accounts: [],
@@ -26,6 +27,7 @@ const routerPush = vi.hoisted(() => vi.fn())
 vi.mock('@/stores/financial-accounts/financialAccountStore', () => ({
   useFinancialAccountStore: () => store,
 }))
+vi.mock('@/services/actionMessage', () => ({ showActionSuccess: vi.fn() }))
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: routerPush }),
 }))
@@ -70,7 +72,8 @@ describe('FinancialAccountsListView', () => {
     await flushPromises()
 
     expect(store.create).toHaveBeenCalledWith({ name: 'Conta principal' })
-    expect(wrapper.text()).toContain('Conta financeira criada.')
+    expect(showActionSuccess).toHaveBeenCalledWith('Conta financeira criada.')
+    expect(wrapper.text()).not.toContain('Conta financeira criada.')
   })
 
   it('shows server errors returned by create', async () => {
@@ -98,7 +101,7 @@ describe('FinancialAccountsListView', () => {
     await flushPromises()
 
     expect(store.update).toHaveBeenCalledWith(1, { name: 'Conta principal' })
-    expect(wrapper.text()).toContain('Detalhes da conta salvos.')
+    expect(showActionSuccess).toHaveBeenCalledWith('Detalhes da conta salvos.')
   })
 })
 

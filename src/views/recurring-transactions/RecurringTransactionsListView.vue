@@ -4,6 +4,7 @@ import { Plus } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import { showActionSuccess } from '@/services/actionMessage'
 import RecurringTransactionDetailDrawer from '@/components/recurring-transactions/RecurringTransactionDetailDrawer.vue'
 import RecurringTransactionFilterBar from '@/components/recurring-transactions/RecurringTransactionFilterBar.vue'
 import RecurringTransactionFormDialog from '@/components/recurring-transactions/RecurringTransactionFormDialog.vue'
@@ -123,6 +124,7 @@ async function save(payload) {
   try {
     if (editing.value) await store.update(editing.value.id, payload)
     else await store.create(payload)
+    showActionSuccess(t(store.notice))
     updateDialog(false)
   } catch {
     /* Feedback comes from the store error state. */
@@ -224,6 +226,7 @@ function confirmLifecycle(action, rule) {
 async function runLifecycle() {
   try {
     await store[lifecycleAction.value](lifecycleRule.value.id)
+    showActionSuccess(t(store.notice))
     lifecycleOpen.value = false
     if (detailOpen.value) await store.select(lifecycleRule.value.id)
   } catch {
@@ -250,6 +253,7 @@ async function confirmOccurrence(payload) {
     const result = await store.confirmOccurrence(ruleId, selectedOccurrence.value.id, payload)
     selectedOccurrence.value = result
     occurrenceOpen.value = result.state !== 'recorded' && result.state !== 'dismissed'
+    if (result.state === 'recorded') showActionSuccess(t('recurringTransactions.occurrenceRecorded'))
     await refreshAfterOccurrence(ruleId)
   } catch {
     if (['OVER_LIMIT_CONFIRMATION_REQUIRED', 'stale_over_limit_confirmation'].includes(store.error?.code)) {
@@ -263,6 +267,7 @@ async function dismissOccurrence() {
     const ruleId = occurrenceRule.value.id
     await store.dismissOccurrence(ruleId, selectedOccurrence.value.id)
     occurrenceOpen.value = false
+    showActionSuccess(t('recurringTransactions.occurrenceDismissed'))
     await refreshAfterOccurrence(ruleId)
   } catch {
     /* Feedback comes from the store error state. */
@@ -275,6 +280,7 @@ async function retryOccurrence() {
     const result = await store.retryOccurrence(ruleId, selectedOccurrence.value.id)
     selectedOccurrence.value = result
     occurrenceOpen.value = result.state !== 'recorded' && result.state !== 'dismissed'
+    if (result.state === 'recorded') showActionSuccess(t('recurringTransactions.occurrenceRecorded'))
     await refreshAfterOccurrence(ruleId)
   } catch {
     /* Feedback comes from the store error state. */
@@ -302,7 +308,6 @@ async function retryOccurrence() {
       data-test="credit-card-recurring-guidance"
     />
 
-    <ElAlert v-if="store.notice" type="success" :closable="false" show-icon :title="t(store.notice)" data-test="recurrence-notice" />
     <ElAlert v-if="store.error && !lifecycleOpen" type="error" :closable="false" show-icon :title="store.error.message" data-test="recurrence-error" />
     <RecurringTransactionFilterBar
       :filters="store.filters"

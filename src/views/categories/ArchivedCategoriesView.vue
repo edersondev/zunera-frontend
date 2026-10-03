@@ -1,17 +1,17 @@
 <script setup>
-import { onMounted, reactive, shallowRef } from 'vue'
+import { onMounted, reactive } from 'vue'
 import { CollectionTag } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import CategoryLifecycleDialog from '@/components/categories/CategoryLifecycleDialog.vue'
 import CategoryList from '@/components/categories/CategoryList.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import { showActionSuccess } from '@/services/actionMessage'
 import { useCategoryStore } from '@/stores/categories/categoryStore'
 import { useI18n } from 'vue-i18n'
 
 const store = useCategoryStore()
 const { t } = useI18n()
 const router = useRouter()
-const successMessage = shallowRef('')
 const lifecycle = reactive({ visible: false, action: 'restore', category: null })
 onMounted(() => store.fetchCategories('archived').catch(() => {}))
 function askRestore(category) {
@@ -25,7 +25,7 @@ async function confirmRestore() {
   try {
     await store.restore(lifecycle.category)
     lifecycle.visible = false
-    successMessage.value = t('categories.restored')
+    showActionSuccess(t('categories.restored'))
   } catch {
     // The store exposes request feedback.
   }
@@ -44,13 +44,6 @@ async function confirmRestore() {
         </ElButton>
       </template>
     </PageHeader>
-    <ElAlert
-      v-if="successMessage"
-      class="feedback"
-      :title="successMessage"
-      type="success"
-      show-icon
-    />
     <ElAlert
       v-if="store.error"
       class="feedback"

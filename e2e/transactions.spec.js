@@ -489,6 +489,7 @@ test('signed-in user records income and expense and sees the balance impact', as
 test('history is newest first with details, empty state, and no foreign transactions', async ({
   page,
 }) => {
+  await page.clock.setFixedTime(new Date('2026-09-15T12:00:00-03:00'))
   const account = {
     id: 1,
     name: 'Conta principal',
@@ -547,6 +548,7 @@ test('history is newest first with details, empty state, and no foreign transact
 test('owner edits, removes, and restores a transaction with archived associations', async ({
   page,
 }) => {
+  await page.clock.setFixedTime(new Date('2026-09-15T12:00:00-03:00'))
   const account = {
     id: 1,
     name: 'Conta encerrada',
@@ -616,6 +618,7 @@ test('owner edits, removes, and restores a transaction with archived association
 })
 
 test('owner combines filters and search and clears the criteria', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-09-15T12:00:00-03:00'))
   const account = {
     id: 1,
     name: 'Conta principal',
@@ -681,6 +684,7 @@ test('owner combines filters and search and clears the criteria', async ({ page 
 test('filters activate from the keyboard and the dialog closes with Escape in dark theme', async ({
   page,
 }) => {
+  await page.clock.setFixedTime(new Date('2026-09-15T12:00:00-03:00'))
   const account = {
     id: 1,
     name: 'Conta principal',
@@ -718,6 +722,7 @@ test('filters activate from the keyboard and the dialog closes with Escape in da
 })
 
 test('mobile uses the compact history list without horizontal page overflow', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-09-15T12:00:00-03:00'))
   const account = {
     id: 1,
     name: 'Conta principal',

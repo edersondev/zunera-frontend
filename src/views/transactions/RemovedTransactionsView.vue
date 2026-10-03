@@ -4,6 +4,7 @@ import { Money } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import { showActionSuccess } from '@/services/actionMessage'
 import { useTransactionStore } from '@/stores/transactions/transactionStore'
 import { formatTransactionAmount, formatTransactionDate } from '@/utils/transactions/transactionFormatters'
 import { formatTransferAmount, formatTransferLabel } from '@/utils/transfers/transferFormatters'
@@ -11,7 +12,7 @@ import { formatTransferAmount, formatTransferLabel } from '@/utils/transfers/tra
 const store = useTransactionStore()
 const router = useRouter()
 const { t } = useI18n()
-const feedback = shallowRef(null)
+const restoreError = shallowRef('')
 
 onMounted(() => store.setFilters({ view: 'removed' }).catch(() => {}))
 
@@ -28,11 +29,12 @@ function movementAmount(entry) {
 }
 
 async function restore(entry) {
+  restoreError.value = ''
   try {
     await store.restoreHistoryEntry(entry, {})
-    feedback.value = isTransfer(entry) ? t('transfers.restored') : t('transactions.restoreSuccess')
+    showActionSuccess(isTransfer(entry) ? t('transfers.restored') : t('transactions.restoreSuccess'))
   } catch (error) {
-    feedback.value = error?.message ?? (isTransfer(entry) ? t('transfers.restoreFailed') : t('transactions.restoreFailed'))
+    if (!store.error) restoreError.value = error?.message ?? (isTransfer(entry) ? t('transfers.restoreFailed') : t('transactions.restoreFailed'))
   }
 }
 </script>
@@ -47,7 +49,7 @@ async function restore(entry) {
       </template>
     </PageHeader>
     <ElAlert v-if="store.error" type="error" show-icon :title="store.error.message" class="feedback" data-test="removed-error" />
-    <ElAlert v-if="feedback" type="success" show-icon :title="feedback" class="feedback" data-test="removed-feedback" />
+    <ElAlert v-if="restoreError" type="error" show-icon :title="restoreError" class="feedback" data-test="restore-error" />
     <ElTable v-loading="store.loading" :data="store.items" data-test="removed-table">
       <ElTableColumn :label="t('transactions.columns.description')">
         <template #default="{ row }">{{ movementLabel(row) }}</template>
