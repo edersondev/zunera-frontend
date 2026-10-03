@@ -54,7 +54,7 @@ export const useSessionStore = defineStore('auth.session', () => {
     error.value = null
 
     try {
-      applySession(await registerAccount(payload))
+      return await registerAccount(payload)
     } catch (requestError) {
       error.value = requestError
       throw requestError

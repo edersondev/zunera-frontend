@@ -7,12 +7,13 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <p class="privacy-links">
-    {{ t('auth.privacy') }}
-    <a :href="privacyUrl" class="auth-link">{{ t('auth.privacyNotice') }}</a>
-    <span aria-hidden="true">·</span>
-    <a :href="privacyRightsUrl" class="auth-link">{{ t('auth.privacyRights') }}</a>
-  </p>
+  <div class="privacy-links">
+    <p>{{ t('auth.privacy') }}</p>
+    <ul>
+      <li><a :href="privacyUrl" class="auth-link">{{ t('auth.privacyNotice') }}</a></li>
+      <li><a :href="privacyRightsUrl" class="auth-link">{{ t('auth.privacyRights') }}</a></li>
+    </ul>
+  </div>
 </template>
 
 <style scoped>
@@ -21,5 +22,18 @@ const { t } = useI18n()
   color: var(--color-text-subtle);
   font-size: 14px;
   line-height: 20px;
+}
+
+.privacy-links p {
+  margin: 0;
+}
+
+.privacy-links ul {
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
+
+.privacy-links li + li {
+  margin-top: 4px;
 }
 </style>

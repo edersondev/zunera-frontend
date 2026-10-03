@@ -20,16 +20,17 @@ describe('sessionStore registration', () => {
     vi.clearAllMocks()
   })
 
-  it('stores name-bearing authenticated session after registration', async () => {
+  it('keeps the visitor signed out after registration', async () => {
     authService.registerAccount.mockResolvedValue({
-      user: { id: 1, name: 'Ana da Silva', email: 'person@example.com' },
-      session: { idle_expires_at: 'soon', absolute_expires_at: 'later' },
+      message: 'Check your email.',
+      activation_required: true,
     })
 
     const store = useSessionStore()
-    await store.register({ name: 'Ana da Silva', email: 'person@example.com', password: 'correct horse battery staple' })
+    await expect(store.register({ name: 'Ana da Silva', email: 'person@example.com', password: 'correct horse battery staple' }))
+      .resolves.toEqual({ message: 'Check your email.', activation_required: true })
 
-    expect(store.isAuthenticated).toBe(true)
-    expect(store.user).toEqual({ id: 1, name: 'Ana da Silva', email: 'person@example.com' })
+    expect(store.isAuthenticated).toBe(false)
+    expect(store.user).toBeNull()
   })
 })
