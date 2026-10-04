@@ -13,7 +13,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['open-navigation', 'edit-profile', 'change-password', 'sign-out'])
+const emit = defineEmits(['open-navigation', 'edit-profile', 'change-password', 'account-data', 'sign-out'])
 const accountButtonRef = shallowRef(null)
 defineExpose({ focusAccount: () => accountButtonRef.value?.$el?.focus() })
 const { t } = useI18n()
@@ -23,6 +23,7 @@ const displayName = computed(() => props.user?.name?.trim() || props.user?.email
 function handleAccountCommand(command) {
   if (command === 'edit-profile') emit('edit-profile')
   if (command === 'change-password') emit('change-password')
+  if (command === 'account-data') emit('account-data')
 
   if (command === 'sign-out') {
     emit('sign-out')
@@ -69,6 +70,7 @@ function handleAccountCommand(command) {
           <ElDropdownMenu>
             <ElDropdownItem command="edit-profile">{{ t('profile.edit') }}</ElDropdownItem>
             <ElDropdownItem command="change-password">{{ t('profile.changePassword') }}</ElDropdownItem>
+            <ElDropdownItem command="account-data">{{ t('accountData.menu') }}</ElDropdownItem>
             <ElDropdownItem divided disabled>{{ t('common.language') }}</ElDropdownItem>
             <ElDropdownItem command="locale:pt-BR" :disabled="activeLocale === 'pt-BR'">{{ t('common.portuguese') }}</ElDropdownItem>
             <ElDropdownItem command="locale:en" :disabled="activeLocale === 'en'">{{ t('common.english') }}</ElDropdownItem>
