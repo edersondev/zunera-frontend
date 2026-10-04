@@ -33,7 +33,7 @@ function formatDate(value) {
           </div>
           <div class="archive-actions">
             <RouterLink :to="{ name: 'account-data-archive', params: { archive_id: archive.id } }">{{ t('accountData.viewArchive', { id: archive.id }) }}</RouterLink>
-            <ElButton :icon="RefreshLeft" @click="emit('restore', archive, $event.currentTarget)">{{ t('accountData.restoreAction') }}</ElButton>
+            <ElButton :icon="RefreshLeft" :aria-label="t('accountData.restoreTitle', { id: archive.id })" @click="emit('restore', archive, $event.currentTarget)">{{ t('accountData.restoreAction') }}</ElButton>
           </div>
         </div>
       </ElCard>

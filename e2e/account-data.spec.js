@@ -93,7 +93,8 @@ test('account data can be archived, restored, and deleted with current password'
   await expect(page.getByRole('button', { name: /edit|restore/i })).toHaveCount(0)
 
   await page.getByRole('link', { name: 'Back to account data' }).click()
-  const restoreButton = page.getByRole('button', { name: 'Restore', exact: true }).first()
+  await expect(page.getByRole('button', { name: 'Restore archive #5', exact: true })).toBeVisible()
+  const restoreButton = page.getByRole('button', { name: 'Restore archive #4', exact: true })
   await restoreButton.click()
   const restoreDialog = page.getByRole('dialog', { name: 'Restore archive #4' })
   await expect(restoreDialog.getByText('saved in a new archive first', { exact: false })).toBeVisible()
