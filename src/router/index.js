@@ -64,6 +64,18 @@ const router = createRouter({
           meta: { requiresAuth: true, titleKey: 'dashboard.title' },
         },
         {
+          path: 'account-data',
+          name: 'account-data-settings',
+          component: () => import('@/views/account-data/AccountDataSettingsView.vue'),
+          meta: { requiresAuth: true, titleKey: 'accountData.title' },
+        },
+        {
+          path: 'account-data/archives/:archive_id',
+          name: 'account-data-archive',
+          component: () => import('@/views/account-data/AccountDataArchiveView.vue'),
+          meta: { requiresAuth: true, titleKey: 'accountData.archivesTitle' },
+        },
+        {
           path: 'reports',
           name: 'reports',
           component: () => import('@/views/reports/ReportsView.vue'),

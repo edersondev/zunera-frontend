@@ -118,6 +118,7 @@ async function onPasswordDialogClosed({ passwordChanged }) {
       @open-navigation="navigationOpen = true"
       @edit-profile="profileOpen = true"
       @change-password="passwordOpen = true"
+      @account-data="router.push({ name: 'account-data-settings' })"
       @sign-out="signOut"
     />
     <ProfileDialog
