@@ -108,7 +108,7 @@ function formatDate(value) {
               <h3>{{ t('accountData.archiveNumber', { id: archive.id }) }}</h3>
               <p>{{ formatDate(archive.created_at) }} · {{ t('accountData.recordCount', { count: archive.record_count }) }}</p>
             </div>
-            <RouterLink :to="{ name: 'account-data-archive', params: { archive_id: archive.id } }">{{ t('accountData.viewArchive') }}</RouterLink>
+            <RouterLink :to="{ name: 'account-data-archive', params: { archive_id: archive.id } }">{{ t('accountData.viewArchive', { id: archive.id }) }}</RouterLink>
           </div>
         </ElCard>
       </div>

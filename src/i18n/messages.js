@@ -36,7 +36,7 @@ export const messages = {
       currentPassword: 'Senha atual', passwordRequired: 'Informe sua senha atual para excluir os dados.',
       archivesTitle: 'Arquivos anteriores', archivesDescription: 'Consulte os dados preservados antes de uma redefinição.',
       noArchives: 'Nenhum arquivo ainda.', noRecords: 'Nenhum registro nesta seção.', loadError: 'Não foi possível carregar os dados. Tente novamente.',
-      archiveNumber: 'Arquivo #{id}', recordCount: '{count} registros', viewArchive: 'Consultar arquivo',
+      archiveNumber: 'Arquivo #{id}', recordCount: '{count} registros', viewArchive: 'Consultar arquivo #{id}',
       readOnlyDescription: 'Histórico preservado somente para consulta.', backToSettings: 'Voltar aos dados da conta', recordType: 'Tipo de registro',
       types: {
         financial_accounts: 'Contas financeiras', categories: 'Categorias', transactions: 'Lançamentos', transfers: 'Transferências',
@@ -1200,7 +1200,7 @@ export const messages = {
       currentPassword: 'Current password', passwordRequired: 'Enter your current password to delete data.',
       archivesTitle: 'Earlier archives', archivesDescription: 'Browse data saved before a reset.',
       noArchives: 'No archives yet.', noRecords: 'No records in this section.', loadError: 'Could not load data. Try again.',
-      archiveNumber: 'Archive #{id}', recordCount: '{count} records', viewArchive: 'View archive',
+      archiveNumber: 'Archive #{id}', recordCount: '{count} records', viewArchive: 'View archive #{id}',
       readOnlyDescription: 'Saved history for viewing only.', backToSettings: 'Back to account data', recordType: 'Record type',
       types: {
         financial_accounts: 'Financial accounts', categories: 'Categories', transactions: 'Transactions', transfers: 'Transfers',

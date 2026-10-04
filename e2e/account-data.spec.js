@@ -68,8 +68,11 @@ test('account data can be archived, browsed read-only, and deleted with current 
   await page.waitForLoadState('load')
   expect(state.archiveCalls).toBe(1)
 
+  state.archives.push({ id: 5, created_at: '2026-10-04T12:00:00Z', record_count: 0 })
   await page.goto('/app/account-data')
-  await page.getByRole('link', { name: 'View archive' }).click()
+  await expect(page.getByRole('link', { name: 'View archive #4' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'View archive #5' })).toBeVisible()
+  await page.getByRole('link', { name: 'View archive #4' }).click()
   await expect(page.getByRole('heading', { name: 'Archive #4' })).toBeVisible()
   await page.locator('.archive-filter .el-select').click()
   await page.getByRole('option', { name: 'Transactions', exact: true }).click()
