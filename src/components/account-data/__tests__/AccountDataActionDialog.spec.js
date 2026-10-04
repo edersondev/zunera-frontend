@@ -23,11 +23,11 @@ const stubs = {
 }
 
 describe('account data confirmation', () => {
-  it('archives with clear read-only message and no password', async () => {
+  it('archives with clear saved-data message and no password', async () => {
     const wrapper = mount(AccountDataActionDialog, {
       props: { modelValue: true, mode: 'archive' }, global: { stubs },
     })
-    expect(wrapper.text()).toContain('somente para leitura')
+    expect(wrapper.text()).toContain('salvos no arquivo')
     expect(wrapper.find('input').exists()).toBe(false)
     await wrapper.findAll('button')[1].trigger('click')
     expect(wrapper.emitted('confirm')?.[0]).toEqual([''])

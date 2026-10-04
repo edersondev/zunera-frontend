@@ -4,6 +4,7 @@ import {
   deleteAccountData,
   listAccountDataArchives,
   listAccountDataArchiveRecords,
+  restoreAccountDataArchive,
 } from '../accountDataService'
 
 const { apiRequest } = vi.hoisted(() => ({ apiRequest: vi.fn() }))
@@ -39,5 +40,18 @@ describe('account data API', () => {
       method: 'get', url: '/api/v1/account-data/archives/4/records',
       params: { type: 'transactions', page: 2 },
     })
+  })
+
+  it('restores the selected archive with CSRF protection', async () => {
+    apiRequest.mockResolvedValueOnce({ data: { data: {
+      restored_archive_id: 4, restored_record_count: 20, previous_archive_id: 5,
+    } } })
+
+    expect(await restoreAccountDataArchive(4)).toEqual({
+      restored_archive_id: 4, restored_record_count: 20, previous_archive_id: 5,
+    })
+    expect(apiRequest).toHaveBeenCalledWith({
+      method: 'post', url: '/api/v1/account-data/archives/4/restore', data: {},
+    }, { csrf: true })
   })
 })

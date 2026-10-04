@@ -1,17 +1,20 @@
 <script setup>
-import { Delete, FolderDelete, RefreshRight } from '@element-plus/icons-vue'
+import { Delete, FolderDelete } from '@element-plus/icons-vue'
 import { onMounted, shallowRef } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import AccountDataActionDialog from '@/components/account-data/AccountDataActionDialog.vue'
+import AccountDataArchiveList from '@/components/account-data/AccountDataArchiveList.vue'
+import AccountDataRestoreDialog from '@/components/account-data/AccountDataRestoreDialog.vue'
 import {
   archiveAccountData,
   deleteAccountData,
   listAccountDataArchives,
+  restoreAccountDataArchive,
 } from '@/services/accountDataService'
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const router = useRouter()
 const archives = shallowRef([])
 const loading = shallowRef(false)
@@ -22,6 +25,11 @@ const dialogOpen = shallowRef(false)
 const busy = shallowRef(false)
 const archiveButton = shallowRef(null)
 const deleteButton = shallowRef(null)
+const selectedArchive = shallowRef(null)
+const restoreDialogOpen = shallowRef(false)
+const restoreBusy = shallowRef(false)
+const restoreError = shallowRef(null)
+const restoreTrigger = shallowRef(null)
 
 onMounted(loadArchives)
 
@@ -65,8 +73,33 @@ async function confirmAction(password) {
   }
 }
 
-function formatDate(value) {
-  return new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+function openRestore(archive, trigger) {
+  selectedArchive.value = archive
+  restoreTrigger.value = trigger
+  restoreError.value = null
+  restoreDialogOpen.value = true
+}
+
+function onRestoreClosed() {
+  restoreError.value = null
+  selectedArchive.value = null
+  restoreTrigger.value?.focus()
+  restoreTrigger.value = null
+}
+
+async function confirmRestore() {
+  if (restoreBusy.value || !selectedArchive.value) return
+  restoreBusy.value = true
+  restoreError.value = null
+  try {
+    await restoreAccountDataArchive(selectedArchive.value.id)
+    restoreDialogOpen.value = false
+    window.location.replace(router.resolve({ name: 'dashboard' }).href)
+  } catch (error) {
+    restoreError.value = error
+  } finally {
+    restoreBusy.value = false
+  }
 }
 </script>
 
@@ -93,29 +126,14 @@ function formatDate(value) {
         </template>
       </ElCard>
     </div>
-    <section class="archives" aria-labelledby="archives-title">
-      <h2 id="archives-title">{{ t('accountData.archivesTitle') }}</h2>
-      <p>{{ t('accountData.archivesDescription') }}</p>
-      <ElSkeleton v-if="loading" :rows="2" animated />
-      <ElAlert v-else-if="loadError" type="error" :title="t('accountData.loadError')" :closable="false" show-icon>
-        <ElButton :icon="RefreshRight" @click="loadArchives">{{ t('common.retry') }}</ElButton>
-      </ElAlert>
-      <ElEmpty v-else-if="archives.length === 0" :description="t('accountData.noArchives')" />
-      <div v-else class="archive-list">
-        <ElCard v-for="archive in archives" :key="archive.id">
-          <div class="archive-row">
-            <div>
-              <h3>{{ t('accountData.archiveNumber', { id: archive.id }) }}</h3>
-              <p>{{ formatDate(archive.created_at) }} · {{ t('accountData.recordCount', { count: archive.record_count }) }}</p>
-            </div>
-            <RouterLink :to="{ name: 'account-data-archive', params: { archive_id: archive.id } }">{{ t('accountData.viewArchive', { id: archive.id }) }}</RouterLink>
-          </div>
-        </ElCard>
-      </div>
-    </section>
+    <AccountDataArchiveList :archives="archives" :loading="loading" :load-error="loadError" @retry="loadArchives" @restore="openRestore" />
     <AccountDataActionDialog
       v-model="dialogOpen" :mode="mode" :busy="busy" :error="actionError"
       @confirm="confirmAction" @closed="onDialogClosed"
+    />
+    <AccountDataRestoreDialog
+      v-model="restoreDialogOpen" :archive="selectedArchive" :busy="restoreBusy" :error="restoreError"
+      @confirm="confirmRestore" @closed="onRestoreClosed"
     />
   </div>
 </template>
@@ -124,15 +142,9 @@ function formatDate(value) {
 .account-data-settings { width: min(100%, 980px); margin-inline: auto; }
 .action-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .action-card-footer { display: flex; justify-content: flex-end; }
-.action-grid h2, .archives h2 { margin: 0 0 8px; font-size: 20px; }
-.action-grid p, .archives p, .archive-row p { color: var(--color-text-muted); line-height: 1.5; }
-.archives { margin-top: 32px; }
-.archive-list { display: grid; gap: 12px; }
-.archive-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.archive-row h3 { margin: 0; font-size: 16px; }
-.archive-row p { margin: 6px 0 0; }
+.action-grid h2 { margin: 0 0 8px; font-size: 20px; }
+.action-grid p { color: var(--color-text-muted); line-height: 1.5; }
 @media (max-width: 639px) {
   .action-grid { grid-template-columns: 1fr; }
-  .archive-row { align-items: flex-start; flex-direction: column; }
 }
 </style>
