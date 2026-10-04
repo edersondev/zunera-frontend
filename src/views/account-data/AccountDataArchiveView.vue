@@ -1,4 +1,5 @@
 <script setup>
+import { RefreshRight } from '@element-plus/icons-vue'
 import { computed, shallowRef, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -84,7 +85,7 @@ function details(record) {
     </ElForm>
     <ElSkeleton v-if="loading" :rows="4" animated />
     <ElAlert v-else-if="error" type="error" :title="t('accountData.loadError')" :closable="false" show-icon>
-      <ElButton @click="loadRecords">{{ t('common.retry') }}</ElButton>
+      <ElButton :icon="RefreshRight" @click="loadRecords">{{ t('common.retry') }}</ElButton>
     </ElAlert>
     <ElEmpty v-else-if="records.length === 0" :description="t('accountData.noRecords')" />
     <div v-else class="record-list">

@@ -1,4 +1,5 @@
 <script setup>
+import { Delete, FolderDelete, RefreshRight } from '@element-plus/icons-vue'
 import { onMounted, shallowRef } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -76,12 +77,20 @@ function formatDate(value) {
       <ElCard>
         <h2>{{ t('accountData.archiveTitle') }}</h2>
         <p>{{ t('accountData.archiveDescription') }}</p>
-        <ElButton ref="archiveButton" type="primary" @click="openDialog('archive')">{{ t('accountData.archiveAll') }}</ElButton>
+        <template #footer>
+          <div class="action-card-footer">
+            <ElButton ref="archiveButton" type="primary" :icon="FolderDelete" @click="openDialog('archive')">{{ t('accountData.archiveAll') }}</ElButton>
+          </div>
+        </template>
       </ElCard>
       <ElCard>
         <h2>{{ t('accountData.deleteTitle') }}</h2>
         <p>{{ t('accountData.deleteDescription') }}</p>
-        <ElButton ref="deleteButton" type="danger" @click="openDialog('delete')">{{ t('accountData.deleteAll') }}</ElButton>
+        <template #footer>
+          <div class="action-card-footer">
+            <ElButton ref="deleteButton" type="danger" :icon="Delete" @click="openDialog('delete')">{{ t('accountData.deleteAll') }}</ElButton>
+          </div>
+        </template>
       </ElCard>
     </div>
     <section class="archives" aria-labelledby="archives-title">
@@ -89,7 +98,7 @@ function formatDate(value) {
       <p>{{ t('accountData.archivesDescription') }}</p>
       <ElSkeleton v-if="loading" :rows="2" animated />
       <ElAlert v-else-if="loadError" type="error" :title="t('accountData.loadError')" :closable="false" show-icon>
-        <ElButton @click="loadArchives">{{ t('common.retry') }}</ElButton>
+        <ElButton :icon="RefreshRight" @click="loadArchives">{{ t('common.retry') }}</ElButton>
       </ElAlert>
       <ElEmpty v-else-if="archives.length === 0" :description="t('accountData.noArchives')" />
       <div v-else class="archive-list">
@@ -114,6 +123,7 @@ function formatDate(value) {
 <style scoped>
 .account-data-settings { width: min(100%, 980px); margin-inline: auto; }
 .action-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.action-card-footer { display: flex; justify-content: flex-end; }
 .action-grid h2, .archives h2 { margin: 0 0 8px; font-size: 20px; }
 .action-grid p, .archives p, .archive-row p { color: var(--color-text-muted); line-height: 1.5; }
 .archives { margin-top: 32px; }

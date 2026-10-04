@@ -1,5 +1,5 @@
 <script setup>
-import { Close } from '@element-plus/icons-vue'
+import { Close, Delete, FolderDelete } from '@element-plus/icons-vue'
 import { computed, reactive, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
@@ -54,6 +54,7 @@ function onClosed() {
   >
     <p>{{ t(isDelete ? 'accountData.deleteDescription' : 'accountData.archiveDescription') }}</p>
     <ElAlert
+      class="!mt-4"
       :type="isDelete ? 'error' : 'warning'"
       :title="t(isDelete ? 'accountData.deleteWarning' : 'accountData.archiveWarning')"
       :closable="false"
@@ -67,7 +68,7 @@ function onClosed() {
     <ElAlert v-if="error?.message" class="action-error" type="error" :title="error.message" :closable="false" show-icon />
     <template #footer>
       <ElButton type="danger" :icon="Close" :disabled="busy" @click="visible = false">{{ t('common.cancel') }}</ElButton>
-      <ElButton :type="isDelete ? 'danger' : 'primary'" :loading="busy" @click="submit">
+      <ElButton :type="isDelete ? 'danger' : 'primary'" :icon="isDelete ? Delete : FolderDelete" :loading="busy" @click="submit">
         {{ t(isDelete ? 'accountData.deleteAll' : 'accountData.archiveAll') }}
       </ElButton>
     </template>
