@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test'
 import { pinLocale } from './support/locale.js'
 
-test('account data can be archived, browsed read-only, and deleted with current password', async ({ page }) => {
+test('account data can be archived, restored, and deleted with current password', async ({ page }) => {
   await pinLocale(page, 'en')
   await page.setViewportSize({ width: 320, height: 800 })
-  const state = { archives: [], archiveCalls: 0, deleteCalls: 0 }
+  const state = { archives: [], archiveCalls: 0, restoreCalls: 0, deleteCalls: 0 }
   const session = {
     user: { id: 7, name: 'Person', email: 'person@example.com' },
     session: {
@@ -34,6 +34,18 @@ test('account data can be archived, browsed read-only, and deleted with current 
       }
       state.archives = []
       return route.fulfill({ status: 204 })
+    }
+    if (url.pathname.endsWith('/account-data/archives/4/restore') && method === 'POST') {
+      state.restoreCalls++
+      if (state.restoreCalls === 1) {
+        return route.fulfill({ status: 409, json: {
+          message: 'This archive cannot be restored safely.', code: 'archive_restore_unavailable',
+        } })
+      }
+      state.archives.unshift({ id: 6, created_at: '2026-10-05T12:00:00Z', record_count: 1 })
+      return route.fulfill({ json: { data: {
+        restored_archive_id: 4, restored_record_count: 2, previous_archive_id: 6,
+      } } })
     }
     if (url.pathname.endsWith('/account-data/archives')) {
       return route.fulfill({ json: { data: state.archives } })
@@ -81,6 +93,24 @@ test('account data can be archived, browsed read-only, and deleted with current 
   await expect(page.getByRole('button', { name: /edit|restore/i })).toHaveCount(0)
 
   await page.getByRole('link', { name: 'Back to account data' }).click()
+  await expect(page.getByRole('button', { name: 'Restore archive #5', exact: true })).toBeVisible()
+  const restoreButton = page.getByRole('button', { name: 'Restore archive #4', exact: true })
+  await restoreButton.click()
+  const restoreDialog = page.getByRole('dialog', { name: 'Restore archive #4' })
+  await expect(restoreDialog.getByText('saved in a new archive first', { exact: false })).toBeVisible()
+  await restoreDialog.getByRole('button', { name: 'Restore', exact: true }).click()
+  await expect(restoreDialog.getByText('Your current data was not changed.', { exact: false })).toBeVisible()
+  await restoreDialog.getByRole('button', { name: 'Cancel' }).click()
+  await expect(restoreButton).toBeFocused()
+  await restoreButton.click()
+  await restoreDialog.getByRole('button', { name: 'Restore', exact: true }).click()
+  await expect(page).toHaveURL(/\/app\/?$/)
+  await page.waitForLoadState('load')
+  expect(state.restoreCalls).toBe(2)
+
+  await page.goto('/app/account-data')
+  await expect(page.getByRole('link', { name: 'View archive #4' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'View archive #6' })).toBeVisible()
   await page.getByRole('button', { name: 'Delete all data' }).click()
   await page.getByRole('dialog', { name: 'Delete all' }).getByLabel('Current password').fill('correct password')
   await page.getByRole('dialog', { name: 'Delete all' }).getByRole('button', { name: 'Delete all data' }).click()
