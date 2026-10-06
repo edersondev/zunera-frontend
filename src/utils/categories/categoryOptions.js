@@ -1,42 +1,10 @@
-import {
-  Briefcase,
-  FirstAidKit,
-  ForkSpoon,
-  House,
-  MoreFilled,
-  OfficeBuilding,
-  Present,
-  Reading,
-  RefreshLeft,
-  ShoppingBag,
-  Tickets,
-  TrendCharts,
-  Trophy,
-  Van,
-  Wallet,
-} from '@element-plus/icons-vue'
+import { ICON_COMPONENTS, ICON_CONTEXTS, iconLabel, iconOptions } from '@/utils/icons/iconRegistry'
 
 export const CATEGORY_CLASSIFICATIONS = Object.freeze(['income', 'expense'])
 
 export const CATEGORY_COLORS = Object.freeze(['teal', 'blue', 'violet', 'amber', 'rose', 'cyan'])
 
-export const CATEGORY_ICONS = Object.freeze([
-  'home',
-  'utensils',
-  'car',
-  'heart',
-  'book',
-  'gamepad',
-  'shopping_bag',
-  'receipt',
-  'landmark',
-  'circle',
-  'wallet',
-  'briefcase',
-  'chart',
-  'gift',
-  'refund',
-])
+export const CATEGORY_ICONS = ICON_CONTEXTS.categories
 
 function localizedOptions(values, keyPrefix, t) {
   return values.map((value) => ({ value, label: t(`${keyPrefix}.${value}`) }))
@@ -51,7 +19,7 @@ export function categoryColorOptions(t) {
 }
 
 export function categoryIconOptions(t) {
-  return localizedOptions(CATEGORY_ICONS, 'categories.icons', t)
+  return iconOptions('categories', t)
 }
 
 export function categoryClassificationLabel(value, t) {
@@ -63,26 +31,10 @@ export function categoryColorLabel(value, t) {
 }
 
 export function categoryIconLabel(value, t) {
-  return CATEGORY_ICONS.includes(value) ? t(`categories.icons.${value}`) : value
+  return iconLabel('categories', value, t)
 }
 
-export const CATEGORY_ICON_COMPONENTS = Object.freeze({
-  home: House,
-  utensils: ForkSpoon,
-  car: Van,
-  heart: FirstAidKit,
-  book: Reading,
-  gamepad: Trophy,
-  shopping_bag: ShoppingBag,
-  receipt: Tickets,
-  landmark: OfficeBuilding,
-  circle: MoreFilled,
-  wallet: Wallet,
-  briefcase: Briefcase,
-  chart: TrendCharts,
-  gift: Present,
-  refund: RefreshLeft,
-})
+export const CATEGORY_ICON_COMPONENTS = ICON_COMPONENTS
 
 export function categoryColorStyle(color) {
   return { backgroundColor: `var(--chart-${color}, var(--color-surface-tertiary))` }
