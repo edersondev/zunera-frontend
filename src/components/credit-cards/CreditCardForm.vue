@@ -16,7 +16,9 @@ import {
 import { Check, Close } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import CurrencyAmountInput from '@/components/common/CurrencyAmountInput.vue'
-import { CREDIT_CARD_COLORS, CREDIT_CARD_ICONS } from '@/utils/credit-cards/creditCardAppearance'
+import IconPicker from '@/components/common/IconPicker.vue'
+import { CREDIT_CARD_COLORS } from '@/utils/credit-cards/creditCardAppearance'
+import { iconOptions } from '@/utils/icons/iconRegistry'
 import { availableCreditPresentation } from '@/utils/credit-cards/creditCardFormatters'
 
 const props = defineProps({
@@ -30,6 +32,7 @@ const emit = defineEmits(['update:visible', 'submit', 'dismiss-mutation-error'])
 const { t } = useI18n()
 const formRef = shallowRef(null)
 const isEditing = computed(() => props.card !== null)
+const cardIconOptions = computed(() => iconOptions('creditCards', t))
 const form = reactive({
   name: '',
   institution_name: '',
@@ -209,14 +212,12 @@ defineExpose({ resetCreateForm })
 
         <ElCol :xs="24" :md="12">
           <ElFormItem :label="t('creditCards.form.icon')" :error="fieldErrors.icon?.[0]">
-            <ElSelect v-model="form.icon" data-test="credit-card-icon">
-              <ElOption
-                v-for="icon in CREDIT_CARD_ICONS"
-                :key="icon"
-                :label="t(`creditCards.icons.${icon}`)"
-                :value="icon"
-              />
-            </ElSelect>
+            <IconPicker
+              v-model="form.icon"
+              test-id="credit-card-icon"
+              :label="t('creditCards.form.icon')"
+              :options="cardIconOptions"
+            />
           </ElFormItem>
         </ElCol>
       </ElRow>

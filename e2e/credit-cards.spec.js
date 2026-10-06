@@ -26,6 +26,8 @@ test('owner creates card, sees its detail, and sends only non-sensitive payload'
   await dialog.getByLabel('Institution').fill('Nubank')
   await dialog.getByLabel('Last four digits').fill('1234')
   await dialog.getByLabel('Limit').pressSequentially('500000')
+  await dialog.getByRole('button', { name: 'Icon: Card' }).click()
+  await dialog.getByRole('listbox', { name: 'Icon' }).getByRole('option', { name: 'Travel' }).click()
   await dialog.getByRole('button', { name: 'Save' }).click()
 
   await expect(page.getByText('Card created.')).toBeVisible()
@@ -36,6 +38,7 @@ test('owner creates card, sees its detail, and sends only non-sensitive payload'
     institution_name: 'Nubank',
     last_four: '1234',
     credit_limit_centavos: 500_000,
+    icon: 'travel',
   })
   expect(createPayload).not.toHaveProperty('number')
   expect(createPayload).not.toHaveProperty('cvv')
@@ -55,6 +58,7 @@ test('owner updates, archives, and finds card in archived history', async ({ pag
 
   await page.locator('[data-test="credit-card-edit"]').click()
   const editDialog = page.getByRole('dialog', { name: 'Edit card' })
+  await expect(editDialog.getByRole('button', { name: 'Icon: Card' })).toBeVisible()
   await editDialog.getByLabel('Card name').fill('Nubank Black')
   await editDialog.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByText('Card updated.')).toBeVisible()

@@ -17,9 +17,66 @@ test('authenticated user browses defaults and creates a personal category', asyn
   await page.getByRole('button', { name: 'New category' }).click()
   const dialog = page.getByRole('dialog', { name: 'New category' })
   await dialog.getByLabel('Category name').fill('Pet care')
+  await dialog.getByRole('button', { name: 'Icon (optional): Other' }).click()
+  await dialog.getByRole('textbox', { name: 'Search icons' }).fill('trAvel')
+  await dialog
+    .getByRole('listbox', { name: 'Icon (optional)' })
+    .getByRole('option', { name: 'Travel' })
+    .click()
   await dialog.getByRole('button', { name: 'Create category' }).click()
   await expect(page.getByText('Category created.')).toBeVisible()
   await expect(page.getByText('Pet care', { exact: true })).toBeVisible()
+  await expect(page.getByRole('img', { name: /Travel/ })).toBeVisible()
+  await page.getByRole('button', { name: 'Edit category' }).click()
+  await expect(
+    page
+      .getByRole('dialog', { name: 'Edit category' })
+      .getByRole('button', { name: 'Icon (optional): Travel' }),
+  ).toBeVisible()
+})
+
+test('icon picker stays in a compact dialog and supports keyboard selection', async ({ page }) => {
+  await mockApi(page, [])
+  await page.setViewportSize({ width: 320, height: 600 })
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await page.goto('/app/categories')
+  await page.getByRole('button', { name: 'New category' }).click()
+  const dialog = page.getByRole('dialog', { name: 'New category' })
+  const trigger = dialog.getByRole('button', { name: 'Icon (optional): Other' })
+  await trigger.focus()
+  await trigger.press('Enter')
+  const grid = dialog.getByRole('listbox', { name: 'Icon (optional)' })
+  await expect(grid).toBeVisible()
+  await expect(grid.getByRole('option', { name: 'Other' })).toBeInViewport({ ratio: 1 })
+  await expect(grid).toHaveCSS('--icon-picker-columns', '3')
+  const bounds = await grid.boundingBox()
+  expect(bounds.x).toBeGreaterThanOrEqual(0)
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(320)
+
+  const search = dialog.getByRole('textbox', { name: 'Search icons' })
+  await expect(search).toBeFocused()
+  await search.fill('travel')
+  await search.press('ArrowDown')
+  const travel = grid.getByRole('option', { name: 'Travel' })
+  await expect(travel).toBeFocused()
+  await travel.press('Escape')
+  await expect(trigger).toBeFocused()
+  await expect(grid).toBeHidden()
+
+  await trigger.press('Enter')
+  await dialog.getByRole('textbox', { name: 'Search icons' }).fill('travel')
+  await grid.getByRole('option', { name: 'Travel' }).press('Enter')
+  const selected = dialog.getByRole('button', { name: 'Icon (optional): Travel' })
+  await expect(selected).toBeFocused()
+
+  await page.setViewportSize({ width: 640, height: 700 })
+  await page.evaluate(() => {
+    document.documentElement.style.zoom = '2'
+  })
+  await selected.press('Enter')
+  const zoomedBounds = await grid.boundingBox()
+  expect(zoomedBounds.x).toBeGreaterThanOrEqual(0)
+  expect(zoomedBounds.x + zoomedBounds.width).toBeLessThanOrEqual(640)
 })
 
 test('category lifecycle remains keyboard reachable at compact width', async ({ page }) => {

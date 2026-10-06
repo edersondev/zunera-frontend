@@ -2,6 +2,7 @@
 import { computed, reactive, ref, shallowRef, watch } from 'vue'
 import { Check, CirclePlus } from '@element-plus/icons-vue'
 import CurrencyAmountInput from '@/components/common/CurrencyAmountInput.vue'
+import IconPicker from '@/components/common/IconPicker.vue'
 import {
   accountColorOptions,
   accountIconOptions,
@@ -54,7 +55,9 @@ const rules = computed(() => ({
       trigger: 'blur',
     },
   ],
-  accountType: [{ required: true, message: t('financialAccounts.typeRequired'), trigger: 'change' }],
+  accountType: [
+    { required: true, message: t('financialAccounts.typeRequired'), trigger: 'change' },
+  ],
 }))
 
 watch(
@@ -133,7 +136,11 @@ defineExpose({ resetCreateForm })
       </ElFormItem>
 
       <ElFormItem :label="t('financialAccounts.accountType')" prop="accountType">
-        <ElSelect v-model="form.accountType" name="account-type" :aria-label="t('financialAccounts.accountType')">
+        <ElSelect
+          v-model="form.accountType"
+          name="account-type"
+          :aria-label="t('financialAccounts.accountType')"
+        >
           <ElOption
             v-for="type in accountTypes"
             :key="type.value"
@@ -181,14 +188,12 @@ defineExpose({ resetCreateForm })
       </ElFormItem>
 
       <ElFormItem :label="t('financialAccounts.icon')" prop="icon">
-        <ElSelect v-model="form.icon" name="icon" :aria-label="t('financialAccounts.icon')">
-          <ElOption
-            v-for="icon in iconOptions"
-            :key="icon.value"
-            :label="icon.label"
-            :value="icon.value"
-          />
-        </ElSelect>
+        <IconPicker
+          v-model="form.icon"
+          name="icon"
+          :label="t('financialAccounts.icon')"
+          :options="iconOptions"
+        />
       </ElFormItem>
     </div>
 

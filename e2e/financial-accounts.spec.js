@@ -42,6 +42,12 @@ test('authenticated user creates and sees an active account', async ({ page }) =
   const openingBalance = createDialog.getByLabel('Opening balance')
   await openingBalance.pressSequentially('2032')
   await expect(openingBalance).toHaveValue('20.32')
+  await createDialog.getByRole('button', { name: 'Icon: Circle' }).click()
+  await createDialog
+    .getByRole('listbox', { name: 'Icon' })
+    .getByRole('option', { name: 'Cash' })
+    .click()
+  await expect(createDialog.getByRole('button', { name: 'Icon: Cash' })).toBeVisible()
   await createDialog.getByRole('button', { name: 'Create account' }).click()
 
   await expect(page.getByText('Financial account created.')).toBeVisible()
@@ -49,6 +55,7 @@ test('authenticated user creates and sees an active account', async ({ page }) =
   await expect(page.getByRole('button', { name: 'Conta principal' })).toBeVisible()
   await expect(page.getByText('R$20.32').first()).toBeVisible()
   expect(createPayload.initial_balance_centavos).toBe(2_032)
+  expect(createPayload.icon).toBe('cash')
 
   await page.getByRole('button', { name: 'Archive', exact: true }).click()
   const archiveDialog = page.getByRole('dialog', { name: 'Archive account' })
@@ -72,6 +79,7 @@ test('owner opens the edit dialog from the active account list and updates the n
 
   await page.getByRole('button', { name: 'Conta principal' }).click()
   const editDialog = page.getByRole('dialog', { name: 'Edit account' })
+  await expect(editDialog.getByRole('button', { name: 'Icon: Wallet' })).toBeVisible()
   await editDialog.getByLabel('Account name').fill('Conta nova')
   await editDialog.getByRole('button', { name: 'Save changes' }).click()
 

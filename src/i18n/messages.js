@@ -1,5 +1,6 @@
 export const messages = {
   'pt-BR': {
+    iconPicker: { search: 'Buscar ícones', noResults: 'Nenhum ícone encontrado.' },
     goals: {
       title: 'Metas financeiras', description: 'Separe dinheiro para seus planos sem alterar o saldo das contas.',
       new: 'Nova meta', edit: 'Editar meta', create: 'Criar meta', save: 'Salvar alterações',
@@ -607,6 +608,10 @@ export const messages = {
         wallet: 'Carteira',
         smartphone: 'Celular',
         circle: 'Círculo',
+        shopping_bag: 'Compras',
+        travel: 'Viagem',
+        subscription: 'Assinatura',
+        gift: 'Presente',
       },
       statementStatus: {
         open: 'Aberta',
@@ -773,6 +778,9 @@ export const messages = {
         chart: 'Gráfico',
         smartphone: 'Celular',
         circle: 'Círculo',
+        credit_card: 'Cartão',
+        cash: 'Dinheiro',
+        briefcase: 'Trabalho',
       },
     },
     categories: {
@@ -843,6 +851,14 @@ export const messages = {
         chart: 'Investimentos',
         gift: 'Presentes',
         refund: 'Reembolsos',
+        bank: 'Banco',
+        piggy_bank: 'Cofrinho',
+        credit_card: 'Cartão',
+        smartphone: 'Celular',
+        cash: 'Dinheiro',
+        travel: 'Viagem',
+        subscription: 'Assinaturas',
+        utilities: 'Serviços públicos',
       },
     },
     transactions: {
@@ -1169,6 +1185,7 @@ export const messages = {
     },
   },
   en: {
+    iconPicker: { search: 'Search icons', noResults: 'No icons found.' },
     goals: {
       title: 'Financial goals', description: 'Designate money for plans without changing account balances.',
       new: 'New goal', edit: 'Edit goal', create: 'Create goal', save: 'Save changes',
@@ -1771,6 +1788,10 @@ export const messages = {
         wallet: 'Wallet',
         smartphone: 'Phone',
         circle: 'Circle',
+        shopping_bag: 'Shopping',
+        travel: 'Travel',
+        subscription: 'Subscription',
+        gift: 'Gift',
       },
       statementStatus: {
         open: 'Open',
@@ -1937,6 +1958,9 @@ export const messages = {
         chart: 'Chart',
         smartphone: 'Mobile phone',
         circle: 'Circle',
+        credit_card: 'Card',
+        cash: 'Cash',
+        briefcase: 'Work',
       },
     },
     categories: {
@@ -2005,6 +2029,14 @@ export const messages = {
         chart: 'Investments',
         gift: 'Gifts',
         refund: 'Refunds',
+        bank: 'Bank',
+        piggy_bank: 'Piggy bank',
+        credit_card: 'Card',
+        smartphone: 'Phone',
+        cash: 'Cash',
+        travel: 'Travel',
+        subscription: 'Subscriptions',
+        utilities: 'Utilities',
       },
     },
     transactions: {

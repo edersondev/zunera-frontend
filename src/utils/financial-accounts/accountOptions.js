@@ -1,3 +1,5 @@
+import { ICON_CONTEXTS, iconOptions } from '@/utils/icons/iconRegistry'
+
 export const ACCOUNT_TYPES = Object.freeze([
   'checking',
   'savings',
@@ -9,14 +11,7 @@ export const ACCOUNT_TYPES = Object.freeze([
 
 export const ACCOUNT_COLORS = Object.freeze(['teal', 'blue', 'violet', 'amber', 'rose', 'cyan'])
 
-export const ACCOUNT_ICONS = Object.freeze([
-  'bank',
-  'piggy_bank',
-  'wallet',
-  'chart',
-  'smartphone',
-  'circle',
-])
+export const ACCOUNT_ICONS = ICON_CONTEXTS.financialAccounts
 
 function localizedOptions(values, keyPrefix, t) {
   return values.map((value) => ({ value, label: t(`${keyPrefix}.${value}`) }))
@@ -31,7 +26,7 @@ export function accountColorOptions(t) {
 }
 
 export function accountIconOptions(t) {
-  return localizedOptions(ACCOUNT_ICONS, 'financialAccounts.icons', t)
+  return iconOptions('financialAccounts', t)
 }
 
 export function accountTypeLabel(value, t) {

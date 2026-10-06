@@ -6,6 +6,7 @@ import {
   categoryIconOptions,
 } from '@/utils/categories/categoryOptions'
 import { useI18n } from 'vue-i18n'
+import IconPicker from '@/components/common/IconPicker.vue'
 
 const props = defineProps({
   category: { type: Object, default: null },
@@ -30,7 +31,9 @@ const rules = computed(() => ({
       trigger: 'blur',
     },
   ],
-  classification: [{ required: true, message: t('categories.classificationRequired'), trigger: 'change' }],
+  classification: [
+    { required: true, message: t('categories.classificationRequired'), trigger: 'change' },
+  ],
 }))
 
 watch(
@@ -108,14 +111,14 @@ defineExpose({ resetCreateForm })
             :label="item.label"
             :value="item.value" /></ElSelect
       ></ElFormItem>
-      <ElFormItem :label="t('categories.icon')"
-        ><ElSelect v-model="form.icon" name="category-icon" :aria-label="t('categories.icon')"
-          ><ElOption
-            v-for="item in iconOptions"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value" /></ElSelect
-      ></ElFormItem>
+      <ElFormItem :label="t('categories.icon')">
+        <IconPicker
+          v-model="form.icon"
+          name="category-icon"
+          :label="t('categories.icon')"
+          :options="iconOptions"
+        />
+      </ElFormItem>
     </div>
     <ElButton
       v-if="props.showSubmit"
