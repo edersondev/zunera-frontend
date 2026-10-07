@@ -2,11 +2,11 @@
 import { computed, reactive, shallowRef, watch } from 'vue'
 import {
   categoryClassificationOptions,
-  categoryColorOptions,
   categoryIconOptions,
 } from '@/utils/categories/categoryOptions'
 import { useI18n } from 'vue-i18n'
 import IconPicker from '@/components/common/IconPicker.vue'
+import ColorPicker from '@/components/common/ColorPicker.vue'
 
 const props = defineProps({
   category: { type: Object, default: null },
@@ -17,9 +17,8 @@ const props = defineProps({
 const emit = defineEmits(['submit'])
 const { t } = useI18n()
 const formRef = shallowRef(null)
-const form = reactive({ name: '', classification: 'expense', color: 'teal', icon: 'circle' })
+const form = reactive({ name: '', classification: 'expense', color: 'cyan', icon: 'circle' })
 const classificationOptions = computed(() => categoryClassificationOptions(t))
-const colorOptions = computed(() => categoryColorOptions(t))
 const iconOptions = computed(() => categoryIconOptions(t))
 const rules = computed(() => ({
   name: [
@@ -41,7 +40,7 @@ watch(
   (category) => {
     form.name = category?.name ?? ''
     form.classification = category?.classification ?? 'expense'
-    form.color = category?.color ?? 'teal'
+    form.color = category?.color ?? 'cyan'
     form.icon = category?.icon ?? 'circle'
   },
   { immediate: true },
@@ -50,7 +49,7 @@ watch(
 function resetCreateForm() {
   form.name = ''
   form.classification = 'expense'
-  form.color = 'teal'
+  form.color = 'cyan'
   form.icon = 'circle'
 }
 async function submit() {
@@ -103,14 +102,9 @@ defineExpose({ resetCreateForm })
       </ElFormItem>
     </div>
     <div class="form-row">
-      <ElFormItem :label="t('categories.color')"
-        ><ElSelect v-model="form.color" name="category-color" :aria-label="t('categories.color')"
-          ><ElOption
-            v-for="item in colorOptions"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value" /></ElSelect
-      ></ElFormItem>
+      <ElFormItem :label="t('categories.color')">
+        <ColorPicker v-model="form.color" name="category-color" :label="t('categories.color')" />
+      </ElFormItem>
       <ElFormItem :label="t('categories.icon')">
         <IconPicker
           v-model="form.icon"

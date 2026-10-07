@@ -1,11 +1,12 @@
+import { COLOR_VALUES, colorLabel, colorStyle } from '@/utils/colors/colorPalette'
 import { ICON_COMPONENTS, ICON_CONTEXTS, iconLabel } from '@/utils/icons/iconRegistry'
 
-export const CREDIT_CARD_COLORS = Object.freeze(['teal', 'blue', 'violet', 'amber', 'rose', 'cyan'])
+export const CREDIT_CARD_COLORS = COLOR_VALUES
 export const CREDIT_CARD_ICONS = ICON_CONTEXTS.creditCards
 export const CREDIT_CARD_ICON_COMPONENTS = ICON_COMPONENTS
 
 export function creditCardColorLabel(value, t) {
-  return CREDIT_CARD_COLORS.includes(value) ? t(`creditCards.colors.${value}`) : value
+  return colorLabel(value, t)
 }
 
 export function creditCardIconLabel(value, t) {
@@ -13,5 +14,5 @@ export function creditCardIconLabel(value, t) {
 }
 
 export function creditCardColorStyle(color) {
-  return { backgroundColor: `var(--chart-${color}, var(--color-surface-tertiary))` }
+  return colorStyle(color)
 }

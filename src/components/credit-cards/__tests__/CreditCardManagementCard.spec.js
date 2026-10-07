@@ -44,7 +44,7 @@ describe('CreditCardManagementCard', () => {
     expect(wrapper.get('[data-test="credit-card-current-statement-41"]').text()).toContain('400,00')
     expect(wrapper.get('[data-test="credit-utilization-percent"]').text()).toBe('25%')
     expect(wrapper.get('[data-test="credit-card-appearance"]').attributes('style')).toContain(
-      'var(--chart-violet',
+      'var(--palette-violet',
     )
     expect(wrapper.get('[data-test="credit-card-appearance"]').attributes('aria-label')).toContain('Violet')
 

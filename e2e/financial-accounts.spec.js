@@ -42,6 +42,15 @@ test('authenticated user creates and sees an active account', async ({ page }) =
   const openingBalance = createDialog.getByLabel('Opening balance')
   await openingBalance.pressSequentially('2032')
   await expect(openingBalance).toHaveValue('20.32')
+  await createDialog.getByRole('button', { name: 'Color: Cyan' }).click()
+  const colorGrid = createDialog.getByRole('listbox', { name: 'Color' })
+  await expect(colorGrid.getByRole('option')).toHaveCount(10)
+  await expect(colorGrid).toHaveCSS('--color-picker-columns', '5')
+  const brown = colorGrid.getByRole('option', { name: 'Brown' })
+  await brown.hover()
+  await expect(brown.locator('.color-picker-option__tooltip')).toBeVisible()
+  await brown.click()
+  await expect(createDialog.getByRole('button', { name: 'Color: Brown' })).toBeVisible()
   await createDialog.getByRole('button', { name: 'Icon: Circle' }).click()
   await createDialog
     .getByRole('listbox', { name: 'Icon' })
@@ -56,6 +65,7 @@ test('authenticated user creates and sees an active account', async ({ page }) =
   await expect(page.getByText('R$20.32').first()).toBeVisible()
   expect(createPayload.initial_balance_centavos).toBe(2_032)
   expect(createPayload.icon).toBe('cash')
+  expect(createPayload.color).toBe('brown')
 
   await page.getByRole('button', { name: 'Archive', exact: true }).click()
   const archiveDialog = page.getByRole('dialog', { name: 'Archive account' })
@@ -71,7 +81,14 @@ test('owner opens the edit dialog from the active account list and updates the n
   page,
 }) => {
   const account = financialAccount(7, 'Conta principal', 'active')
-  await mockApi(page, { accounts: [account], updatedName: 'Conta nova' })
+  let updatePayload = null
+  await mockApi(page, {
+    accounts: [account],
+    updatedName: 'Conta nova',
+    onUpdate: (payload) => {
+      updatePayload = payload
+    },
+  })
 
   await page.goto('/app/financial-accounts')
   await expect(page.getByRole('button', { name: 'Conta principal' })).toBeVisible()
@@ -80,11 +97,17 @@ test('owner opens the edit dialog from the active account list and updates the n
   await page.getByRole('button', { name: 'Conta principal' }).click()
   const editDialog = page.getByRole('dialog', { name: 'Edit account' })
   await expect(editDialog.getByRole('button', { name: 'Icon: Wallet' })).toBeVisible()
+  await editDialog.getByRole('button', { name: 'Color: Cyan' }).click()
+  await expect(
+    editDialog.getByRole('listbox', { name: 'Color' }).getByRole('option', { name: 'Cyan' }),
+  ).toHaveAttribute('aria-selected', 'true')
+  await editDialog.getByRole('option', { name: 'Cyan' }).press('Escape')
   await editDialog.getByLabel('Account name').fill('Conta nova')
   await editDialog.getByRole('button', { name: 'Save changes' }).click()
 
   await expect(page.getByText('Account details saved.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Conta nova' })).toBeVisible()
+  expect(updatePayload.color).toBe('teal')
 })
 
 test('owner archives and restores an account with isolated state', async ({ page }) => {
@@ -201,6 +224,7 @@ async function mockApi(page, options) {
     }
 
     if (request.method() === 'PATCH') {
+      options.onUpdate?.(request.postDataJSON())
       const updated = { ...options.accounts[0], name: options.updatedName }
       return route.fulfill({ json: { data: updated }, headers: apiHeaders() })
     }
@@ -239,6 +263,7 @@ async function mockApi(page, options) {
       options.onCreate?.(payload)
       const account = financialAccount(20, payload.name, 'active', {
         institution_name: payload.institution_name,
+        color: payload.color,
         initial_balance_centavos: payload.initial_balance_centavos,
         current_balance_centavos: payload.initial_balance_centavos,
       })

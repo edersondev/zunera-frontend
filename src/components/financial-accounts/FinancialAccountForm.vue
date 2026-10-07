@@ -3,11 +3,8 @@ import { computed, reactive, ref, shallowRef, watch } from 'vue'
 import { Check, CirclePlus } from '@element-plus/icons-vue'
 import CurrencyAmountInput from '@/components/common/CurrencyAmountInput.vue'
 import IconPicker from '@/components/common/IconPicker.vue'
-import {
-  accountColorOptions,
-  accountIconOptions,
-  accountTypeOptions,
-} from '@/utils/financial-accounts/accountOptions'
+import ColorPicker from '@/components/common/ColorPicker.vue'
+import { accountIconOptions, accountTypeOptions } from '@/utils/financial-accounts/accountOptions'
 import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
@@ -33,13 +30,12 @@ const emit = defineEmits(['submit'])
 const { t } = useI18n()
 const formRef = shallowRef(null)
 const accountTypes = computed(() => accountTypeOptions(t))
-const colorOptions = computed(() => accountColorOptions(t))
 const iconOptions = computed(() => accountIconOptions(t))
 const form = reactive({
   name: '',
   accountType: 'checking',
   institutionName: '',
-  color: 'teal',
+  color: 'cyan',
   icon: 'circle',
   initialBalanceCentavos: null,
 })
@@ -70,7 +66,7 @@ watch(
     form.name = account.name ?? ''
     form.accountType = account.account_type ?? 'checking'
     form.institutionName = account.institution_name ?? ''
-    form.color = account.color ?? 'teal'
+    form.color = account.color ?? 'cyan'
     form.icon = account.icon ?? 'circle'
     form.initialBalanceCentavos = account.initial_balance_centavos ?? 0
     initialBalanceLocked.value = Boolean(account.has_financial_movements)
@@ -82,7 +78,7 @@ function resetCreateForm() {
   form.name = ''
   form.accountType = 'checking'
   form.institutionName = ''
-  form.color = 'teal'
+  form.color = 'cyan'
   form.icon = 'circle'
   form.initialBalanceCentavos = null
   initialBalanceLocked.value = false
@@ -177,14 +173,7 @@ defineExpose({ resetCreateForm })
 
     <div class="form-row">
       <ElFormItem :label="t('financialAccounts.color')" prop="color">
-        <ElSelect v-model="form.color" name="color" :aria-label="t('financialAccounts.color')">
-          <ElOption
-            v-for="color in colorOptions"
-            :key="color.value"
-            :label="color.label"
-            :value="color.value"
-          />
-        </ElSelect>
+        <ColorPicker v-model="form.color" name="color" :label="t('financialAccounts.color')" />
       </ElFormItem>
 
       <ElFormItem :label="t('financialAccounts.icon')" prop="icon">
