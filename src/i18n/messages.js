@@ -1,6 +1,8 @@
 export const messages = {
   'pt-BR': {
     iconPicker: { search: 'Buscar ícones', noResults: 'Nenhum ícone encontrado.' },
+    colorPicker: { choose: 'Escolha uma cor', selected: 'Selecionada: {color}' },
+    colors: { teal: 'Verde-azulado', blue: 'Azul', indigo: 'Índigo', violet: 'Violeta', purple: 'Roxo', pink: 'Rosa-claro', rose: 'Rosa', red: 'Vermelho', orange: 'Laranja', amber: 'Âmbar', lime: 'Lima', green: 'Verde', emerald: 'Esmeralda', cyan: 'Ciano', sky: 'Azul-celeste', slate: 'Cinza-ardósia' },
     goals: {
       title: 'Metas financeiras', description: 'Separe dinheiro para seus planos sem alterar o saldo das contas.',
       new: 'Nova meta', edit: 'Editar meta', create: 'Criar meta', save: 'Salvar alterações',
@@ -594,14 +596,6 @@ export const messages = {
         color: 'Cor',
         icon: 'Ícone',
       },
-      colors: {
-        teal: 'Verde-azulado',
-        blue: 'Azul',
-        violet: 'Violeta',
-        amber: 'Âmbar',
-        rose: 'Rosa',
-        cyan: 'Ciano',
-      },
       icons: {
         credit_card: 'Cartão',
         bank: 'Banco',
@@ -763,14 +757,6 @@ export const messages = {
         digital: 'Conta digital',
         other: 'Outro',
       },
-      colors: {
-        teal: 'Verde-azulado',
-        blue: 'Azul',
-        violet: 'Violeta',
-        amber: 'Âmbar',
-        rose: 'Rosa',
-        cyan: 'Ciano',
-      },
       icons: {
         bank: 'Banco',
         piggy_bank: 'Cofrinho',
@@ -827,14 +813,6 @@ export const messages = {
       archivedDescription:
         'Categorias arquivadas ficam disponíveis para relatórios históricos e podem ser restauradas.',
       classifications: { income: 'Receita', expense: 'Despesa' },
-      colors: {
-        teal: 'Verde-azulado',
-        blue: 'Azul',
-        violet: 'Violeta',
-        amber: 'Âmbar',
-        rose: 'Rosa',
-        cyan: 'Ciano',
-      },
       icons: {
         home: 'Casa',
         utensils: 'Alimentação',
@@ -1186,6 +1164,8 @@ export const messages = {
   },
   en: {
     iconPicker: { search: 'Search icons', noResults: 'No icons found.' },
+    colorPicker: { choose: 'Choose a color', selected: 'Selected: {color}' },
+    colors: { teal: 'Teal', blue: 'Blue', indigo: 'Indigo', violet: 'Violet', purple: 'Purple', pink: 'Pink', rose: 'Rose', red: 'Red', orange: 'Orange', amber: 'Amber', lime: 'Lime', green: 'Green', emerald: 'Emerald', cyan: 'Cyan', sky: 'Sky', slate: 'Slate' },
     goals: {
       title: 'Financial goals', description: 'Designate money for plans without changing account balances.',
       new: 'New goal', edit: 'Edit goal', create: 'Create goal', save: 'Save changes',
@@ -1774,14 +1754,6 @@ export const messages = {
         color: 'Colour',
         icon: 'Icon',
       },
-      colors: {
-        teal: 'Teal',
-        blue: 'Blue',
-        violet: 'Violet',
-        amber: 'Amber',
-        rose: 'Rose',
-        cyan: 'Cyan',
-      },
       icons: {
         credit_card: 'Card',
         bank: 'Bank',
@@ -1943,14 +1915,6 @@ export const messages = {
         digital: 'Digital account',
         other: 'Other',
       },
-      colors: {
-        teal: 'Teal',
-        blue: 'Blue',
-        violet: 'Violet',
-        amber: 'Amber',
-        rose: 'Rose',
-        cyan: 'Cyan',
-      },
       icons: {
         bank: 'Bank',
         piggy_bank: 'Piggy bank',
@@ -2005,14 +1969,6 @@ export const messages = {
       archivedDescription:
         'Archived categories remain available for historical reporting and can be restored.',
       classifications: { income: 'Income', expense: 'Expense' },
-      colors: {
-        teal: 'Teal',
-        blue: 'Blue',
-        violet: 'Violet',
-        amber: 'Amber',
-        rose: 'Rose',
-        cyan: 'Cyan',
-      },
       icons: {
         home: 'Home',
         utensils: 'Food',

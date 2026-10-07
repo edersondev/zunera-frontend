@@ -26,6 +26,9 @@ test('owner creates card, sees its detail, and sends only non-sensitive payload'
   await dialog.getByLabel('Institution').fill('Nubank')
   await dialog.getByLabel('Last four digits').fill('1234')
   await dialog.getByLabel('Limit').pressSequentially('500000')
+  await dialog.getByRole('button', { name: 'Colour: Violet' }).click()
+  await dialog.getByRole('listbox', { name: 'Colour' }).getByRole('option', { name: 'Purple' }).click()
+  await expect(dialog.getByRole('button', { name: 'Colour: Purple' })).toBeVisible()
   await dialog.getByRole('button', { name: 'Icon: Card' }).click()
   await dialog.getByRole('listbox', { name: 'Icon' }).getByRole('option', { name: 'Travel' }).click()
   await dialog.getByRole('button', { name: 'Save' }).click()
@@ -39,6 +42,7 @@ test('owner creates card, sees its detail, and sends only non-sensitive payload'
     last_four: '1234',
     credit_limit_centavos: 500_000,
     icon: 'travel',
+    color: 'purple',
   })
   expect(createPayload).not.toHaveProperty('number')
   expect(createPayload).not.toHaveProperty('cvv')

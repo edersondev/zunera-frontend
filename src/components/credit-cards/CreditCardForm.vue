@@ -9,15 +9,13 @@ import {
   ElFormItem,
   ElInput,
   ElInputNumber,
-  ElOption,
   ElRow,
-  ElSelect,
 } from 'element-plus'
 import { Check, Close } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import CurrencyAmountInput from '@/components/common/CurrencyAmountInput.vue'
 import IconPicker from '@/components/common/IconPicker.vue'
-import { CREDIT_CARD_COLORS } from '@/utils/credit-cards/creditCardAppearance'
+import ColorPicker from '@/components/common/ColorPicker.vue'
 import { iconOptions } from '@/utils/icons/iconRegistry'
 import { availableCreditPresentation } from '@/utils/credit-cards/creditCardFormatters'
 
@@ -199,14 +197,11 @@ defineExpose({ resetCreateForm })
       <ElRow :gutter="16">
         <ElCol :xs="24" :md="12">
           <ElFormItem :label="t('creditCards.form.color')" :error="fieldErrors.color?.[0]">
-            <ElSelect v-model="form.color" data-test="credit-card-color">
-              <ElOption
-                v-for="color in CREDIT_CARD_COLORS"
-                :key="color"
-                :label="t(`creditCards.colors.${color}`)"
-                :value="color"
-              />
-            </ElSelect>
+            <ColorPicker
+              v-model="form.color"
+              test-id="credit-card-color"
+              :label="t('creditCards.form.color')"
+            />
           </ElFormItem>
         </ElCol>
 

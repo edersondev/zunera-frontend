@@ -20,6 +20,7 @@ describe('CategoryForm', () => {
           ElSelect: { template: '<select><slot /></select>' },
           ElOption: true,
           ElButton: { template: '<button><slot /></button>' },
+          ColorPicker: { props: ['modelValue'], template: '<div data-test="color-picker">{{ modelValue }}</div>' },
         },
       },
     })
@@ -52,6 +53,7 @@ describe('CategoryForm', () => {
           ElSelect: { template: '<select><slot /></select>' },
           ElOption: true,
           ElButton: { template: '<button><slot /></button>' },
+          ColorPicker: { props: ['modelValue'], template: '<div data-test="color-picker">{{ modelValue }}</div>' },
         },
       },
     })

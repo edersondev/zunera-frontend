@@ -42,6 +42,14 @@ test('authenticated user creates and sees an active account', async ({ page }) =
   const openingBalance = createDialog.getByLabel('Opening balance')
   await openingBalance.pressSequentially('2032')
   await expect(openingBalance).toHaveValue('20.32')
+  await createDialog.getByRole('button', { name: 'Color: Teal' }).click()
+  const colorGrid = createDialog.getByRole('listbox', { name: 'Color' })
+  await expect(colorGrid.getByRole('option')).toHaveCount(16)
+  const indigo = colorGrid.getByRole('option', { name: 'Indigo' })
+  await indigo.hover()
+  await expect(indigo.locator('.color-picker-option__tooltip')).toBeVisible()
+  await indigo.click()
+  await expect(createDialog.getByRole('button', { name: 'Color: Indigo' })).toBeVisible()
   await createDialog.getByRole('button', { name: 'Icon: Circle' }).click()
   await createDialog
     .getByRole('listbox', { name: 'Icon' })
@@ -56,6 +64,7 @@ test('authenticated user creates and sees an active account', async ({ page }) =
   await expect(page.getByText('R$20.32').first()).toBeVisible()
   expect(createPayload.initial_balance_centavos).toBe(2_032)
   expect(createPayload.icon).toBe('cash')
+  expect(createPayload.color).toBe('indigo')
 
   await page.getByRole('button', { name: 'Archive', exact: true }).click()
   const archiveDialog = page.getByRole('dialog', { name: 'Archive account' })
@@ -239,6 +248,7 @@ async function mockApi(page, options) {
       options.onCreate?.(payload)
       const account = financialAccount(20, payload.name, 'active', {
         institution_name: payload.institution_name,
+        color: payload.color,
         initial_balance_centavos: payload.initial_balance_centavos,
         current_balance_centavos: payload.initial_balance_centavos,
       })

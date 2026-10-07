@@ -76,7 +76,7 @@ describe('CategoryList', () => {
     const categoryColor = wrapper.find('[aria-label="Âmbar, Alimentação"]')
 
     expect(categoryColor.find('svg').exists()).toBe(true)
-    expect(categoryColor.attributes('style')).toContain('var(--chart-amber')
+    expect(categoryColor.attributes('style')).toContain('var(--palette-amber')
 
     wrapper.findComponent(ElTabsStub).vm.$emit('update:modelValue', 'expense')
     await nextTick()
