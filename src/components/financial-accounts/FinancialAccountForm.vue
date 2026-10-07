@@ -35,7 +35,7 @@ const form = reactive({
   name: '',
   accountType: 'checking',
   institutionName: '',
-  color: 'teal',
+  color: 'cyan',
   icon: 'circle',
   initialBalanceCentavos: null,
 })
@@ -66,7 +66,7 @@ watch(
     form.name = account.name ?? ''
     form.accountType = account.account_type ?? 'checking'
     form.institutionName = account.institution_name ?? ''
-    form.color = account.color ?? 'teal'
+    form.color = account.color ?? 'cyan'
     form.icon = account.icon ?? 'circle'
     form.initialBalanceCentavos = account.initial_balance_centavos ?? 0
     initialBalanceLocked.value = Boolean(account.has_financial_movements)
@@ -78,7 +78,7 @@ function resetCreateForm() {
   form.name = ''
   form.accountType = 'checking'
   form.institutionName = ''
-  form.color = 'teal'
+  form.color = 'cyan'
   form.icon = 'circle'
   form.initialBalanceCentavos = null
   initialBalanceLocked.value = false

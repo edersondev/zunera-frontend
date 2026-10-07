@@ -3,7 +3,13 @@ import { computed, nextTick, onBeforeUnmount, onMounted, shallowRef, useId, watc
 import { ArrowDown, Check } from '@element-plus/icons-vue'
 import { ElIcon, ElPopover } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import { COLOR_VALUES, colorLabel, colorOptions, colorStyle } from '@/utils/colors/colorPalette'
+import {
+  COLOR_VALUES,
+  colorLabel,
+  colorOptions,
+  colorStyle,
+  presentationColor,
+} from '@/utils/colors/colorPalette'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -22,9 +28,12 @@ const panelWidth = shallowRef(336)
 const appendTarget = shallowRef('body')
 const listboxId = useId()
 const options = computed(() => colorOptions(t))
+const presentedColor = computed(() => presentationColor(props.modelValue))
 const selectedLabel = computed(() => colorLabel(props.modelValue, t) || '')
 const selectedStyle = computed(() => colorStyle(props.modelValue))
-const columns = computed(() => (panelWidth.value >= 320 ? 4 : panelWidth.value >= 200 ? 3 : 2))
+const columns = computed(() =>
+  panelWidth.value >= 260 ? 5 : panelWidth.value >= 212 ? 4 : panelWidth.value >= 164 ? 3 : 2,
+)
 let resizeObserver
 
 function measure() {
@@ -44,7 +53,7 @@ function measure() {
 async function open() {
   if (props.disabled || isOpen.value) return
   measure()
-  activeIndex.value = Math.max(0, COLOR_VALUES.indexOf(props.modelValue))
+  activeIndex.value = Math.max(0, COLOR_VALUES.indexOf(presentedColor.value))
   isOpen.value = true
   await nextTick()
   requestAnimationFrame(() => {
@@ -208,9 +217,9 @@ onBeforeUnmount(() => {
           type="button"
           role="option"
           class="color-picker-option"
-          :class="{ 'is-selected': option.value === modelValue }"
+          :class="{ 'is-selected': option.value === presentedColor }"
           :aria-label="option.label"
-          :aria-selected="option.value === modelValue"
+          :aria-selected="option.value === presentedColor"
           :tabindex="index === activeIndex ? 0 : -1"
           @click="choose(option.value)"
           @focus="activeIndex = index"
@@ -221,7 +230,7 @@ onBeforeUnmount(() => {
             :style="colorStyle(option.value)"
             aria-hidden="true"
           >
-            <span v-if="option.value === modelValue" class="color-picker-option__check">
+            <span v-if="option.value === presentedColor" class="color-picker-option__check">
               <ElIcon><Check /></ElIcon>
             </span>
           </span>
@@ -380,7 +389,7 @@ onBeforeUnmount(() => {
   transform: translateX(-50%);
 }
 .color-picker-option:hover .color-picker-option__tooltip,
-.color-picker-option:focus-visible .color-picker-option__tooltip {
+.color-picker-option:focus .color-picker-option__tooltip {
   opacity: 1;
   visibility: visible;
 }

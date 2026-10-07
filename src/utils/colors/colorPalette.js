@@ -1,34 +1,45 @@
 export const COLOR_VALUES = Object.freeze([
-  'teal',
   'blue',
-  'indigo',
   'violet',
-  'purple',
   'pink',
-  'rose',
   'red',
   'orange',
-  'amber',
-  'lime',
+  'yellow',
   'green',
-  'emerald',
   'cyan',
-  'sky',
-  'slate',
+  'brown',
+  'gray',
 ])
+
+export const LEGACY_COLOR_ALIASES = Object.freeze({
+  indigo: 'blue',
+  purple: 'violet',
+  amber: 'orange',
+  lime: 'green',
+  emerald: 'green',
+  sky: 'cyan',
+  teal: 'cyan',
+  rose: 'pink',
+  slate: 'gray',
+})
+
+export function presentationColor(value) {
+  if (COLOR_VALUES.includes(value)) return value
+  return Object.hasOwn(LEGACY_COLOR_ALIASES, value) ? LEGACY_COLOR_ALIASES[value] : null
+}
 
 export function colorOptions(t) {
   return COLOR_VALUES.map((value) => ({ value, label: t(`colors.${value}`) }))
 }
 
 export function colorLabel(value, t) {
-  return COLOR_VALUES.includes(value) ? t(`colors.${value}`) : value
+  const presented = presentationColor(value)
+  return presented ? t(`colors.${presented}`) : value
 }
 
 export function colorStyle(value) {
+  const presented = presentationColor(value)
   return {
-    backgroundColor: COLOR_VALUES.includes(value)
-      ? `var(--palette-${value})`
-      : 'var(--color-surface-tertiary)',
+    backgroundColor: presented ? `var(--palette-${presented})` : 'var(--color-surface-tertiary)',
   }
 }

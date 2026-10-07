@@ -17,7 +17,7 @@ const props = defineProps({
 const emit = defineEmits(['submit'])
 const { t } = useI18n()
 const formRef = shallowRef(null)
-const form = reactive({ name: '', classification: 'expense', color: 'teal', icon: 'circle' })
+const form = reactive({ name: '', classification: 'expense', color: 'cyan', icon: 'circle' })
 const classificationOptions = computed(() => categoryClassificationOptions(t))
 const iconOptions = computed(() => categoryIconOptions(t))
 const rules = computed(() => ({
@@ -40,7 +40,7 @@ watch(
   (category) => {
     form.name = category?.name ?? ''
     form.classification = category?.classification ?? 'expense'
-    form.color = category?.color ?? 'teal'
+    form.color = category?.color ?? 'cyan'
     form.icon = category?.icon ?? 'circle'
   },
   { immediate: true },
@@ -49,7 +49,7 @@ watch(
 function resetCreateForm() {
   form.name = ''
   form.classification = 'expense'
-  form.color = 'teal'
+  form.color = 'cyan'
   form.icon = 'circle'
 }
 async function submit() {

@@ -73,10 +73,10 @@ describe('CategoryList', () => {
       wrapper.findAll('[data-tab-name]').map((tab) => tab.attributes('data-tab-name')),
     ).toEqual(['all', 'expense', 'income'])
     expect(wrapper.find('[data-tag-type="danger"]').text()).toBe('Despesa')
-    const categoryColor = wrapper.find('[aria-label="Âmbar, Alimentação"]')
+    const categoryColor = wrapper.find('[aria-label="Laranja, Alimentação"]')
 
     expect(categoryColor.find('svg').exists()).toBe(true)
-    expect(categoryColor.attributes('style')).toContain('var(--palette-amber')
+    expect(categoryColor.attributes('style')).toContain('var(--palette-orange')
 
     wrapper.findComponent(ElTabsStub).vm.$emit('update:modelValue', 'expense')
     await nextTick()
