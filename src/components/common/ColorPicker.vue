@@ -81,6 +81,10 @@ function onTriggerKeydown(event) {
   if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
     event.preventDefault()
     open()
+  } else if (event.key === 'Escape' && isOpen.value) {
+    event.preventDefault()
+    event.stopPropagation()
+    close(true)
   }
 }
 

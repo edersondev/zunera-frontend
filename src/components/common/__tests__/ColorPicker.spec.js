@@ -12,9 +12,10 @@ const stubs = {
   ElIcon: { template: '<i><slot /></i>' },
 }
 
-function picker(value = 'cyan') {
+function picker(value = 'cyan', attachTo) {
   i18n.global.locale.value = 'pt-BR'
   return mount(ColorPicker, {
+    attachTo,
     props: { modelValue: value, label: 'Cor' },
     global: { plugins: [i18n], stubs },
   })
@@ -46,6 +47,18 @@ describe('ColorPicker', () => {
     await wrapper.findAll('[role="option"]')[1].trigger('keydown', { key: ' ' })
     expect(wrapper.emitted('update:modelValue')).toEqual([['violet']])
     expect(wrapper.get('.color-picker-trigger').attributes('aria-expanded')).toBe('false')
+  })
+
+  it('closes on Escape when the open palette trigger has focus', async () => {
+    const wrapper = picker('cyan', document.body)
+    const trigger = wrapper.get('.color-picker-trigger')
+    await trigger.trigger('click')
+    trigger.element.focus()
+    expect(document.activeElement).toBe(trigger.element)
+    await trigger.trigger('keydown', { key: 'Escape' })
+    expect(trigger.attributes('aria-expanded')).toBe('false')
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    wrapper.unmount()
   })
 
   it('uses five columns on normal widths and two at very narrow widths', async () => {
