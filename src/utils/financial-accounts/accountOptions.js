@@ -1,3 +1,4 @@
+import { COLOR_VALUES, colorOptions } from '@/utils/colors/colorPalette'
 import { ICON_CONTEXTS, iconOptions } from '@/utils/icons/iconRegistry'
 
 export const ACCOUNT_TYPES = Object.freeze([
@@ -9,7 +10,7 @@ export const ACCOUNT_TYPES = Object.freeze([
   'other',
 ])
 
-export const ACCOUNT_COLORS = Object.freeze(['teal', 'blue', 'violet', 'amber', 'rose', 'cyan'])
+export const ACCOUNT_COLORS = COLOR_VALUES
 
 export const ACCOUNT_ICONS = ICON_CONTEXTS.financialAccounts
 
@@ -22,7 +23,7 @@ export function accountTypeOptions(t) {
 }
 
 export function accountColorOptions(t) {
-  return localizedOptions(ACCOUNT_COLORS, 'financialAccounts.colors', t)
+  return colorOptions(t)
 }
 
 export function accountIconOptions(t) {

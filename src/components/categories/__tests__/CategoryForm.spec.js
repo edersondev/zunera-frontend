@@ -20,6 +20,7 @@ describe('CategoryForm', () => {
           ElSelect: { template: '<select><slot /></select>' },
           ElOption: true,
           ElButton: { template: '<button><slot /></button>' },
+          ColorPicker: { props: ['modelValue'], template: '<div data-test="color-picker">{{ modelValue }}</div>' },
         },
       },
     })
@@ -28,7 +29,7 @@ describe('CategoryForm', () => {
     await wrapper.find('form').trigger('submit')
 
     expect(wrapper.emitted('submit')).toContainEqual([
-      { name: 'Pet care', classification: 'expense', color: 'teal', icon: 'circle' },
+      { name: 'Pet care', classification: 'expense', color: 'cyan', icon: 'circle' },
     ])
     expect(wrapper.find('input').element.value).toBe('  Pet care ')
   })
@@ -52,6 +53,7 @@ describe('CategoryForm', () => {
           ElSelect: { template: '<select><slot /></select>' },
           ElOption: true,
           ElButton: { template: '<button><slot /></button>' },
+          ColorPicker: { props: ['modelValue'], template: '<div data-test="color-picker">{{ modelValue }}</div>' },
         },
       },
     })

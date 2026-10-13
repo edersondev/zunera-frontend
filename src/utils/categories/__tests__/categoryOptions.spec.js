@@ -15,7 +15,7 @@ describe('category options', () => {
     i18n.global.locale.value = 'en'
 
     expect(categoryClassificationOptions(i18n.global.t)[0].label).toBe('Income')
-    expect(categoryColorOptions(i18n.global.t)[0].label).toBe('Teal')
+    expect(categoryColorOptions(i18n.global.t)[0].label).toBe('Blue')
     expect(categoryIconOptions(i18n.global.t)[0].label).toBe('Home')
   })
 })

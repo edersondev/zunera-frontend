@@ -36,6 +36,7 @@ const stubs = {
     template: '<button :data-icon="icon?.name"><slot /></button>',
   },
   CurrencyAmountInput: { template: '<input v-bind="$attrs" />' },
+  ColorPicker: { props: ['modelValue'], template: '<div data-test="credit-card-color">{{ modelValue }}</div>' },
 }
 
 describe('CreditCardForm', () => {

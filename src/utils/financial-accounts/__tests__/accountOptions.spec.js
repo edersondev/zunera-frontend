@@ -11,7 +11,7 @@ describe('financial account options', () => {
     i18n.global.locale.value = 'en'
 
     expect(accountTypeOptions(i18n.global.t)[0].label).toBe('Checking account')
-    expect(accountColorOptions(i18n.global.t)[0].label).toBe('Teal')
+    expect(accountColorOptions(i18n.global.t)[0].label).toBe('Blue')
     expect(accountIconOptions(i18n.global.t)[0].label).toBe('Bank')
   })
 })
