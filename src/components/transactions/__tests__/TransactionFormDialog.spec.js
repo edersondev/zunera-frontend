@@ -32,10 +32,18 @@ const stubs = {
       '<input type="number" :value="modelValue" @input="$emit(\'update:modelValue\', Number($event.target.value))" />',
   },
   ElSelect: {
-    props: ['modelValue'],
-    emits: ['update:modelValue'],
-    template:
-      '<select :value="modelValue" @change="$emit(\'update:modelValue\', Number($event.target.value))"><slot /></select>',
+    props: ['modelValue', 'disabled'],
+    emits: ['update:modelValue', 'change'],
+    methods: {
+      select(event) {
+        const value = event.target.value
+        const parsed = Number(value)
+        const selected = Number.isNaN(parsed) ? value : parsed
+        this.$emit('update:modelValue', selected)
+        this.$emit('change', selected)
+      },
+    },
+    template: '<select :value="modelValue" :disabled="disabled" @change="select"><slot /></select>',
   },
   ElOption: { props: ['label', 'value'], template: '<option :value="value">{{ label }}</option>' },
   ElRadioGroup: {
@@ -103,6 +111,7 @@ describe('TransactionFormDialog', () => {
     )
     expect(wrapper.get('[data-test="transaction-status"]').attributes('data-value')).toBe('effective')
     expect(wrapper.get('[data-test="transaction-type"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('[data-test="transaction-type"]').element.value).toBe('expense')
     expect(wrapper.get('[data-test="transaction-type"]').text()).toContain('Despesa')
     expect(wrapper.get('[data-test="transaction-type"]').text()).toContain('Receita')
     expect(wrapper.get('[data-test="transaction-amount"]').element.value).toBe('1999')
@@ -143,6 +152,7 @@ describe('TransactionFormDialog', () => {
 
     expect(wrapper.get('[data-test="transaction-type"]').text()).toContain('Transferência')
     expect(wrapper.get('[data-test="transaction-type"]').attributes('disabled')).toBeUndefined()
+    expect(wrapper.get('[data-test="transaction-type"]').element.value).toBe('transfer')
     expect(wrapper.find('[data-test="transaction-account"]').exists()).toBe(false)
     expect(wrapper.find('[data-test="transaction-category"]').exists()).toBe(false)
     expect(wrapper.get('[data-prop="source_financial_account_id"]').attributes('data-required')).toBeDefined()
@@ -181,7 +191,7 @@ describe('TransactionFormDialog', () => {
     })
 
     expect(wrapper.get('[role="dialog"]').attributes('aria-label')).toBe('Editar transação')
-    expect(wrapper.get('[data-test="transaction-type"]').attributes('data-value')).toBe('transfer')
+    expect(wrapper.get('[data-test="transaction-type"]').element.value).toBe('transfer')
     expect(wrapper.get('[data-test="transaction-type"]').attributes('disabled')).toBeDefined()
     expect(wrapper.get('[data-test="transaction-transfer-source"]').element.value).toBe('1')
     expect(wrapper.get('[data-test="transaction-transfer-destination"]').element.value).toBe('2')
@@ -220,6 +230,37 @@ describe('TransactionFormDialog', () => {
     expect(wrapper.text()).not.toContain('(arquivada)')
     expect(wrapper.get('[data-test="transaction-category"]').text()).toContain('Alimentação')
     expect(wrapper.get('[data-test="transaction-category"]').text()).not.toContain('Salário')
+  })
+
+  it('defaults to expense and changes fields when another type is selected', async () => {
+    const wrapper = mount(TransactionFormDialog, {
+      props: {
+        modelValue: true,
+        accounts: [],
+        categories: [
+          { id: 2, name: 'Alimentação', status: 'active', classification: 'expense' },
+          { id: 3, name: 'Salário', status: 'active', classification: 'income' },
+        ],
+      },
+      global: { plugins: [i18n], stubs },
+    })
+
+    const type = wrapper.get('[data-test="transaction-type"]')
+    expect(type.element.value).toBe('expense')
+    expect(type.findAll('option').map((option) => option.element.value)).toEqual([
+      'expense', 'income', 'transfer',
+    ])
+
+    await wrapper.get('[data-test="transaction-category"]').setValue('2')
+    await type.setValue('income')
+
+    expect(wrapper.get('[data-test="transaction-category"]').element.value).toBe('')
+    expect(wrapper.get('[data-test="transaction-category"]').text()).toContain('Salário')
+    expect(wrapper.get('[data-test="transaction-category"]').text()).not.toContain('Alimentação')
+
+    await type.setValue('transfer')
+    expect(wrapper.find('[data-test="transaction-category"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="transaction-transfer-source"]').exists()).toBe(true)
   })
 
   it('requires an account and category', () => {

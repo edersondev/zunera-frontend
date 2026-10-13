@@ -412,10 +412,11 @@ async function fillTransactionForm(
   { type, description, amount, account, category, notes },
 ) {
   if (type) {
-    await dialog.getByText(type, { exact: true }).click()
+    await dialog.locator('[data-test="transaction-type"]').click()
+    await page.getByRole('option', { name: type, exact: true }).click()
   }
   if (description) await dialog.getByLabel('Descrição').fill(description)
-  if (amount) await dialog.getByLabel('Valor (centavos)').fill(String(amount))
+  if (amount) await dialog.getByLabel('Valor', { exact: true }).fill(String(amount))
   if (account) {
     await dialog.locator('[data-test="transaction-account"]').click()
     await page.getByRole('option', { name: account, exact: true }).click()
@@ -452,6 +453,9 @@ test('signed-in user records income and expense and sees the balance impact', as
 
   await chooseTransactionHeaderAction(page, 'Nova transação')
   const dialog = page.getByRole('dialog', { name: 'Nova transação' })
+  await expect(dialog.locator('[data-test="transaction-type"]')).toContainText('Despesa')
+  await expect(dialog.locator('[data-test="transaction-status"]')).toHaveCSS('justify-content', 'flex-end')
+  await expect(dialog.locator('.status-field .el-form-item__label')).toHaveCSS('text-align', 'right')
   await fillTransactionForm(dialog, page, {
     type: 'Receita',
     description: 'Salário setembro',

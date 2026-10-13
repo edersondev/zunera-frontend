@@ -193,19 +193,19 @@ function setPendingForFutureDate(date) {
     <ElForm ref="formRef" :model="form" :rules="rules" label-position="top" data-test="transaction-form" @submit.prevent="submit">
       <div class="form-grid">
         <ElFormItem :label="t('transactions.type')" :error="errors.type?.[0]">
-          <ElRadioGroup
+          <ElSelect
             v-model="form.type"
             :disabled="isEditing"
             data-test="transaction-type"
             @change="onTypeChange"
           >
-            <ElRadio value="expense">{{ t('transactions.expense') }}</ElRadio>
-            <ElRadio value="income">{{ t('transactions.income') }}</ElRadio>
-            <ElRadio value="transfer">{{ t('transactions.transfer') }}</ElRadio>
-          </ElRadioGroup>
+            <ElOption value="expense" :label="t('transactions.expense')" />
+            <ElOption value="income" :label="t('transactions.income')" />
+            <ElOption value="transfer" :label="t('transactions.transfer')" />
+          </ElSelect>
         </ElFormItem>
-        <ElFormItem :label="t('transactions.status')" :error="errors.status?.[0]">
-          <ElRadioGroup v-model="form.status" data-test="transaction-status">
+        <ElFormItem class="status-field" :label="t('transactions.status')" :error="errors.status?.[0]">
+          <ElRadioGroup v-model="form.status" class="status-options" data-test="transaction-status">
             <ElRadio value="effective">{{ t('transactions.effective') }}</ElRadio>
             <ElRadio value="pending">{{ t('transactions.pending') }}</ElRadio>
           </ElRadioGroup>
@@ -333,6 +333,18 @@ function setPendingForFutureDate(date) {
   gap: 16px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+
+.status-options {
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.status-field :deep(.el-form-item__label) {
+  width: 100%;
+  justify-content: flex-end;
+  text-align: right;
+}
+
 .hint {
   color: var(--color-text-muted, #666);
   font-size: 13px;
