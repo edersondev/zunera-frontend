@@ -1,4 +1,7 @@
 import { apiRequest } from './httpClient'
+import { newIdempotencyKey } from '@/utils/common/idempotencyKey'
+
+export { newIdempotencyKey } from '@/utils/common/idempotencyKey'
 
 const CARDS = '/api/v1/credit-cards'
 const PURCHASES = '/api/v1/credit-card-purchases'
@@ -6,10 +9,6 @@ const STATEMENTS = '/api/v1/credit-card-statements'
 const PAYMENTS = '/api/v1/credit-card-payments'
 const DASHBOARD = '/api/v1/financial-dashboard/credit-cards'
 const MUTATION = { csrf: true }
-
-export function newIdempotencyKey() {
-  return crypto.randomUUID()
-}
 
 /**
  * Every financial mutation carries an Idempotency-Key. Callers may pass the key

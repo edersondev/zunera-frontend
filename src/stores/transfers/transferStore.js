@@ -1,3 +1,4 @@
+import { newIdempotencyKey } from '@/utils/common/idempotencyKey'
 import { computed, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
 import {
@@ -98,7 +99,7 @@ export const useTransferStore = defineStore('transfers', () => {
     const accounts = useFinancialAccountStore()
     const before = accountSnapshots(accounts)
     const signature = retrySignature(action, payload)
-    const idempotencyKey = retryKeys.get(signature) ?? crypto.randomUUID()
+    const idempotencyKey = retryKeys.get(signature) ?? newIdempotencyKey()
 
     try {
       const result = await work(idempotencyKey)

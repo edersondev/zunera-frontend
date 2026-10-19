@@ -1,6 +1,7 @@
 import { apiRequest } from './httpClient'
+import { newIdempotencyKey } from '@/utils/common/idempotencyKey'
 
-export const newIdempotencyKey = () => crypto.randomUUID()
+export { newIdempotencyKey } from '@/utils/common/idempotencyKey'
 
 function mutation(method, url, payload, key = newIdempotencyKey()) {
   return apiRequest(

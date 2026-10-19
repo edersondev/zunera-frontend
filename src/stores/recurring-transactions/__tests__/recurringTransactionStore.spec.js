@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 vi.mock('@/services/recurringTransactionService', () => ({
@@ -21,6 +21,8 @@ const { useRecurringTransactionStore } = await import('../recurringTransactionSt
 const rule = { id: 4, description: 'Aluguel', state: 'active', next_expected_occurrence: '2026-10-05' }
 
 describe('recurringTransactionStore', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
@@ -64,6 +66,23 @@ describe('recurringTransactionStore', () => {
     expect(firstKey).not.toBe(secondKey)
     expect(store.notice).toBe('recurringTransactions.created')
     expect(store.items).toHaveLength(1)
+  })
+
+  it('creates a recurrence when randomUUID is unavailable over HTTP', async () => {
+    vi.stubGlobal('crypto', {
+      getRandomValues: (bytes) => {
+        bytes.set(Array.from({ length: 16 }, (_, index) => index))
+        return bytes
+      },
+    })
+    const store = useRecurringTransactionStore()
+
+    await store.create({ description: 'Aluguel' })
+
+    expect(service.createRecurringTransaction).toHaveBeenCalledWith(
+      { description: 'Aluguel' },
+      expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/),
+    )
   })
 
   it('confirms, dismisses, and retries an occurrence through the action service', async () => {

@@ -1,8 +1,5 @@
+import { newIdempotencyKey } from '@/utils/common/idempotencyKey'
 import { apiRequest } from './httpClient'
-
-function newIdempotencyKey() {
-  return crypto.randomUUID()
-}
 
 /**
  * Every recurrence mutation carries one key per logical action. Callers reuse a

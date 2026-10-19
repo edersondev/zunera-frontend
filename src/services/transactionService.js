@@ -1,15 +1,12 @@
+import { newIdempotencyKey } from '@/utils/common/idempotencyKey'
 import { apiRequest } from './httpClient'
-
-function key() {
-  return crypto.randomUUID()
-}
 
 /**
  * Mutations resolve to the persisted resource plus the response metadata the
  * backend uses for typed notices, so callers can surface them without parsing
  * the transport response directly.
  */
-function mutation(method, url, payload, idempotencyKey = key()) {
+function mutation(method, url, payload, idempotencyKey = newIdempotencyKey()) {
   return apiRequest(
     { method, url, data: payload, headers: { 'Idempotency-Key': idempotencyKey } },
     { csrf: true },

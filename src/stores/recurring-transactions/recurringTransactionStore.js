@@ -1,3 +1,4 @@
+import { newIdempotencyKey } from '@/utils/common/idempotencyKey'
 import { computed, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
 import {
@@ -40,7 +41,7 @@ export const useRecurringTransactionStore = defineStore('recurring-transactions'
 
   function keyFor(operation, id) {
     const key = `${operation}:${id}`
-    if (!retryKeys.has(key)) retryKeys.set(key, crypto.randomUUID())
+    if (!retryKeys.has(key)) retryKeys.set(key, newIdempotencyKey())
 
     return retryKeys.get(key)
   }
