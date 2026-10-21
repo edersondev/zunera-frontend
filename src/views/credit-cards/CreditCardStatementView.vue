@@ -289,6 +289,7 @@ async function submitCreditEvent(payload) {
     />
     <CreditCardPurchaseMoveDialog
       v-model:visible="moveVisible"
+      focus-fallback-selector="[data-test='credit-card-statement-back']"
       :purchase="moveTarget"
       :initial-installment-id="moveInstallmentId"
       :options="store.statementOptions"
@@ -307,6 +308,7 @@ async function submitCreditEvent(payload) {
     />
     <CreditCardPurchaseDeleteDialog
       v-model:visible="deleteVisible"
+      focus-fallback-selector="[data-test='credit-card-statement-back']"
       :purchase="deleteTarget"
       :submitting="store.submitting"
       :mutation-error="store.mutationError"

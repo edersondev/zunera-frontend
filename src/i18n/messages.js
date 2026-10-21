@@ -641,7 +641,7 @@ export const messages = {
       statementChoice: {
         label: 'Fatura',
         placeholder: 'Selecione uma fatura',
-        option: 'Fecha em {date}',
+        option: 'Período {from}–{to} · fecha {closing} · vence {due}',
         required: 'Escolha a fatura para esta compra.',
         empty: 'Nenhuma fatura nesta janela. Carregue os próximos meses.',
         more: 'Carregar próximos meses',
@@ -657,6 +657,7 @@ export const messages = {
         target: 'Fatura de destino', chooseTarget: 'Escolha uma fatura de destino.',
         preview: 'Ver prévia', confirm: 'Confirmar movimentação',
         history: 'Histórico de movimentações', outstanding: 'Em aberto:', surplus: 'Crédito excedente:',
+        from: 'Origem:', to: 'Destino:', movedAt: 'Movida em {date}',
         stale: 'A fatura mudou desde a prévia. Gere uma nova prévia antes de confirmar.',
         error: 'Não foi possível mover a compra.', optionsError: 'Não foi possível carregar as faturas.',
         saved: 'Compra movida.',
@@ -1830,7 +1831,7 @@ export const messages = {
       statementChoice: {
         label: 'Statement',
         placeholder: 'Select a statement',
-        option: 'Closes {date}',
+        option: 'Period {from}–{to} · closes {closing} · due {due}',
         required: 'Choose the statement for this purchase.',
         empty: 'No statement in this window. Load future months.',
         more: 'Load future months',
@@ -1846,6 +1847,7 @@ export const messages = {
         target: 'Target statement', chooseTarget: 'Choose a target statement.',
         preview: 'Preview', confirm: 'Confirm move',
         history: 'Move history', outstanding: 'Outstanding:', surplus: 'Payment surplus:',
+        from: 'From:', to: 'To:', movedAt: 'Moved on {date}',
         stale: 'The statement changed since preview. Preview again before confirming.',
         error: 'Could not move the purchase.', optionsError: 'Could not load statements.',
         saved: 'Purchase moved.',

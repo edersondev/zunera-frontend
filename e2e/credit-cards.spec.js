@@ -570,7 +570,7 @@ test('owner previews and moves a full schedule, then sees move history', async (
   await page.locator('[data-test="credit-card-purchase-move-301"]').click()
   const dialog = page.getByRole('dialog', { name: 'Move purchase' })
   await expect(dialog).toContainText('Groceries')
-  await chooseOption(page, dialog.locator('[data-test="credit-card-move-target"]'), 'Closes 10/11/2026')
+  await chooseOption(page, dialog.locator('[data-test="credit-card-move-target"]'), 'Period 10/11/2026–11/10/2026 · closes 11/10/2026 · due 11/17/2026')
   await expect(dialog.locator('[data-test="credit-card-move-confirm"]')).toBeDisabled()
   await dialog.locator('[data-test="credit-card-move-preview-button"]').click()
   await expect(dialog.locator('[data-test="credit-card-move-preview"]')).toContainText('20,00')
@@ -594,7 +594,7 @@ test('statement action preselects one installment and requires a fresh preview a
   await page.locator('[data-test="credit-card-line-move-3010"]').click()
   const dialog = page.getByRole('dialog', { name: 'Move purchase' })
   await expect(dialog.locator('[data-test="credit-card-move-mode"]')).toContainText('One installment')
-  await chooseOption(page, dialog.locator('[data-test="credit-card-move-target"]'), 'Closes 10/11/2026')
+  await chooseOption(page, dialog.locator('[data-test="credit-card-move-target"]'), 'Period 10/11/2026–11/10/2026 · closes 11/10/2026 · due 11/17/2026')
   await dialog.locator('[data-test="credit-card-move-preview-button"]').click()
   await expect(dialog.locator('[data-test="credit-card-move-preview"]')).toBeVisible()
   await dialog.locator('[data-test="credit-card-move-confirm"]').press('Enter')
@@ -605,6 +605,9 @@ test('statement action preselects one installment and requires a fresh preview a
   await dialog.locator('[data-test="credit-card-move-confirm"]').press('Enter')
   await expect(page.getByText('Purchase moved.')).toBeVisible()
   expect(purchase.installments[0].statement.closing_date).toBe('2026-11-10')
+  await expect(dialog).toBeHidden()
+  await expect(page.locator('[data-test="credit-card-line-toggle-3010"]')).toHaveCount(0)
+  await expect(page.locator('[data-test="credit-card-statement-back"]')).toBeFocused()
 })
 
 test('closed-cycle purchase requires Statement, resets after date change, and saves selected allocation', async ({ page }) => {
@@ -615,7 +618,12 @@ test('closed-cycle purchase requires Statement, resets after date change, and sa
     statementChoices: (date, fromMonth) => ({
       business_date: '2026-10-21', date_derived_closing_date: '2026-09-10',
       requires_statement_choice: date === '2026-09-01',
-      options: date === '2026-09-01' ? [{ closing_date: fromMonth ? '2027-01-10' : '2026-11-10', due_date: '2026-11-17' }] : [],
+      options: date === '2026-09-01' ? [{
+        period_from: fromMonth ? '2026-12-11' : '2026-10-11',
+        period_to: fromMonth ? '2027-01-10' : '2026-11-10',
+        closing_date: fromMonth ? '2027-01-10' : '2026-11-10',
+        due_date: fromMonth ? '2027-01-17' : '2026-11-17',
+      }] : [],
       next_from_month: fromMonth ? null : '2027-01',
     }),
   })
@@ -631,14 +639,14 @@ test('closed-cycle purchase requires Statement, resets after date change, and sa
   await expect(dialog.locator('[data-test="credit-card-purchase-statement"]')).toBeVisible()
   await dialog.getByRole('button', { name: 'Save' }).click()
   await expect(dialog).toContainText('Choose the statement')
-  await chooseOption(page, dialog.locator('[data-test="credit-card-purchase-statement"]'), 'Closes 10/11/2026')
+  await chooseOption(page, dialog.locator('[data-test="credit-card-purchase-statement"]'), 'Period 10/11/2026–11/10/2026 · closes 11/10/2026 · due 11/17/2026')
   await dialog.getByRole('combobox', { name: 'Purchase date' }).fill('2026-10-21')
   await dialog.getByRole('combobox', { name: 'Purchase date' }).press('Tab')
   await expect(dialog.locator('[data-test="credit-card-purchase-statement"]')).toHaveCount(0)
   await dialog.getByRole('combobox', { name: 'Purchase date' }).fill('2026-09-01')
   await dialog.getByRole('combobox', { name: 'Purchase date' }).press('Tab')
   await dialog.locator('[data-test="credit-card-purchase-options-more"]').click()
-  await chooseOption(page, dialog.locator('[data-test="credit-card-purchase-statement"]'), 'Closes 10/01/2027')
+  await chooseOption(page, dialog.locator('[data-test="credit-card-purchase-statement"]'), 'Period 12/11/2026–01/10/2027 · closes 01/10/2027 · due 01/17/2027')
   await dialog.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByText('Purchase recorded.')).toBeVisible()
   expect(requests[0].payload.statement_closing_date).toBe('2027-01-10')
@@ -666,6 +674,7 @@ test('delete requires confirmation, preserves payment history, and explains link
   options.deleteError = null
   await dialog.getByRole('button', { name: 'Delete permanently' }).click()
   await expect(page.locator('[data-test="credit-card-purchase-301"]')).toHaveCount(0)
+  await expect(page.locator('[data-test="credit-card-detail-back"]')).toBeFocused()
   expect(deletes[0].key).toBeTruthy()
   await page.goto('/app/credit-card-statements/72')
   await expect(page.locator('[data-test="credit-card-payment-11"]')).toContainText('Main account')
@@ -975,8 +984,16 @@ async function mockCreditCardsApi(page, options) {
         .map((item) => ({
           installment_id: item.id, sequence: item.sequence,
           amount_centavos: item.amount.amount_centavos,
-          source: { closing_date: item.statement.closing_date },
-          destination: { closing_date: payload.target_closing_date },
+          source: {
+            closing_date: item.statement.closing_date,
+            period_from: item.statement.period_from ?? '2026-09-01',
+            period_to: item.statement.period_to ?? item.statement.closing_date,
+            due_date: item.statement.due_date ?? '2026-10-05',
+          },
+          destination: {
+            closing_date: payload.target_closing_date,
+            period_from: '2026-10-11', period_to: '2026-11-10', due_date: '2026-11-17',
+          },
         }))
       return route.fulfill({ json: { data: {
         preview_token: 'fixture-preview-token', affected_installments: affected,
@@ -996,8 +1013,18 @@ async function mockCreditCardsApi(page, options) {
       options.onMove?.({ payload, key: request.headers()['idempotency-key'] })
       const moved = purchase.installments.filter((item) => payload.mode === 'full_schedule' || item.id === payload.installment_id)
       for (const item of moved) item.statement.closing_date = payload.target_closing_date
+      if (options.statement) {
+        options.statement.installments = options.statement.installments.filter(
+          (item) => !moved.some((movedItem) => movedItem.id === item.id),
+        )
+      }
       options.moves ??= []
-      options.moves.push({ id: options.moves.length + 1, source: { closing_date: '2026-09-25' }, destination: { closing_date: payload.target_closing_date } })
+      options.moves.push({
+        id: options.moves.length + 1, mode: payload.mode, sequence: moved[0].sequence,
+        moved_at: '2026-10-21T12:00:00Z',
+        source: { closing_date: '2026-09-25', period_from: '2026-08-26', period_to: '2026-09-25', due_date: '2026-10-02' },
+        destination: { closing_date: payload.target_closing_date, period_from: '2026-10-11', period_to: '2026-11-10', due_date: '2026-11-17' },
+      })
       return route.fulfill({ json: { data: { purchase, moves: options.moves, affected_statements: [], card: options.cards[0] } }, headers: apiHeaders() })
     }
     return route.continue()

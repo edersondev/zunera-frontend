@@ -52,6 +52,7 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
   const previewError = shallowRef(null)
   let optionsVersion = 0
   let historyVersion = 0
+  let previewVersion = 0
 
   const loading = shallowRef(false)
   const error = shallowRef(null)
@@ -246,24 +247,28 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
   }
 
   async function previewMove(purchaseId, payload) {
+    const version = ++previewVersion
     movePreview.value = null
     previewError.value = null
     mutationError.value = null
     previewLoading.value = true
     try {
-      movePreview.value = await previewPurchaseMove(purchaseId, payload)
-      return movePreview.value
+      const result = await previewPurchaseMove(purchaseId, payload)
+      if (version === previewVersion) movePreview.value = result
+      return version === previewVersion ? result : null
     } catch (requestError) {
-      previewError.value = requestError
+      if (version === previewVersion) previewError.value = requestError
       return null
     } finally {
-      previewLoading.value = false
+      if (version === previewVersion) previewLoading.value = false
     }
   }
 
   function clearMovePreview() {
+    previewVersion++
     movePreview.value = null
     previewError.value = null
+    previewLoading.value = false
   }
 
   async function submitMove(purchaseId, payload, cardId, statementId = null, idempotencyKey = newIdempotencyKey()) {

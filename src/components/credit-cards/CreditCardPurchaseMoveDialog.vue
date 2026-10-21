@@ -18,9 +18,10 @@ const props = defineProps({
   mutationError: { type: Object, default: null },
   history: { type: Array, default: () => [] },
   submitting: { type: Boolean, default: false },
+  focusFallbackSelector: { type: String, default: '' },
 })
 const emit = defineEmits(['update:visible', 'request-options', 'request-preview', 'confirm', 'clear-preview'])
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const selection = reactive({ mode: 'full_schedule', installmentId: null, targetClosingDate: null })
 const localError = shallowRef('')
 let returnFocus = null
@@ -55,8 +56,33 @@ watch(() => props.visible, async (visible) => {
 
 function restoreFocus() {
   const fallback = document.querySelector(`[data-test="credit-card-purchase-actions-${returnPurchaseId}"]`)
-  const target = fallback ?? (returnFocus?.isConnected ? returnFocus : null)
+  const persistent = props.focusFallbackSelector ? document.querySelector(props.focusFallbackSelector) : null
+  const target = fallback ?? persistent ?? (returnFocus?.isConnected ? returnFocus : null)
   target?.focus()
+}
+
+function restoreFocusAfterClose() {
+  window.setTimeout(() => {
+    if (!props.visible) restoreFocus()
+  }, 0)
+}
+
+function statementOptionLabel(option) {
+  return t('creditCards.statementChoice.option', {
+    from: formatIsoDate(option.period_from, locale.value),
+    to: formatIsoDate(option.period_to, locale.value),
+    closing: formatIsoDate(option.closing_date, locale.value),
+    due: formatIsoDate(option.due_date, locale.value),
+  })
+}
+
+function movedAtLabel(value) {
+  if (!value) return ''
+  return t('creditCards.move.movedAt', {
+    date: new Intl.DateTimeFormat(locale.value, {
+      dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo',
+    }).format(new Date(value)),
+  })
 }
 
 watch(() => [selection.mode, selection.installmentId, selection.targetClosingDate], () => {
@@ -101,7 +127,7 @@ function confirm() {
     :title="t('creditCards.move.title')"
     data-test="credit-card-purchase-move-dialog"
     @close="emit('update:visible', false)"
-    @closed="restoreFocus"
+    @closed="restoreFocusAfterClose"
   >
     <p v-if="purchase" data-test="credit-card-move-purchase-name">{{ purchase.description }}</p>
     <ElAlert v-if="errorMessage" type="error" :closable="false" :title="errorMessage" data-test="credit-card-move-error" />
@@ -137,7 +163,7 @@ function confirm() {
           <ElOption
             v-for="option in options?.options ?? []"
             :key="option.closing_date"
-            :label="t('creditCards.statementChoice.option', { date: formatIsoDate(option.closing_date) })"
+            :label="statementOptionLabel(option)"
             :value="option.closing_date"
           />
         </ElSelect>
@@ -156,8 +182,9 @@ function confirm() {
       <ul>
         <li v-for="item in preview.affected_installments" :key="item.installment_id">
           {{ t('creditCards.move.installmentOption', { sequence: item.sequence, count: purchase.installment_count }) }}:
-          {{ formatIsoDate(item.source.closing_date) }} → {{ formatIsoDate(item.destination.closing_date) }}
           ({{ formatBRL(item.amount_centavos) }})
+          <div>{{ t('creditCards.move.from') }} {{ statementOptionLabel(item.source) }}</div>
+          <div>{{ t('creditCards.move.to') }} {{ statementOptionLabel(item.destination) }}</div>
         </li>
       </ul>
       <ul>
@@ -173,7 +200,11 @@ function confirm() {
       <h3>{{ t('creditCards.move.history') }}</h3>
       <ul>
         <li v-for="entry in history" :key="entry.id">
-          {{ formatIsoDate(entry.source.closing_date) }} → {{ formatIsoDate(entry.destination.closing_date) }}
+          {{ t('creditCards.move.installmentOption', { sequence: entry.sequence, count: purchase.installment_count }) }}
+          · {{ t(entry.mode === 'full_schedule' ? 'creditCards.move.fullSchedule' : 'creditCards.move.oneInstallment') }}
+          · {{ movedAtLabel(entry.moved_at) }}
+          <div>{{ t('creditCards.move.from') }} {{ statementOptionLabel(entry.source) }}</div>
+          <div>{{ t('creditCards.move.to') }} {{ statementOptionLabel(entry.destination) }}</div>
         </li>
       </ul>
     </section>

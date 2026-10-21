@@ -269,6 +269,7 @@ function openStatement(statement) {
     />
     <CreditCardPurchaseMoveDialog
       v-model:visible="moveVisible"
+      focus-fallback-selector="[data-test='credit-card-detail-back']"
       :purchase="moveTarget"
       :options="store.statementOptions"
       :options-loading="store.optionsLoading"
@@ -286,6 +287,7 @@ function openStatement(statement) {
     />
     <CreditCardPurchaseDeleteDialog
       v-model:visible="deleteVisible"
+      focus-fallback-selector="[data-test='credit-card-detail-back']"
       :purchase="deleteTarget"
       :submitting="store.submitting"
       :mutation-error="store.mutationError"

@@ -104,6 +104,32 @@ describe('creditCardStore', () => {
     expect(store.movePreview).toBeNull()
   })
 
+  it('ignores an older move preview after the target changes or preview is cleared', async () => {
+    const store = useCreditCardStore()
+    let finishFirst
+    let finishSecond
+    service.previewPurchaseMove
+      .mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve }))
+      .mockImplementationOnce(() => new Promise((resolve) => { finishSecond = resolve }))
+
+    const first = store.previewMove(3, { target_closing_date: '2026-11-10' })
+    const second = store.previewMove(3, { target_closing_date: '2026-12-10' })
+    finishSecond({ preview_token: 'december' })
+    expect(await second).toEqual({ preview_token: 'december' })
+    finishFirst({ preview_token: 'november' })
+    expect(await first).toBeNull()
+    expect(store.movePreview.preview_token).toBe('december')
+
+    let finishCleared
+    service.previewPurchaseMove.mockImplementationOnce(() => new Promise((resolve) => { finishCleared = resolve }))
+    const pending = store.previewMove(3, { target_closing_date: '2027-01-10' })
+    store.clearMovePreview()
+    finishCleared({ preview_token: 'january' })
+    expect(await pending).toBeNull()
+    expect(store.movePreview).toBeNull()
+    expect(store.previewLoading).toBe(false)
+  })
+
   it('keeps linked-credit delete conflict and refreshes after a successful delete', async () => {
     const store = useCreditCardStore()
     service.deletePurchase.mockRejectedValueOnce({ code: 'PURCHASE_HAS_LINKED_CREDITS' })

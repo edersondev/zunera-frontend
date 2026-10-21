@@ -9,6 +9,7 @@ const props = defineProps({
   purchase: { type: Object, default: null },
   submitting: { type: Boolean, default: false },
   mutationError: { type: Object, default: null },
+  focusFallbackSelector: { type: String, default: '' },
 })
 const emit = defineEmits(['update:visible', 'confirm'])
 const { t } = useI18n()
@@ -28,8 +29,15 @@ watch(() => props.visible, async (visible) => {
 
 function restoreFocus() {
   const fallback = document.querySelector(`[data-test="credit-card-purchase-actions-${returnPurchaseId}"]`)
-  const target = fallback ?? (returnFocus?.isConnected ? returnFocus : null)
+  const persistent = props.focusFallbackSelector ? document.querySelector(props.focusFallbackSelector) : null
+  const target = fallback ?? persistent ?? (returnFocus?.isConnected ? returnFocus : null)
   target?.focus()
+}
+
+function restoreFocusAfterClose() {
+  window.setTimeout(() => {
+    if (!props.visible) restoreFocus()
+  }, 0)
 }
 </script>
 
@@ -39,7 +47,7 @@ function restoreFocus() {
     :title="t('creditCards.delete.title')"
     data-test="credit-card-purchase-delete-dialog"
     @close="emit('update:visible', false)"
-    @closed="restoreFocus"
+    @closed="restoreFocusAfterClose"
   >
     <p v-if="purchase" data-test="credit-card-delete-warning">
       {{ t('creditCards.delete.warning', { name: purchase.description, count: purchase.installment_count }) }}

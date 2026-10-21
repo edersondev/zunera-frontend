@@ -124,9 +124,11 @@ describe('CreditCardPurchaseForm', () => {
   it('includes the chosen closing date and clears it after a purchase date change', async () => {
     const wrapper = factory({ statementOptions: {
       requires_statement_choice: true,
-      options: [{ closing_date: '2026-11-10' }],
+      options: [{ period_from: '2026-10-11', period_to: '2026-11-10', closing_date: '2026-11-10', due_date: '2026-11-17' }],
       next_from_month: '2027-01',
     } })
+    expect(wrapper.get('[data-test="credit-card-purchase-statement"]').text()).toContain('11/10/2026–10/11/2026')
+    expect(wrapper.get('[data-test="credit-card-purchase-statement"]').text()).toContain('17/11/2026')
     await wrapper.get('[data-test="credit-card-purchase-statement"]').setValue('2026-11-10')
     await wrapper.get('[data-test="credit-card-purchase-submit"]').trigger('click')
     expect(wrapper.emitted('submit')[0][0].statement_closing_date).toBe('2026-11-10')

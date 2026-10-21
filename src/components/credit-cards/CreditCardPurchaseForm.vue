@@ -46,7 +46,7 @@ const emit = defineEmits([
   'dismiss-mutation-error',
   'request-statement-options',
 ])
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const formRef = shallowRef(null)
 const categories = shallowRef([])
 const categoriesError = shallowRef(null)
@@ -96,6 +96,15 @@ function requestOptions(fromMonth = null) {
     cardId: props.card.id,
     purchaseDate: form.purchase_date,
     fromMonth,
+  })
+}
+
+function statementOptionLabel(option) {
+  return t('creditCards.statementChoice.option', {
+    from: formatIsoDate(option.period_from, locale.value),
+    to: formatIsoDate(option.period_to, locale.value),
+    closing: formatIsoDate(option.closing_date, locale.value),
+    due: formatIsoDate(option.due_date, locale.value),
   })
 }
 
@@ -233,7 +242,7 @@ function submit() {
           <ElOption
             v-for="option in statementOptions.options"
             :key="option.closing_date"
-            :label="t('creditCards.statementChoice.option', { date: formatIsoDate(option.closing_date) })"
+            :label="statementOptionLabel(option)"
             :value="option.closing_date"
           />
         </ElSelect>
