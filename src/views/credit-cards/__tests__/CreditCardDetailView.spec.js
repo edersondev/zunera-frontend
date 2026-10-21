@@ -19,6 +19,15 @@ const store = reactive({
   submitPurchase: vi.fn(),
   submitOverLimit: vi.fn(),
   dismissOverLimit: vi.fn(),
+  dismissMutationError: vi.fn(),
+  clearStatementOptions: vi.fn(),
+  clearMovePreview: vi.fn(),
+  clearMoveHistory: vi.fn(),
+  fetchStatementOptions: vi.fn(),
+  fetchMoveHistory: vi.fn(),
+  previewMove: vi.fn(),
+  submitMove: vi.fn(),
+  submitDeletePurchase: vi.fn(),
   submitPurchaseCorrection: vi.fn(),
   submitCreditEvent: vi.fn(),
 })
@@ -53,6 +62,8 @@ const stubs = {
   },
   CreditCardCorrectionDialog: true,
   CreditCardCreditEventDialog: true,
+  CreditCardPurchaseMoveDialog: true,
+  CreditCardPurchaseDeleteDialog: true,
 }
 
 function card() {

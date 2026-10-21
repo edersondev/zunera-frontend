@@ -100,6 +100,13 @@ function close() {
       :title="errorMessage"
       data-test="credit-card-correction-error"
     />
+    <ElAlert
+      v-if="mutationError?.code === 'MOVED_PURCHASE_ALLOCATION_CONFLICT'"
+      type="warning"
+      :closable="false"
+      :title="t('creditCards.correction.movedConflict')"
+      data-test="credit-card-correction-moved-conflict"
+    />
 
     <ElForm ref="formRef" label-position="top" @submit.prevent>
       <ElFormItem

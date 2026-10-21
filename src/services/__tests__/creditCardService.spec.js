@@ -11,16 +11,21 @@ const {
   createCreditEvent,
   createPayment,
   createPurchase,
+  deletePurchase,
   getCard,
   getDashboardCards,
   getPurchase,
+  getStatementOptions,
   getStatement,
   isOverLimitConfirmation,
   listCards,
   listPurchases,
+  listPurchaseMoves,
   listStatements,
   newIdempotencyKey,
+  movePurchase,
   overLimitResultingCentavos,
+  previewPurchaseMove,
   removePayment,
   restoreCard,
   restorePayment,
@@ -42,6 +47,47 @@ beforeEach(() => {
 })
 
 describe('creditCardService', () => {
+  it('transports statement choices, preview, move history, and idempotent move and delete', async () => {
+    await getStatementOptions(7, { purchase_date: '2026-10-02', from_month: '2026-12', limit: 12 })
+    await previewPurchaseMove(3, { mode: 'full_schedule', target_closing_date: '2026-11-10' })
+    await movePurchase(3, { mode: 'full_schedule', target_closing_date: '2026-11-10', preview_token: 'token' }, 'move-key')
+    await listPurchaseMoves(3)
+    await deletePurchase(3, 'delete-key')
+
+    expect(apiRequest).toHaveBeenNthCalledWith(1, {
+      method: 'get', url: `${CARDS}/7/statement-options`,
+      params: { purchase_date: '2026-10-02', from_month: '2026-12', limit: 12 },
+    })
+    expect(apiRequest).toHaveBeenNthCalledWith(2, {
+      method: 'post', url: '/api/v1/credit-card-purchases/3/move-preview',
+      data: { mode: 'full_schedule', target_closing_date: '2026-11-10' },
+    }, MUTATION)
+    expect(apiRequest).toHaveBeenNthCalledWith(3, {
+      method: 'post', url: '/api/v1/credit-card-purchases/3/move',
+      data: { mode: 'full_schedule', target_closing_date: '2026-11-10', preview_token: 'token' },
+      headers: { 'Idempotency-Key': 'move-key' },
+    }, MUTATION)
+    expect(apiRequest).toHaveBeenNthCalledWith(4, {
+      method: 'get', url: '/api/v1/credit-card-purchases/3/moves',
+    })
+    expect(apiRequest).toHaveBeenNthCalledWith(5, {
+      method: 'delete', url: '/api/v1/credit-card-purchases/3', data: undefined,
+      headers: { 'Idempotency-Key': 'delete-key' },
+    }, MUTATION)
+  })
+
+  it('sends an explicit closing date only when provided and reuses a delete retry key', async () => {
+    await createPurchase(7, { purchase_date: '2026-10-10' }, 'open-key')
+    await createPurchase(7, { purchase_date: '2026-09-09', statement_closing_date: '2026-11-10' }, 'closed-key')
+    await deletePurchase(3, 'retry-key')
+    await deletePurchase(3, 'retry-key')
+    expect(apiRequest.mock.calls[0][0].data).not.toHaveProperty('statement_closing_date')
+    expect(apiRequest.mock.calls[1][0].data.statement_closing_date).toBe('2026-11-10')
+    expect(apiRequest.mock.calls[2][0].headers['Idempotency-Key']).toBe('retry-key')
+    expect(apiRequest.mock.calls[3][0].headers['Idempotency-Key']).toBe('retry-key')
+    apiRequest.mockRejectedValueOnce({ status: 404, code: 'PURCHASE_DELETED' })
+    await expect(deletePurchase(3, 'new-key')).rejects.toMatchObject({ code: 'PURCHASE_DELETED' })
+  })
   it('lists cards by view and unwraps the payload', async () => {
     apiRequest.mockResolvedValue(resolved([{ id: 1, status: 'active' }]))
 

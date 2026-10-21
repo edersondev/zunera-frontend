@@ -21,7 +21,7 @@ const props = defineProps({
   actionLoading: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['toggle', 'correct', 'refund', 'navigate-source'])
+const emit = defineEmits(['toggle', 'correct', 'refund', 'move', 'delete', 'navigate-source'])
 const { t, locale } = useI18n()
 const headerId = computed(() => `statement-line-header-${props.installment.id}`)
 const detailsId = computed(() => `statement-line-details-${props.installment.id}`)
@@ -157,6 +157,12 @@ const canAct = computed(() => props.installment.purchase_id != null)
       </dl>
       <div v-if="canAct" class="detail-actions">
         <ElButton
+          size="small"
+          :disabled="props.actionLoading"
+          :data-test="`credit-card-line-move-${props.installment.id}`"
+          @click.stop="emit('move', props.installment)"
+        >{{ t('creditCards.move.action') }}</ElButton>
+        <ElButton
           v-if="props.installment.is_directly_editable"
           size="small"
           :disabled="props.actionLoading"
@@ -169,6 +175,12 @@ const canAct = computed(() => props.installment.purchase_id != null)
           :data-test="`credit-card-line-refund-${props.installment.id}`"
           @click.stop="emit('refund', props.installment)"
         >{{ t('creditCards.creditEvent.action') }}</ElButton>
+        <ElButton
+          size="small"
+          :disabled="props.actionLoading"
+          :data-test="`credit-card-line-delete-${props.installment.id}`"
+          @click.stop="emit('delete', props.installment)"
+        >{{ t('creditCards.delete.action') }}</ElButton>
       </div>
     </div>
   </li>

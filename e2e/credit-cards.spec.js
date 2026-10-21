@@ -560,6 +560,186 @@ test('owner cannot archive a card while it still has an obligation or card credi
   await expect(page.locator('[data-test="credit-card-41"]')).toBeVisible()
 })
 
+test('owner previews and moves a full schedule, then sees move history', async ({ page }) => {
+  const card = creditCard(41, 'Nubank Platinum')
+  const purchase = purchaseFixture(card, { category_id: 18, description: 'Groceries', purchase_date: '2026-09-05', total_amount_centavos: 10_000, installment_count: 2 }, 301)
+  const moves = []
+  await mockCreditCardsApi(page, { cards: [card], purchases: [purchase], moveSurplus: 2_000, onMove: (request) => moves.push(request) })
+  await page.goto('/app/credit-cards/41')
+  await page.locator('[data-test="credit-card-purchase-actions-301"]').click()
+  await page.locator('[data-test="credit-card-purchase-move-301"]').click()
+  const dialog = page.getByRole('dialog', { name: 'Move purchase' })
+  await expect(dialog).toContainText('Groceries')
+  await chooseOption(page, dialog.locator('[data-test="credit-card-move-target"]'), 'Closes 10/11/2026')
+  await expect(dialog.locator('[data-test="credit-card-move-confirm"]')).toBeDisabled()
+  await dialog.locator('[data-test="credit-card-move-preview-button"]').click()
+  await expect(dialog.locator('[data-test="credit-card-move-preview"]')).toContainText('20,00')
+  await dialog.locator('[data-test="credit-card-move-confirm"]').press('Enter')
+  await expect(page.getByText('Purchase moved.')).toBeVisible()
+  expect(moves[0].payload).toMatchObject({ mode: 'full_schedule', target_closing_date: '2026-11-10', preview_token: 'fixture-preview-token' })
+  expect(moves[0].key).toBeTruthy()
+  await page.locator('[data-test="credit-card-purchase-actions-301"]').click()
+  await page.locator('[data-test="credit-card-purchase-history-301"]').click()
+  await expect(page.locator('[data-test="credit-card-move-history"]')).toContainText('10/11/2026')
+})
+
+test('statement action preselects one installment and requires a fresh preview after stale confirmation', async ({ page }) => {
+  const card = creditCard(41, 'Nubank Platinum')
+  const purchase = purchaseFixture(card, { category_id: 18, description: 'Groceries', purchase_date: '2026-09-05', total_amount_centavos: 10_000, installment_count: 2 }, 301)
+  const statement = statementFixture(card)
+  statement.installments = [{ ...purchase.installments[0], purchase_id: 301, description: purchase.description, purchase_date: purchase.purchase_date, purchase_total_amount: purchase.total_amount }]
+  await mockCreditCardsApi(page, { cards: [card], purchases: [purchase], statement, moveCommitError: 'STALE_MOVE_PREVIEW' })
+  await page.goto('/app/credit-card-statements/72')
+  await page.locator('[data-test="credit-card-line-toggle-3010"]').click()
+  await page.locator('[data-test="credit-card-line-move-3010"]').click()
+  const dialog = page.getByRole('dialog', { name: 'Move purchase' })
+  await expect(dialog.locator('[data-test="credit-card-move-mode"]')).toContainText('One installment')
+  await chooseOption(page, dialog.locator('[data-test="credit-card-move-target"]'), 'Closes 10/11/2026')
+  await dialog.locator('[data-test="credit-card-move-preview-button"]').click()
+  await expect(dialog.locator('[data-test="credit-card-move-preview"]')).toBeVisible()
+  await dialog.locator('[data-test="credit-card-move-confirm"]').press('Enter')
+  await expect(dialog.locator('[data-test="credit-card-move-error"]')).toContainText('Preview again')
+  await expect(dialog.locator('[data-test="credit-card-move-confirm"]')).toBeDisabled()
+  await dialog.locator('[data-test="credit-card-move-preview-button"]').click()
+  await expect(dialog.locator('[data-test="credit-card-move-preview"]')).toContainText('10/11/2026')
+  await dialog.locator('[data-test="credit-card-move-confirm"]').press('Enter')
+  await expect(page.getByText('Purchase moved.')).toBeVisible()
+  expect(purchase.installments[0].statement.closing_date).toBe('2026-11-10')
+})
+
+test('closed-cycle purchase requires Statement, resets after date change, and saves selected allocation', async ({ page }) => {
+  const card = creditCard(41, 'Nubank Platinum')
+  const requests = []
+  await mockCreditCardsApi(page, {
+    cards: [card], onPurchase: (request) => requests.push(request),
+    statementChoices: (date, fromMonth) => ({
+      business_date: '2026-10-21', date_derived_closing_date: '2026-09-10',
+      requires_statement_choice: date === '2026-09-01',
+      options: date === '2026-09-01' ? [{ closing_date: fromMonth ? '2027-01-10' : '2026-11-10', due_date: '2026-11-17' }] : [],
+      next_from_month: fromMonth ? null : '2027-01',
+    }),
+  })
+  await page.goto('/app/credit-cards/41')
+  await page.getByRole('button', { name: 'New purchase' }).click()
+  const dialog = page.getByRole('dialog', { name: 'New purchase' })
+  await chooseOption(page, dialog.locator('[data-test="credit-card-purchase-category"]'), 'Groceries')
+  await dialog.getByLabel('Description').fill('Backdated groceries')
+  await dialog.getByLabel('Total amount').pressSequentially('10000')
+  await expect(dialog.locator('[data-test="credit-card-purchase-statement"]')).toHaveCount(0)
+  await dialog.getByRole('combobox', { name: 'Purchase date' }).fill('2026-09-01')
+  await dialog.getByRole('combobox', { name: 'Purchase date' }).press('Tab')
+  await expect(dialog.locator('[data-test="credit-card-purchase-statement"]')).toBeVisible()
+  await dialog.getByRole('button', { name: 'Save' }).click()
+  await expect(dialog).toContainText('Choose the statement')
+  await chooseOption(page, dialog.locator('[data-test="credit-card-purchase-statement"]'), 'Closes 10/11/2026')
+  await dialog.getByRole('combobox', { name: 'Purchase date' }).fill('2026-10-21')
+  await dialog.getByRole('combobox', { name: 'Purchase date' }).press('Tab')
+  await expect(dialog.locator('[data-test="credit-card-purchase-statement"]')).toHaveCount(0)
+  await dialog.getByRole('combobox', { name: 'Purchase date' }).fill('2026-09-01')
+  await dialog.getByRole('combobox', { name: 'Purchase date' }).press('Tab')
+  await dialog.locator('[data-test="credit-card-purchase-options-more"]').click()
+  await chooseOption(page, dialog.locator('[data-test="credit-card-purchase-statement"]'), 'Closes 10/01/2027')
+  await dialog.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByText('Purchase recorded.')).toBeVisible()
+  expect(requests[0].payload.statement_closing_date).toBe('2027-01-10')
+})
+
+test('delete requires confirmation, preserves payment history, and explains linked refunds', async ({ page }) => {
+  const card = creditCard(41, 'Nubank Platinum')
+  const purchase = purchaseFixture(card, { category_id: 18, description: 'Groceries', purchase_date: '2026-09-05', total_amount_centavos: 10_000, installment_count: 2 }, 301)
+  const statement = statementFixture(card)
+  statement.payments = [{ id: 11, amount: money(10_000), payment_date: '2026-10-05', status: 'effective', is_removed: false, financial_account: { id: 7, name: 'Main account' } }]
+  const deletes = []
+  const options = { cards: [card], purchases: [purchase], statement, onDelete: (request) => deletes.push(request), deleteError: 'PURCHASE_HAS_LINKED_CREDITS' }
+  await mockCreditCardsApi(page, options)
+  await page.goto('/app/credit-cards/41')
+  await page.locator('[data-test="credit-card-purchase-actions-301"]').click()
+  await page.locator('[data-test="credit-card-purchase-delete-301"]').click()
+  const dialog = page.getByRole('dialog', { name: 'Permanently delete purchase' })
+  await expect(dialog).toContainText('Groceries')
+  await dialog.getByRole('button', { name: 'Cancel' }).click()
+  expect(deletes).toHaveLength(0)
+  await page.locator('[data-test="credit-card-purchase-actions-301"]').click()
+  await page.locator('[data-test="credit-card-purchase-delete-301"]').click()
+  await dialog.getByRole('button', { name: 'Delete permanently' }).click()
+  await expect(dialog.locator('[data-test="credit-card-delete-error"]')).toContainText('linked refunds')
+  options.deleteError = null
+  await dialog.getByRole('button', { name: 'Delete permanently' }).click()
+  await expect(page.locator('[data-test="credit-card-purchase-301"]')).toHaveCount(0)
+  expect(deletes[0].key).toBeTruthy()
+  await page.goto('/app/credit-card-statements/72')
+  await expect(page.locator('[data-test="credit-card-payment-11"]')).toContainText('Main account')
+})
+
+for (const { locale, theme } of [
+  { locale: 'pt-BR', theme: 'light' },
+  { locale: 'en', theme: 'dark' },
+  { locale: 'en', theme: 'system' },
+]) {
+  test(`purchase dialogs remain labelled at 320px in ${locale} ${theme} theme`, async ({ page }) => {
+    await page.addInitScript((settings) => {
+      window.localStorage.setItem('zunera.locale', settings.locale)
+      window.localStorage.setItem('zunera.theme', settings.theme)
+    }, { locale, theme })
+    await page.setViewportSize({ width: 320, height: 900 })
+    await page.emulateMedia({ colorScheme: theme === 'system' ? 'dark' : 'light' })
+    const card = creditCard(41, 'Nubank Platinum')
+    const purchase = purchaseFixture(card, { category_id: 18, description: 'Groceries', purchase_date: '2026-09-05', total_amount_centavos: 10_000, installment_count: 2 }, 301)
+    await mockCreditCardsApi(page, { cards: [card], purchases: [purchase] })
+    await page.goto('/app/credit-cards/41')
+
+    await page.locator('[data-test="credit-card-purchase-create"]').click()
+    const create = page.locator('[data-test="credit-card-purchase-dialog"]')
+    await expect(create.getByRole('combobox', { name: locale === 'en' ? 'Purchase date' : 'Data da compra' })).toBeVisible()
+    await expectDialogWithinViewport(page, create)
+    await create.locator('[data-test="credit-card-purchase-cancel"]').click()
+
+    await page.locator('[data-test="credit-card-purchase-actions-301"]').click()
+    await page.locator('[data-test="credit-card-purchase-move-301"]').click()
+    const move = page.locator('[data-test="credit-card-purchase-move-dialog"]')
+    await expect(move.getByRole('combobox', { name: locale === 'en' ? 'Target statement' : 'Fatura de destino' })).toBeVisible()
+    await expectDialogWithinViewport(page, move)
+    await move.locator('[data-test="credit-card-move-cancel"]').click()
+
+    await page.locator('[data-test="credit-card-purchase-actions-301"]').click()
+    await page.locator('[data-test="credit-card-purchase-delete-301"]').click()
+    const remove = page.locator('[data-test="credit-card-purchase-delete-dialog"]')
+    await expect(remove.locator('[data-test="credit-card-delete-warning"]')).toContainText('Groceries')
+    await expectDialogWithinViewport(page, remove)
+  })
+}
+
+test('purchase dialogs fit at 200% zoom and return focus to purchase actions', async ({ page }) => {
+  const card = creditCard(41, 'Nubank Platinum')
+  const purchase = purchaseFixture(card, { category_id: 18, description: 'Groceries', purchase_date: '2026-09-05', total_amount_centavos: 10_000, installment_count: 2 }, 301)
+  await mockCreditCardsApi(page, { cards: [card], purchases: [purchase] })
+  await page.setViewportSize({ width: 800, height: 900 })
+  await page.goto('/app/credit-cards/41')
+  await page.evaluate(() => { document.documentElement.style.zoom = '2' })
+  await page.locator('[data-test="credit-card-purchase-actions-301"]').click()
+  await page.locator('[data-test="credit-card-purchase-move-301"]').click()
+  const dialog = page.locator('[data-test="credit-card-purchase-move-dialog"]')
+  await expectDialogWithinViewport(page, dialog)
+  await dialog.locator('[data-test="credit-card-move-cancel"]').click()
+  await expect(page.locator('[data-test="credit-card-purchase-actions-301"]')).toBeFocused()
+  await page.locator('[data-test="credit-card-purchase-actions-301"]').click()
+  await page.locator('[data-test="credit-card-purchase-delete-301"]').click()
+  const remove = page.locator('[data-test="credit-card-purchase-delete-dialog"]')
+  await expectDialogWithinViewport(page, remove)
+  await remove.locator('[data-test="credit-card-delete-cancel"]').click()
+  await page.locator('[data-test="credit-card-purchase-create"]').click()
+  const create = page.locator('[data-test="credit-card-purchase-dialog"]')
+  await expectDialogWithinViewport(page, create)
+})
+
+async function expectDialogWithinViewport(page, dialog) {
+  const bounds = await dialog.boundingBox()
+  const viewport = page.viewportSize()
+  expect(bounds).toBeTruthy()
+  expect(bounds.x).toBeGreaterThanOrEqual(0)
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width + 1)
+}
+
 async function mockCreditCardsApi(page, options) {
   await page.route('**/api/v1/auth/session', (route) =>
     route.fulfill({ json: sessionPayload(), headers: apiHeaders() }),
@@ -575,6 +755,9 @@ async function mockCreditCardsApi(page, options) {
       json: { data: [{ id: 18, name: 'Groceries', classification: 'expense', status: 'active' }] },
       headers: apiHeaders(),
     }),
+  )
+  await page.route('**/api/v1/financial-dashboard/credit-cards', (route) =>
+    route.fulfill({ json: { data: { upcoming_statements: [] } }, headers: apiHeaders() }),
   )
   await page.route('**/api/v1/credit-cards**', async (route) => {
     const request = route.request()
@@ -610,12 +793,24 @@ async function mockCreditCardsApi(page, options) {
       return route.fulfill({ status: 201, json: { data: created }, headers: apiHeaders() })
     }
 
-    const cardMatch = pathname.match(/^\/api\/v1\/credit-cards\/(\d+)(?:\/(archive|purchases|statements))?$/)
+    const cardMatch = pathname.match(/^\/api\/v1\/credit-cards\/(\d+)(?:\/(archive|purchases|statements|statement-options))?$/)
     if (!cardMatch) return route.continue()
 
     const [, id, action] = cardMatch
     const card = options.cards.find((item) => item.id === Number(id))
     if (!card) return route.fulfill({ status: 404, json: { message: 'Not found' }, headers: apiHeaders() })
+
+    if (action === 'statement-options' && request.method() === 'GET') {
+      const purchaseDate = url.searchParams.get('purchase_date')
+      const fromMonth = url.searchParams.get('from_month')
+      const result = options.statementChoices?.(purchaseDate, fromMonth) ?? {
+        business_date: '2026-10-21', date_derived_closing_date: '2026-11-10',
+        requires_statement_choice: false,
+        options: [{ closing_date: '2026-11-10', period_from: '2026-10-11', period_to: '2026-11-10', due_date: '2026-11-17' }],
+        next_from_month: null,
+      }
+      return route.fulfill({ json: { data: result }, headers: apiHeaders() })
+    }
 
     if (action === 'purchases' && request.method() === 'GET') {
       return route.fulfill({ json: { data: options.purchases ?? [], meta: { current_page: 1, last_page: 1, per_page: 50, total: (options.purchases ?? []).length } }, headers: apiHeaders() })
@@ -738,6 +933,15 @@ async function mockCreditCardsApi(page, options) {
     const purchase = (options.purchases ?? []).find((item) => item.id === Number(new URL(route.request().url()).pathname.match(/credit-card-purchases\/(\d+)/)?.[1]))
     if (!purchase) return route.fulfill({ status: 404, json: { message: 'Not found' }, headers: apiHeaders() })
     if (route.request().method() === 'GET') return route.fulfill({ json: { data: purchase }, headers: apiHeaders() })
+    if (route.request().method() === 'DELETE') {
+      if (options.deleteError) {
+        return route.fulfill({ status: 409, json: { code: options.deleteError, message: 'Cannot delete' }, headers: apiHeaders() })
+      }
+      options.onDelete?.({ purchase, key: route.request().headers()['idempotency-key'] })
+      options.purchases.splice(options.purchases.indexOf(purchase), 1)
+      if (options.statement) options.statement.installments = options.statement.installments.filter((item) => item.purchase_id !== purchase.id)
+      return route.fulfill({ json: { data: { deleted_purchase_id: purchase.id, affected_statement_closing_dates: [] } }, headers: apiHeaders() })
+    }
     if (route.request().method() !== 'PATCH') return route.continue()
     const payload = route.request().postDataJSON()
     Object.assign(purchase, {
@@ -749,6 +953,54 @@ async function mockCreditCardsApi(page, options) {
     })
     options.onCorrection?.({ purchase, payload })
     return route.fulfill({ json: { data: purchase }, headers: apiHeaders() })
+  })
+
+  await page.route(/\/api\/v1\/credit-card-purchases\/(\d+)\/(move-preview|move|moves)$/, (route) => {
+    const request = route.request()
+    const [, id, action] = new URL(request.url()).pathname.match(/credit-card-purchases\/(\d+)\/(move-preview|move|moves)$/) ?? []
+    const purchase = (options.purchases ?? []).find((item) => item.id === Number(id))
+    if (!purchase) return route.fulfill({ status: 404, json: { message: 'Not found' }, headers: apiHeaders() })
+    if (action === 'moves' && request.method() === 'GET') {
+      return route.fulfill({ json: { data: options.moves ?? [] }, headers: apiHeaders() })
+    }
+    const payload = request.postDataJSON()
+    if (action === 'move-preview') {
+      if (options.movePreviewError) {
+        const code = options.movePreviewError
+        options.movePreviewError = null
+        return route.fulfill({ status: 409, json: { code, message: 'Preview changed' }, headers: apiHeaders() })
+      }
+      const affected = purchase.installments
+        .filter((item) => payload.mode === 'full_schedule' || item.id === payload.installment_id)
+        .map((item) => ({
+          installment_id: item.id, sequence: item.sequence,
+          amount_centavos: item.amount.amount_centavos,
+          source: { closing_date: item.statement.closing_date },
+          destination: { closing_date: payload.target_closing_date },
+        }))
+      return route.fulfill({ json: { data: {
+        preview_token: 'fixture-preview-token', affected_installments: affected,
+        affected_statements: [{ closing_date: payload.target_closing_date,
+          charge_before_centavos: 0, charge_after_centavos: affected.reduce((sum, item) => sum + item.amount_centavos, 0),
+          outstanding_before_centavos: 0, outstanding_after_centavos: options.moveOutstanding ?? 0,
+          payment_surplus_after_centavos: options.moveSurplus ?? 0,
+        }],
+      } }, headers: apiHeaders() })
+    }
+    if (action === 'move') {
+      if (options.moveCommitError) {
+        const code = options.moveCommitError
+        options.moveCommitError = null
+        return route.fulfill({ status: 409, json: { code, message: 'Move preview became stale.' }, headers: apiHeaders() })
+      }
+      options.onMove?.({ payload, key: request.headers()['idempotency-key'] })
+      const moved = purchase.installments.filter((item) => payload.mode === 'full_schedule' || item.id === payload.installment_id)
+      for (const item of moved) item.statement.closing_date = payload.target_closing_date
+      options.moves ??= []
+      options.moves.push({ id: options.moves.length + 1, source: { closing_date: '2026-09-25' }, destination: { closing_date: payload.target_closing_date } })
+      return route.fulfill({ json: { data: { purchase, moves: options.moves, affected_statements: [], card: options.cards[0] } }, headers: apiHeaders() })
+    }
+    return route.continue()
   })
 }
 
@@ -810,7 +1062,7 @@ function purchaseFixture(card, payload, id) {
       recognition_status: 'pending',
       statement: {
         id: 72 + index,
-        closing_date: `2026-${String(9 + index).padStart(2, '0')}-25`,
+        closing_date: index === 0 && payload.statement_closing_date ? payload.statement_closing_date : `2026-${String(9 + index).padStart(2, '0')}-25`,
         due_date: `2026-${String(10 + index).padStart(2, '0')}-05`,
       },
     })),

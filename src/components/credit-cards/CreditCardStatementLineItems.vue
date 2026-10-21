@@ -13,7 +13,7 @@ const props = defineProps({
   actionLoading: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['correct', 'refund', 'navigate-source'])
+const emit = defineEmits(['correct', 'refund', 'move', 'delete', 'navigate-source'])
 const { t } = useI18n()
 const expandedId = shallowRef(null)
 
@@ -62,6 +62,8 @@ function toggle(id) {
         @toggle="toggle"
         @correct="emit('correct', $event)"
         @refund="emit('refund', $event)"
+        @move="emit('move', $event)"
+        @delete="emit('delete', $event)"
         @navigate-source="emit('navigate-source', $event)"
       />
     </ul>

@@ -33,7 +33,7 @@ const stubs = {
     props: ['modelValue'],
     emits: ['update:modelValue'],
     template:
-      '<select :value="modelValue" @change="$emit(\'update:modelValue\', Number($event.target.value))"><slot /></select>',
+      '<select :value="modelValue" @change="$emit(\'update:modelValue\', /^\\d+$/.test($event.target.value) ? Number($event.target.value) : $event.target.value)"><slot /></select>',
   },
   ElOption: { props: ['label', 'value'], template: '<option :value="value">{{ label }}</option>' },
   ElInput: {
@@ -96,6 +96,58 @@ beforeEach(() => {
 })
 
 describe('CreditCardPurchaseForm', () => {
+  it('shows Statement only for closed date-derived cycles in a 100-case matrix', async () => {
+    const requiredCases = []
+    for (let index = 0; index < 100; index++) {
+      const day = [9, 10, 11][index % 3]
+      const purchaseDate = new Date(Date.UTC(2018, index, day)).toISOString().slice(0, 10)
+      const closed = index % 3 === 0
+      const wrapper = factory({ statementOptions: {
+        requires_statement_choice: closed,
+        options: [{ closing_date: '2026-11-10' }],
+      } })
+      await wrapper.find('input[type="date"]').setValue(purchaseDate)
+      expect(wrapper.emitted('request-statement-options').at(-1)[0].purchaseDate).toBe(purchaseDate)
+      const statementSelect = wrapper.find('[data-test="credit-card-purchase-statement"]')
+      expect(statementSelect.exists()).toBe(closed)
+      if (closed) {
+        const startsEmpty = statementSelect.element.value === ''
+        await wrapper.get('[data-test="credit-card-purchase-submit"]').trigger('click')
+        requiredCases.push(startsEmpty && !wrapper.emitted('submit') && wrapper.text().includes('Escolha a fatura'))
+      }
+      wrapper.unmount()
+    }
+    expect(requiredCases).toHaveLength(34)
+    expect(requiredCases.every(Boolean)).toBe(true)
+  })
+
+  it('includes the chosen closing date and clears it after a purchase date change', async () => {
+    const wrapper = factory({ statementOptions: {
+      requires_statement_choice: true,
+      options: [{ closing_date: '2026-11-10' }],
+      next_from_month: '2027-01',
+    } })
+    await wrapper.get('[data-test="credit-card-purchase-statement"]').setValue('2026-11-10')
+    await wrapper.get('[data-test="credit-card-purchase-submit"]').trigger('click')
+    expect(wrapper.emitted('submit')[0][0].statement_closing_date).toBe('2026-11-10')
+    await wrapper.find('input[type="date"]').setValue('2026-10-02')
+    expect(wrapper.get('[data-test="credit-card-purchase-statement"]').element.value).toBe('')
+    expect(wrapper.emitted('request-statement-options').at(-1)[0]).toMatchObject({ purchaseDate: '2026-10-02' })
+    await wrapper.get('[data-test="credit-card-purchase-options-more"]').trigger('click')
+    expect(wrapper.emitted('request-statement-options').at(-1)[0].fromMonth).toBe('2027-01')
+  })
+
+  it('shows statement field validation and option loading feedback', () => {
+    const wrapper = factory({
+      statementOptions: { requires_statement_choice: true, options: [] },
+      optionsLoading: true,
+      mutationError: { errors: { statement_closing_date: ['Choose a current statement.'] } },
+    })
+    expect(wrapper.text()).toContain('Choose a current statement.')
+    expect(wrapper.get('[data-test="credit-card-purchase-choice-stale"]').text()).toContain('escolhida')
+    expect(wrapper.find('[data-test="credit-card-purchase-options-loading"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="credit-card-purchase-options-empty"]').exists()).toBe(true)
+  })
   it('puts description first and pairs related fields from the medium breakpoint', () => {
     const wrapper = factory()
     const formItems = wrapper.findAll('label')

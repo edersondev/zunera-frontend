@@ -6,16 +6,21 @@ import {
   createCreditEvent,
   createPayment,
   createPurchase,
+  deletePurchase,
   getCard,
+  getStatementOptions,
   getPurchase,
   getDashboardCards,
   getStatement,
   isOverLimitConfirmation,
   listCards,
   listPurchases,
+  listPurchaseMoves,
   listStatements,
+  movePurchase,
   newIdempotencyKey,
   overLimitResultingCentavos,
+  previewPurchaseMove,
   removePayment,
   restoreCard as restoreCardRequest,
   restorePayment,
@@ -38,6 +43,15 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
   const statement = shallowRef(null)
   const purchases = shallowRef([])
   const dashboard = shallowRef(null)
+  const statementOptions = shallowRef(null)
+  const optionsLoading = shallowRef(false)
+  const optionsError = shallowRef(null)
+  const movePreview = shallowRef(null)
+  const moveHistory = shallowRef([])
+  const previewLoading = shallowRef(false)
+  const previewError = shallowRef(null)
+  let optionsVersion = 0
+  let historyVersion = 0
 
   const loading = shallowRef(false)
   const error = shallowRef(null)
@@ -184,6 +198,93 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
     }
   }
 
+  async function fetchStatementOptions(cardId, params) {
+    const version = ++optionsVersion
+    optionsLoading.value = true
+    optionsError.value = null
+    try {
+      const result = await getStatementOptions(cardId, params)
+      if (version === optionsVersion) {
+        const previous = params.from_month ? statementOptions.value?.options ?? [] : []
+        statementOptions.value = {
+          ...result,
+          options: [...new Map([...previous, ...result.options].map((option) => [option.closing_date, option])).values()],
+        }
+      }
+      return result
+    } catch (requestError) {
+      if (version === optionsVersion) optionsError.value = requestError
+      return null
+    } finally {
+      if (version === optionsVersion) optionsLoading.value = false
+    }
+  }
+
+  function clearStatementOptions() {
+    optionsVersion++
+    statementOptions.value = null
+    optionsError.value = null
+    optionsLoading.value = false
+  }
+
+  async function fetchMoveHistory(purchaseId) {
+    const version = ++historyVersion
+    moveHistory.value = []
+    try {
+      const result = await listPurchaseMoves(purchaseId)
+      if (version === historyVersion) moveHistory.value = result
+      return result
+    } catch (requestError) {
+      if (version === historyVersion) error.value = requestError
+      return []
+    }
+  }
+
+  function clearMoveHistory() {
+    historyVersion++
+    moveHistory.value = []
+  }
+
+  async function previewMove(purchaseId, payload) {
+    movePreview.value = null
+    previewError.value = null
+    mutationError.value = null
+    previewLoading.value = true
+    try {
+      movePreview.value = await previewPurchaseMove(purchaseId, payload)
+      return movePreview.value
+    } catch (requestError) {
+      previewError.value = requestError
+      return null
+    } finally {
+      previewLoading.value = false
+    }
+  }
+
+  function clearMovePreview() {
+    movePreview.value = null
+    previewError.value = null
+  }
+
+  async function submitMove(purchaseId, payload, cardId, statementId = null, idempotencyKey = newIdempotencyKey()) {
+    const outcome = await runMutation(async () => {
+      const result = await movePurchase(purchaseId, payload, idempotencyKey)
+      clearMovePreview()
+      await refreshCardActivity(cardId, statementId)
+      return result
+    })
+    if (!outcome.ok && mutationError.value?.code === 'STALE_MOVE_PREVIEW') clearMovePreview()
+    return outcome
+  }
+
+  async function submitDeletePurchase(purchaseId, cardId, statementId = null, idempotencyKey = newIdempotencyKey()) {
+    return runMutation(async () => {
+      const result = await deletePurchase(purchaseId, idempotencyKey)
+      await refreshCardActivity(cardId, statementId)
+      return result
+    })
+  }
+
   /**
    * Returns { ok, overLimit } instead of throwing a confirmation away: the
    * dialog shows the exact resulting available credit and, on user confirmation,
@@ -320,8 +421,22 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
   }
 
   async function refreshCardAfterMutation(cardId) {
-    card.value = await getCard(cardId)
-    await refreshCardsQuietly()
+    await refreshCardActivity(cardId)
+  }
+
+  async function refreshCardActivity(cardId, statementId = null) {
+    if (!cardId) return
+    const refreshes = [
+      getCard(cardId).then((result) => { card.value = result }),
+      listCards('active').then((result) => { cards.value = result }),
+      listPurchases(cardId).then((result) => { purchases.value = result.purchases }),
+      listStatements(cardId).then((result) => { statements.value = result.statements }),
+      getDashboardCards().then((result) => { dashboard.value = result }),
+    ]
+    if (statementId) refreshes.push(getStatement(statementId).then((result) => { statement.value = result }))
+    const outcomes = await Promise.allSettled(refreshes)
+    const failure = outcomes.find((outcome) => outcome.status === 'rejected')
+    if (failure) error.value = failure.reason
   }
 
   async function refreshCardsQuietly() {
@@ -355,6 +470,13 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
     statement,
     purchases,
     dashboard,
+    statementOptions,
+    optionsLoading,
+    optionsError,
+    movePreview,
+    moveHistory,
+    previewLoading,
+    previewError,
     loading,
     error,
     submitting,
@@ -375,6 +497,15 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
     fetchPurchases,
     fetchPurchase,
     fetchDashboard,
+    fetchStatementOptions,
+    clearStatementOptions,
+    fetchMoveHistory,
+    clearMoveHistory,
+    previewMove,
+    clearMovePreview,
+    submitMove,
+    submitDeletePurchase,
+    refreshCardActivity,
     submitPurchase,
     submitOverLimit,
     dismissOverLimit,

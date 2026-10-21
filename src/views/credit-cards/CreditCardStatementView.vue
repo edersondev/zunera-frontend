@@ -10,6 +10,8 @@ import CreditCardStatementBreakdown from '@/components/credit-cards/CreditCardSt
 import CreditCardStatementCreditEvents from '@/components/credit-cards/CreditCardStatementCreditEvents.vue'
 import CreditCardCorrectionDialog from '@/components/credit-cards/CreditCardCorrectionDialog.vue'
 import CreditCardCreditEventDialog from '@/components/credit-cards/CreditCardCreditEventDialog.vue'
+import CreditCardPurchaseMoveDialog from '@/components/credit-cards/CreditCardPurchaseMoveDialog.vue'
+import CreditCardPurchaseDeleteDialog from '@/components/credit-cards/CreditCardPurchaseDeleteDialog.vue'
 import CreditCardStatementLineItems from '@/components/credit-cards/CreditCardStatementLineItems.vue'
 import CreditCardStatementPaymentDialog from '@/components/credit-cards/CreditCardStatementPaymentDialog.vue'
 import CreditCardStatementPayments from '@/components/credit-cards/CreditCardStatementPayments.vue'
@@ -32,6 +34,11 @@ const creditEventTarget = shallowRef(null)
 const correctionVisible = shallowRef(false)
 const creditEventVisible = shallowRef(false)
 const loadingPurchaseId = shallowRef(null)
+const moveTarget = shallowRef(null)
+const moveInstallmentId = shallowRef(null)
+const moveVisible = shallowRef(false)
+const deleteTarget = shallowRef(null)
+const deleteVisible = shallowRef(false)
 
 function openRecurrenceSource(installment) {
   const source = installment?.recurrence_source
@@ -119,6 +126,17 @@ async function openPurchaseAction(installment, action) {
       }
       correctionTarget.value = purchase
       correctionVisible.value = true
+    } else if (action === 'move') {
+      store.clearStatementOptions()
+      store.clearMovePreview()
+      store.clearMoveHistory()
+      moveTarget.value = purchase
+      moveInstallmentId.value = installment.id
+      moveVisible.value = true
+      store.fetchMoveHistory(purchase.id)
+    } else if (action === 'delete') {
+      deleteTarget.value = purchase
+      deleteVisible.value = true
     } else {
       creditEventTarget.value = purchase
       creditEventVisible.value = true
@@ -126,6 +144,37 @@ async function openPurchaseAction(installment, action) {
   } finally {
     loadingPurchaseId.value = null
   }
+}
+
+function requestStatementOptions({ cardId, purchaseDate, fromMonth }) {
+  if (!fromMonth) store.clearStatementOptions()
+  return store.fetchStatementOptions(cardId, {
+    purchase_date: purchaseDate,
+    ...(fromMonth ? { from_month: fromMonth } : {}),
+  })
+}
+
+async function submitMove(payload) {
+  if (!moveTarget.value) return
+  const cardId = moveTarget.value.card.id
+  const outcome = await store.submitMove(
+    moveTarget.value.id, payload, cardId, Number(props.statementId ?? route.params.statement_id),
+  )
+  if (!outcome.ok) return
+  moveVisible.value = false
+  moveTarget.value = null
+  showActionSuccess(t('creditCards.move.saved'))
+}
+
+async function confirmDelete() {
+  if (!deleteTarget.value) return
+  const outcome = await store.submitDeletePurchase(
+    deleteTarget.value.id, deleteTarget.value.card.id, Number(props.statementId ?? route.params.statement_id),
+  )
+  if (!outcome.ok) return
+  deleteVisible.value = false
+  deleteTarget.value = null
+  showActionSuccess(t('creditCards.delete.saved'))
 }
 
 async function submitCorrection(payload) {
@@ -199,6 +248,8 @@ async function submitCreditEvent(payload) {
         :action-loading="loadingPurchaseId !== null || store.submitting"
         @correct="openPurchaseAction($event, 'correct')"
         @refund="openPurchaseAction($event, 'refund')"
+        @move="openPurchaseAction($event, 'move')"
+        @delete="openPurchaseAction($event, 'delete')"
         @navigate-source="openRecurrenceSource"
       />
       <CreditCardStatementPayments
@@ -235,6 +286,31 @@ async function submitCreditEvent(payload) {
       :mutation-error="store.mutationError"
       @submit="submitCreditEvent"
       @dismiss-mutation-error="store.dismissMutationError"
+    />
+    <CreditCardPurchaseMoveDialog
+      v-model:visible="moveVisible"
+      :purchase="moveTarget"
+      :initial-installment-id="moveInstallmentId"
+      :options="store.statementOptions"
+      :options-loading="store.optionsLoading"
+      :options-error="store.optionsError"
+      :preview="store.movePreview"
+      :preview-loading="store.previewLoading"
+      :preview-error="store.previewError"
+      :mutation-error="store.mutationError"
+      :history="store.moveHistory"
+      :submitting="store.submitting"
+      @request-options="requestStatementOptions"
+      @request-preview="store.previewMove(moveTarget.id, $event)"
+      @clear-preview="store.clearMovePreview()"
+      @confirm="submitMove"
+    />
+    <CreditCardPurchaseDeleteDialog
+      v-model:visible="deleteVisible"
+      :purchase="deleteTarget"
+      :submitting="store.submitting"
+      :mutation-error="store.mutationError"
+      @confirm="confirmDelete"
     />
   </section>
 </template>

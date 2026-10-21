@@ -23,6 +23,7 @@ import {
   availableCreditPresentation,
   businessToday,
   formatBRL,
+  formatIsoDate,
 } from '@/utils/credit-cards/creditCardFormatters'
 
 const props = defineProps({
@@ -32,6 +33,9 @@ const props = defineProps({
   mutationError: { type: Object, default: null },
   overLimit: { type: Object, default: null },
   createdPurchase: { type: Object, default: null },
+  statementOptions: { type: Object, default: null },
+  optionsLoading: { type: Boolean, default: false },
+  optionsError: { type: Object, default: null },
 })
 
 const emit = defineEmits([
@@ -40,6 +44,7 @@ const emit = defineEmits([
   'confirm-over-limit',
   'dismiss-over-limit',
   'dismiss-mutation-error',
+  'request-statement-options',
 ])
 const { t } = useI18n()
 const formRef = shallowRef(null)
@@ -53,7 +58,9 @@ const form = reactive({
   purchase_date: businessToday(),
   total_amount_centavos: null,
   installment_count: 1,
+  statement_closing_date: null,
 })
+const choiceError = shallowRef('')
 
 const fieldErrors = computed(() => props.mutationError?.errors ?? {})
 const errorMessage = computed(() =>
@@ -67,9 +74,30 @@ onMounted(loadCategories)
 watch(
   () => props.visible,
   (visible) => {
-    if (visible) resetForm()
+    if (visible) {
+      resetForm()
+      requestOptions()
+    }
   },
 )
+
+watch(
+  () => [form.purchase_date, props.card?.id],
+  () => {
+    form.statement_closing_date = null
+    choiceError.value = ''
+    if (props.visible) requestOptions()
+  },
+)
+
+function requestOptions(fromMonth = null) {
+  if (!props.card?.id || !form.purchase_date) return
+  emit('request-statement-options', {
+    cardId: props.card.id,
+    purchaseDate: form.purchase_date,
+    fromMonth,
+  })
+}
 
 async function loadCategories() {
   try {
@@ -89,6 +117,8 @@ function resetForm() {
   form.purchase_date = businessToday()
   form.total_amount_centavos = null
   form.installment_count = 1
+  form.statement_closing_date = null
+  choiceError.value = ''
   formRef.value?.clearValidate?.()
 }
 
@@ -100,14 +130,23 @@ function close() {
 }
 
 function submit() {
-  emit('submit', {
+  if (props.statementOptions?.requires_statement_choice && !form.statement_closing_date) {
+    choiceError.value = t('creditCards.statementChoice.required')
+    return
+  }
+  choiceError.value = ''
+  const payload = {
     category_id: form.category_id,
     description: form.description.trim(),
     notes: form.notes.trim() === '' ? null : form.notes.trim(),
     purchase_date: form.purchase_date,
     total_amount_centavos: form.total_amount_centavos,
     installment_count: form.installment_count,
-  })
+  }
+  if (props.statementOptions?.requires_statement_choice) {
+    payload.statement_closing_date = form.statement_closing_date
+  }
+  emit('submit', payload)
 }
 </script>
 
@@ -178,6 +217,52 @@ function submit() {
           </ElFormItem>
         </ElCol>
       </ElRow>
+
+      <ElFormItem
+        v-if="statementOptions?.requires_statement_choice"
+        :label="t('creditCards.statementChoice.label')"
+        :error="fieldErrors.statement_closing_date?.[0] || choiceError"
+      >
+        <ElSelect
+          v-model="form.statement_closing_date"
+          :placeholder="t('creditCards.statementChoice.placeholder')"
+          :disabled="optionsLoading"
+          data-test="credit-card-purchase-statement"
+          @change="choiceError = ''"
+        >
+          <ElOption
+            v-for="option in statementOptions.options"
+            :key="option.closing_date"
+            :label="t('creditCards.statementChoice.option', { date: formatIsoDate(option.closing_date) })"
+            :value="option.closing_date"
+          />
+        </ElSelect>
+        <p v-if="statementOptions.options.length === 0" data-test="credit-card-purchase-options-empty">
+          {{ t('creditCards.statementChoice.empty') }}
+        </p>
+        <ElButton
+          v-if="statementOptions.next_from_month"
+          text
+          data-test="credit-card-purchase-options-more"
+          @click="requestOptions(statementOptions.next_from_month)"
+        >{{ t('creditCards.statementChoice.more') }}</ElButton>
+      </ElFormItem>
+      <p v-if="fieldErrors.statement_closing_date?.length" role="alert" data-test="credit-card-purchase-choice-stale">
+        {{ t('creditCards.statementChoice.stale') }}
+      </p>
+      <p v-if="optionsLoading" role="status" data-test="credit-card-purchase-options-loading">
+        {{ t('creditCards.statementChoice.loading') }}
+      </p>
+      <ElAlert
+        v-if="optionsError"
+        type="error"
+        :closable="false"
+        :title="optionsError.message || t('creditCards.statementChoice.loadError')"
+        data-test="credit-card-purchase-options-error"
+      />
+      <ElButton v-if="optionsError" text data-test="credit-card-purchase-options-retry" @click="requestOptions()">
+        {{ t('creditCards.statementChoice.retry') }}
+      </ElButton>
 
       <ElRow :gutter="16">
         <ElCol :xs="24" :md="12">
@@ -274,6 +359,7 @@ function submit() {
         type="primary"
         :icon="Check"
         :loading="submitting"
+        :disabled="optionsLoading || Boolean(optionsError)"
         data-test="credit-card-purchase-submit"
         @click="submit"
       >

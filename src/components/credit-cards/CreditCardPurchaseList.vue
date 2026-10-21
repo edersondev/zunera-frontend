@@ -1,5 +1,5 @@
 <script setup>
-import { Edit, MoreFilled, RefreshLeft } from '@element-plus/icons-vue'
+import { Clock, Delete, Edit, MoreFilled, Position, RefreshLeft } from '@element-plus/icons-vue'
 import {
   ElButton,
   ElDropdown,
@@ -23,7 +23,7 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['correct', 'refund', 'navigate-source'])
+const emit = defineEmits(['correct', 'refund', 'move', 'history', 'delete', 'navigate-source'])
 const { t } = useI18n()
 
 function handleCommand(purchase, command) {
@@ -31,6 +31,9 @@ function handleCommand(purchase, command) {
 
   if (command === 'correct') emit('correct', purchase)
   if (command === 'refund') emit('refund', purchase)
+  if (command === 'move') emit('move', purchase)
+  if (command === 'history') emit('history', purchase)
+  if (command === 'delete') emit('delete', purchase)
 }
 </script>
 
@@ -92,6 +95,14 @@ function handleCommand(purchase, command) {
             />
             <template #dropdown>
               <ElDropdownMenu>
+                <ElDropdownItem command="move" :disabled="props.loading" :data-test="`credit-card-purchase-move-${purchase.id}`">
+                  <ElIcon><Position /></ElIcon>
+                  <span>{{ t('creditCards.move.action') }}</span>
+                </ElDropdownItem>
+                <ElDropdownItem command="history" :disabled="props.loading" :data-test="`credit-card-purchase-history-${purchase.id}`">
+                  <ElIcon><Clock /></ElIcon>
+                  <span>{{ t('creditCards.move.history') }}</span>
+                </ElDropdownItem>
                 <ElDropdownItem
                   v-if="purchase.is_directly_editable"
                   command="correct"
@@ -108,6 +119,10 @@ function handleCommand(purchase, command) {
                 >
                   <ElIcon><RefreshLeft /></ElIcon>
                   <span>{{ t('creditCards.creditEvent.action') }}</span>
+                </ElDropdownItem>
+                <ElDropdownItem command="delete" :disabled="props.loading" :data-test="`credit-card-purchase-delete-${purchase.id}`">
+                  <ElIcon><Delete /></ElIcon>
+                  <span>{{ t('creditCards.delete.action') }}</span>
                 </ElDropdownItem>
               </ElDropdownMenu>
             </template>
