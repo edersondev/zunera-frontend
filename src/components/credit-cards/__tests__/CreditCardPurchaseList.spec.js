@@ -44,9 +44,15 @@ describe('CreditCardPurchaseList', () => {
 
     await wrapper.findComponent({ name: 'ElDropdown' }).vm.$emit('command', 'correct')
     await wrapper.findComponent({ name: 'ElDropdown' }).vm.$emit('command', 'refund')
+    await wrapper.findComponent({ name: 'ElDropdown' }).vm.$emit('command', 'move')
+    await wrapper.findComponent({ name: 'ElDropdown' }).vm.$emit('command', 'history')
+    await wrapper.findComponent({ name: 'ElDropdown' }).vm.$emit('command', 'delete')
 
     expect(wrapper.emitted('correct')).toEqual([[purchase]])
     expect(wrapper.emitted('refund')).toEqual([[purchase]])
+    expect(wrapper.emitted('move')).toEqual([[purchase]])
+    expect(wrapper.emitted('history')).toEqual([[purchase]])
+    expect(wrapper.emitted('delete')).toEqual([[purchase]])
   })
 
   it('shows and navigates the recurrence source for a recurring purchase', async () => {

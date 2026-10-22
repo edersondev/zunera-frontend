@@ -137,6 +137,11 @@ describe('CreditCardCorrectionDialog', () => {
     expect(wrapper.get('[role="alert"]').text()).toContain('closed installment')
   })
 
+  it('guides a moved-purchase allocation conflict to the Move action', () => {
+    const wrapper = factory({ mutationError: { code: 'MOVED_PURCHASE_ALLOCATION_CONFLICT', message: 'Conflict' } })
+    expect(wrapper.get('[data-test="credit-card-correction-moved-conflict"]').text()).toContain('use Mover')
+  })
+
   it('adds icons to every labelled form action', () => {
     const wrapper = factory()
 

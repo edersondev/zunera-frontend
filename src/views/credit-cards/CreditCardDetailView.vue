@@ -12,6 +12,8 @@ import CreditCardPurchaseForm from '@/components/credit-cards/CreditCardPurchase
 import CreditCardPurchaseList from '@/components/credit-cards/CreditCardPurchaseList.vue'
 import CreditCardCorrectionDialog from '@/components/credit-cards/CreditCardCorrectionDialog.vue'
 import CreditCardCreditEventDialog from '@/components/credit-cards/CreditCardCreditEventDialog.vue'
+import CreditCardPurchaseMoveDialog from '@/components/credit-cards/CreditCardPurchaseMoveDialog.vue'
+import CreditCardPurchaseDeleteDialog from '@/components/credit-cards/CreditCardPurchaseDeleteDialog.vue'
 import CreditCardStatementHistory from '@/components/credit-cards/CreditCardStatementHistory.vue'
 import { useCreditCardStore } from '@/stores/credit-cards/creditCardStore'
 import {
@@ -32,6 +34,10 @@ const correctionTarget = shallowRef(null)
 const creditEventTarget = shallowRef(null)
 const correctionVisible = shallowRef(false)
 const creditEventVisible = shallowRef(false)
+const moveTarget = shallowRef(null)
+const moveVisible = shallowRef(false)
+const deleteTarget = shallowRef(null)
+const deleteVisible = shallowRef(false)
 
 function openRecurrenceSource(purchase) {
   const source = purchase?.recurrence_source
@@ -53,7 +59,51 @@ function goBack() {
 function openPurchaseDialog() {
   createdPurchase.value = null
   store.dismissOverLimit()
+  store.clearStatementOptions()
+  store.dismissMutationError()
   purchaseDialogVisible.value = true
+}
+
+function requestStatementOptions({ cardId, purchaseDate, fromMonth }) {
+  if (!fromMonth) store.clearStatementOptions()
+  return store.fetchStatementOptions(cardId, {
+    purchase_date: purchaseDate,
+    ...(fromMonth ? { from_month: fromMonth } : {}),
+  })
+}
+
+function openMove(purchase) {
+  store.dismissMutationError()
+  store.clearStatementOptions()
+  store.clearMovePreview()
+  store.clearMoveHistory()
+  moveTarget.value = purchase
+  moveVisible.value = true
+  store.fetchMoveHistory(purchase.id)
+}
+
+async function submitMove(payload) {
+  if (!moveTarget.value) return
+  const outcome = await store.submitMove(moveTarget.value.id, payload, Number(props.cardId ?? route.params.card_id))
+  if (!outcome.ok) return
+  moveVisible.value = false
+  moveTarget.value = null
+  showActionSuccess(t('creditCards.move.saved'))
+}
+
+function openDelete(purchase) {
+  store.dismissMutationError()
+  deleteTarget.value = purchase
+  deleteVisible.value = true
+}
+
+async function confirmDelete() {
+  if (!deleteTarget.value) return
+  const outcome = await store.submitDeletePurchase(deleteTarget.value.id, Number(props.cardId ?? route.params.card_id))
+  if (!outcome.ok) return
+  deleteVisible.value = false
+  deleteTarget.value = null
+  showActionSuccess(t('creditCards.delete.saved'))
 }
 
 async function submitPurchase(payload) {
@@ -176,6 +226,9 @@ function openStatement(statement) {
         :loading="store.submitting"
         @correct="openCorrection"
         @refund="openCreditEvent"
+        @move="openMove"
+        @history="openMove"
+        @delete="openDelete"
         @navigate-source="openRecurrenceSource"
       />
     </template>
@@ -187,7 +240,11 @@ function openStatement(statement) {
       :mutation-error="store.mutationError"
       :over-limit="store.pendingOverLimit"
       :created-purchase="createdPurchase"
+      :statement-options="store.statementOptions"
+      :options-loading="store.optionsLoading"
+      :options-error="store.optionsError"
       @submit="submitPurchase"
+      @request-statement-options="requestStatementOptions"
       @confirm-over-limit="confirmOverLimit"
       @dismiss-over-limit="store.dismissOverLimit()"
       @dismiss-mutation-error="store.dismissMutationError"
@@ -209,6 +266,32 @@ function openStatement(statement) {
       :mutation-error="store.mutationError"
       @submit="submitCreditEvent"
       @dismiss-mutation-error="store.dismissMutationError"
+    />
+    <CreditCardPurchaseMoveDialog
+      v-model:visible="moveVisible"
+      focus-fallback-selector="[data-test='credit-card-detail-back']"
+      :purchase="moveTarget"
+      :options="store.statementOptions"
+      :options-loading="store.optionsLoading"
+      :options-error="store.optionsError"
+      :preview="store.movePreview"
+      :preview-loading="store.previewLoading"
+      :preview-error="store.previewError"
+      :mutation-error="store.mutationError"
+      :history="store.moveHistory"
+      :submitting="store.submitting"
+      @request-options="requestStatementOptions"
+      @request-preview="store.previewMove(moveTarget.id, $event)"
+      @clear-preview="store.clearMovePreview()"
+      @confirm="submitMove"
+    />
+    <CreditCardPurchaseDeleteDialog
+      v-model:visible="deleteVisible"
+      focus-fallback-selector="[data-test='credit-card-detail-back']"
+      :purchase="deleteTarget"
+      :submitting="store.submitting"
+      :mutation-error="store.mutationError"
+      @confirm="confirmDelete"
     />
   </section>
 </template>

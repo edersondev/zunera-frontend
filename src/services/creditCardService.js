@@ -55,6 +55,12 @@ export async function listPurchases(cardId, params = {}) {
 export const createPurchase = (cardId, payload, idempotencyKey) =>
   mutation('post', `${CARDS}/${cardId}/purchases`, payload, idempotencyKey)
 
+export async function getStatementOptions(cardId, params) {
+  const response = await apiRequest({ method: 'get', url: `${CARDS}/${cardId}/statement-options`, params })
+
+  return response.data.data
+}
+
 export async function getPurchase(purchaseId) {
   const response = await apiRequest({ method: 'get', url: `${PURCHASES}/${purchaseId}` })
 
@@ -63,6 +69,27 @@ export async function getPurchase(purchaseId) {
 
 export const updatePurchase = (purchaseId, payload, idempotencyKey) =>
   mutation('patch', `${PURCHASES}/${purchaseId}`, payload, idempotencyKey)
+
+export async function previewPurchaseMove(purchaseId, payload) {
+  const response = await apiRequest(
+    { method: 'post', url: `${PURCHASES}/${purchaseId}/move-preview`, data: payload },
+    MUTATION,
+  )
+
+  return response.data.data
+}
+
+export const movePurchase = (purchaseId, payload, idempotencyKey) =>
+  mutation('post', `${PURCHASES}/${purchaseId}/move`, payload, idempotencyKey)
+
+export async function listPurchaseMoves(purchaseId) {
+  const response = await apiRequest({ method: 'get', url: `${PURCHASES}/${purchaseId}/moves` })
+
+  return response.data.data
+}
+
+export const deletePurchase = (purchaseId, idempotencyKey) =>
+  mutation('delete', `${PURCHASES}/${purchaseId}`, undefined, idempotencyKey)
 
 export const createCreditEvent = (purchaseId, payload, idempotencyKey) =>
   mutation('post', `${PURCHASES}/${purchaseId}/credit-events`, payload, idempotencyKey)

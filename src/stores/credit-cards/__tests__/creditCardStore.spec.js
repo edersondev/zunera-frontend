@@ -5,6 +5,11 @@ vi.mock('@/services/creditCardService', () => ({
   listCards: vi.fn(),
   getCard: vi.fn(),
   getPurchase: vi.fn(),
+  getStatementOptions: vi.fn(),
+  previewPurchaseMove: vi.fn(),
+  movePurchase: vi.fn(),
+  listPurchaseMoves: vi.fn(),
+  deletePurchase: vi.fn(),
   createCard: vi.fn(),
   updateCard: vi.fn(),
   archiveCard: vi.fn(),
@@ -45,9 +50,100 @@ beforeEach(() => {
   service.getCard.mockResolvedValue(activeCard)
   service.createPurchase.mockResolvedValue({ id: 3 })
   service.createCard.mockResolvedValue(activeCard)
+  service.listPurchases.mockResolvedValue({ purchases: [], meta: null })
+  service.listStatements.mockResolvedValue({ statements: [], meta: null })
+  service.getDashboardCards.mockResolvedValue({ upcoming_statements: [] })
 })
 
 describe('creditCardStore', () => {
+  it('loads date-specific options and discards a stale response after the date changes', async () => {
+    const store = useCreditCardStore()
+    let finishFirst
+    service.getStatementOptions.mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve }))
+    service.getStatementOptions.mockResolvedValueOnce({ requires_statement_choice: true, options: [{ closing_date: '2026-12-10' }] })
+    const first = store.fetchStatementOptions(7, { purchase_date: '2026-09-01' })
+    await store.fetchStatementOptions(7, { purchase_date: '2026-10-01' })
+    finishFirst({ requires_statement_choice: false, options: [] })
+    await first
+
+    expect(store.statementOptions.options[0].closing_date).toBe('2026-12-10')
+    expect(service.getStatementOptions).toHaveBeenNthCalledWith(2, 7, { purchase_date: '2026-10-01' })
+    store.clearStatementOptions()
+    expect(store.statementOptions).toBeNull()
+  })
+
+  it('passes an explicit statement choice through creation and surfaces a rejected choice', async () => {
+    const store = useCreditCardStore()
+    const payload = { purchase_date: '2026-09-09', statement_closing_date: '2026-11-10', total_amount_centavos: 1_000 }
+    await store.submitPurchase(7, payload)
+    expect(service.createPurchase).toHaveBeenCalledWith(7, payload, 'generated-key')
+    service.createPurchase.mockRejectedValueOnce({ status: 422, errors: { statement_closing_date: ['Statement choice changed.'] } })
+    const outcome = await store.submitPurchase(7, payload)
+    expect(outcome.ok).toBe(false)
+    expect(store.mutationError.errors.statement_closing_date).toEqual(['Statement choice changed.'])
+  })
+
+  it('keeps stale preview errors and refreshes affected views after a successful move', async () => {
+    const store = useCreditCardStore()
+    service.previewPurchaseMove.mockRejectedValueOnce({ code: 'STALE_MOVE_PREVIEW', message: 'Changed' })
+    expect(await store.previewMove(3, { mode: 'full_schedule' })).toBeNull()
+    expect(store.previewError.code).toBe('STALE_MOVE_PREVIEW')
+    service.previewPurchaseMove.mockResolvedValueOnce({ preview_token: 'fresh' })
+    expect(await store.previewMove(3, { mode: 'full_schedule' })).toEqual({ preview_token: 'fresh' })
+    service.movePurchase.mockResolvedValue({ purchase: { id: 3 } })
+    service.getStatement.mockResolvedValue({ id: 72 })
+
+    const outcome = await store.submitMove(3, { preview_token: 'fresh' }, 7, 72, 'move-key')
+    expect(outcome.ok).toBe(true)
+    expect(service.movePurchase).toHaveBeenCalledWith(3, { preview_token: 'fresh' }, 'move-key')
+    expect(service.getCard).toHaveBeenCalledWith(7)
+    expect(service.listPurchases).toHaveBeenCalledWith(7)
+    expect(service.listStatements).toHaveBeenCalledWith(7)
+    expect(service.getStatement).toHaveBeenCalledWith(72)
+    expect(service.getDashboardCards).toHaveBeenCalled()
+    expect(store.movePreview).toBeNull()
+  })
+
+  it('ignores an older move preview after the target changes or preview is cleared', async () => {
+    const store = useCreditCardStore()
+    let finishFirst
+    let finishSecond
+    service.previewPurchaseMove
+      .mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve }))
+      .mockImplementationOnce(() => new Promise((resolve) => { finishSecond = resolve }))
+
+    const first = store.previewMove(3, { target_closing_date: '2026-11-10' })
+    const second = store.previewMove(3, { target_closing_date: '2026-12-10' })
+    finishSecond({ preview_token: 'december' })
+    expect(await second).toEqual({ preview_token: 'december' })
+    finishFirst({ preview_token: 'november' })
+    expect(await first).toBeNull()
+    expect(store.movePreview.preview_token).toBe('december')
+
+    let finishCleared
+    service.previewPurchaseMove.mockImplementationOnce(() => new Promise((resolve) => { finishCleared = resolve }))
+    const pending = store.previewMove(3, { target_closing_date: '2027-01-10' })
+    store.clearMovePreview()
+    finishCleared({ preview_token: 'january' })
+    expect(await pending).toBeNull()
+    expect(store.movePreview).toBeNull()
+    expect(store.previewLoading).toBe(false)
+  })
+
+  it('keeps linked-credit delete conflict and refreshes after a successful delete', async () => {
+    const store = useCreditCardStore()
+    service.deletePurchase.mockRejectedValueOnce({ code: 'PURCHASE_HAS_LINKED_CREDITS' })
+    const rejected = await store.submitDeletePurchase(3, 7, 72, 'delete-key')
+    expect(rejected.ok).toBe(false)
+    expect(store.mutationError.code).toBe('PURCHASE_HAS_LINKED_CREDITS')
+    service.deletePurchase.mockResolvedValueOnce({ deleted_purchase_id: 3 })
+    service.getStatement.mockResolvedValue({ id: 72, payments: [{ id: 9 }] })
+    const success = await store.submitDeletePurchase(3, 7, 72, 'delete-key')
+    expect(success.ok).toBe(true)
+    expect(service.deletePurchase).toHaveBeenLastCalledWith(3, 'delete-key')
+    expect(store.statement.payments).toEqual([{ id: 9 }])
+    expect(service.listPurchases).toHaveBeenCalledWith(7)
+  })
   it('loads active and archived cards separately', async () => {
     const store = useCreditCardStore()
     service.listCards

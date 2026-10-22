@@ -87,8 +87,12 @@ describe('CreditCardStatementLineItems', () => {
     await wrapper.get('[data-test="credit-card-line-toggle-301"]').trigger('click')
     await wrapper.get('[data-test="credit-card-line-correct-301"]').trigger('click')
     await wrapper.get('[data-test="credit-card-line-refund-301"]').trigger('click')
+    await wrapper.get('[data-test="credit-card-line-move-301"]').trigger('click')
+    await wrapper.get('[data-test="credit-card-line-delete-301"]').trigger('click')
     expect(wrapper.emitted('correct')).toHaveLength(1)
     expect(wrapper.emitted('refund')).toHaveLength(1)
+    expect(wrapper.emitted('move')[0][0].id).toBe(301)
+    expect(wrapper.emitted('delete')[0][0].purchase_id).toBe(401)
     expect(wrapper.get('[data-test="credit-card-line-toggle-301"]').attributes('aria-expanded')).toBe('true')
 
     await wrapper.setProps({ installments: [installment(301, { is_directly_editable: false })] })
