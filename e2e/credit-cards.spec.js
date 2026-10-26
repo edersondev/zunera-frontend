@@ -7,6 +7,30 @@ test.beforeEach(async ({ page }) => {
   await pinLocale(page, 'en')
 })
 
+test('purchase history loads remaining pages while scrolling and stops at the last page', async ({ page }) => {
+  const card = creditCard(41, 'Nubank Platinum')
+  const pages = []
+  const purchases = Array.from({ length: 61 }, (_, index) => purchaseFixture(card, {
+    category_id: 18,
+    description: `Purchase ${61 - index}`,
+    purchase_date: '2026-09-05',
+    total_amount_centavos: 1_000,
+    installment_count: 1,
+  }, 361 - index))
+  await mockCreditCardsApi(page, { cards: [card], purchases, paginatedPurchases: true, onPurchasePage: (number) => pages.push(number) })
+
+  await page.goto('/app/credit-cards/41')
+  const rows = page.locator('[data-test^="credit-card-purchase-"][class~="purchase-row"]')
+  await expect(rows).toHaveCount(50)
+  const scroll = page.locator('[data-test="credit-card-purchase-scrollbar"] .el-scrollbar__wrap')
+  await scroll.evaluate((element) => { element.scrollTop = element.scrollHeight })
+  await expect(rows).toHaveCount(61)
+  await expect(page.getByText('All purchases loaded.')).toBeVisible()
+  expect(new Set(await rows.evaluateAll((elements) => elements.map((element) => element.dataset.test))).size).toBe(61)
+  await scroll.evaluate((element) => { element.scrollTop = 0; element.scrollTop = element.scrollHeight })
+  expect(pages).toEqual([1, 2])
+})
+
 test('owner creates card, sees its detail, and sends only non-sensitive payload', async ({ page }) => {
   let createPayload = null
   await mockCreditCardsApi(page, {
@@ -822,6 +846,16 @@ async function mockCreditCardsApi(page, options) {
     }
 
     if (action === 'purchases' && request.method() === 'GET') {
+      if (options.paginatedPurchases) {
+        const pageNumber = Number(url.searchParams.get('page') ?? 1)
+        const perPage = 50
+        const purchases = options.purchases ?? []
+        options.onPurchasePage?.(pageNumber)
+        return route.fulfill({ json: {
+          data: purchases.slice((pageNumber - 1) * perPage, pageNumber * perPage),
+          meta: { current_page: pageNumber, last_page: Math.max(1, Math.ceil(purchases.length / perPage)), per_page: perPage, total: purchases.length },
+        }, headers: apiHeaders() })
+      }
       return route.fulfill({ json: { data: options.purchases ?? [], meta: { current_page: 1, last_page: 1, per_page: 50, total: (options.purchases ?? []).length } }, headers: apiHeaders() })
     }
     if (action === 'purchases' && request.method() === 'POST') {

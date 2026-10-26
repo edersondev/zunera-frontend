@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, shallowRef } from 'vue'
+import { computed, shallowRef, watch } from 'vue'
 import { ElAlert, ElButton, ElSkeleton } from 'element-plus'
 import { ArrowLeft, Plus } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -26,7 +26,7 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
-const card = computed(() => store.card)
+const card = computed(() => store.card?.id === Number(props.cardId ?? route.params.card_id) ? store.card : null)
 const currentStatement = computed(() => card.value?.current_statement ?? null)
 const purchaseDialogVisible = shallowRef(false)
 const createdPurchase = shallowRef(null)
@@ -46,11 +46,9 @@ function openRecurrenceSource(purchase) {
   router.push({ name: 'recurring-transactions', query: { highlight: source.recurring_transaction_id } })
 }
 
-onMounted(async () => {
-  const id = Number(props.cardId ?? route.params.card_id)
-  await store.fetchCard(id)
-  await Promise.allSettled([store.fetchStatements(id), store.fetchPurchases(id)])
-})
+watch(() => Number(props.cardId ?? route.params.card_id), async (id) => {
+  await Promise.allSettled([store.fetchCard(id), store.fetchStatements(id), store.fetchPurchases(id)])
+}, { immediate: true })
 
 function goBack() {
   router.push({ name: 'credit-cards' })
@@ -113,23 +111,16 @@ async function submitPurchase(payload) {
     createdPurchase.value = outcome.purchase
     showActionSuccess(t('creditCards.purchase.created'))
     purchaseDialogVisible.value = false
-    await refreshCardActivity(cardId)
   }
 }
 
 async function confirmOverLimit() {
-  const cardId = Number(props.cardId ?? route.params.card_id)
   const outcome = await store.submitOverLimit()
   if (outcome.ok) {
     createdPurchase.value = outcome.purchase
     showActionSuccess(t('creditCards.purchase.created'))
     purchaseDialogVisible.value = false
-    await refreshCardActivity(cardId)
   }
-}
-
-async function refreshCardActivity(cardId) {
-  await Promise.allSettled([store.fetchStatements(cardId), store.fetchPurchases(cardId)])
 }
 
 function openCorrection(purchase) {
@@ -224,6 +215,13 @@ function openStatement(statement) {
       <CreditCardPurchaseList
         :purchases="store.purchases"
         :loading="store.submitting"
+        :purchase-loading="store.purchaseLoading"
+        :loading-more="store.purchaseLoadingMore"
+        :has-more="store.hasMorePurchases"
+        :load-error="store.purchaseLoadError"
+        :reset-key="store.purchaseListVersion"
+        @load-more="store.loadMorePurchases(Number(props.cardId ?? route.params.card_id))"
+        @retry="store.retryPurchases(Number(props.cardId ?? route.params.card_id))"
         @correct="openCorrection"
         @refund="openCreditEvent"
         @move="openMove"

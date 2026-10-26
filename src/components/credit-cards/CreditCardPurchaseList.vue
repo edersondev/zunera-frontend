@@ -1,12 +1,15 @@
 <script setup>
+import { nextTick, shallowRef, watch } from 'vue'
 import { Clock, Delete, Edit, MoreFilled, Position, RefreshLeft } from '@element-plus/icons-vue'
 import {
+  ElAlert,
   ElButton,
   ElDropdown,
   ElDropdownItem,
   ElDropdownMenu,
   ElEmpty,
   ElIcon,
+  ElScrollbar,
   ElTag,
 } from 'element-plus'
 import { useI18n } from 'vue-i18n'
@@ -21,10 +24,27 @@ const props = defineProps({
   purchases: { type: Array, default: () => [] },
   locale: { type: String, default: 'pt-BR' },
   loading: { type: Boolean, default: false },
+  purchaseLoading: { type: Boolean, default: false },
+  loadingMore: { type: Boolean, default: false },
+  hasMore: { type: Boolean, default: false },
+  loadError: { type: Object, default: null },
+  resetKey: { type: Number, default: 0 },
 })
 
-const emit = defineEmits(['correct', 'refund', 'move', 'history', 'delete', 'navigate-source'])
+const emit = defineEmits(['correct', 'refund', 'move', 'history', 'delete', 'navigate-source', 'load-more', 'retry'])
 const { t } = useI18n()
+const scrollbar = shallowRef(null)
+
+watch(() => props.resetKey, async () => {
+  await nextTick()
+  scrollbar.value?.setScrollTop(0)
+})
+
+function handleEndReached(direction) {
+  if (direction === 'bottom' && props.hasMore && !props.purchaseLoading && !props.loadingMore && !props.loadError) {
+    emit('load-more')
+  }
+}
 
 function handleCommand(purchase, command) {
   if (props.loading) return
@@ -40,9 +60,10 @@ function handleCommand(purchase, command) {
 <template>
   <section class="purchase-history" data-test="credit-card-purchases" aria-labelledby="purchase-history-title">
     <h2 id="purchase-history-title">{{ t('creditCards.detail.purchases') }}</h2>
-    <ElEmpty v-if="props.purchases.length === 0" :description="t('creditCards.purchasesEmpty')" />
+    <p v-if="props.purchaseLoading && props.purchases.length === 0" role="status">{{ t('creditCards.purchasesLoading') }}</p>
+    <ElEmpty v-else-if="props.purchases.length === 0 && !props.loadError" :description="t('creditCards.purchasesEmpty')" />
     <template v-else>
-      <div class="purchase-columns" aria-hidden="true">
+      <div v-if="props.purchases.length" class="purchase-columns" aria-hidden="true">
         <span>{{ t('creditCards.purchase.description') }}</span>
         <span>{{ t('creditCards.purchase.date') }}</span>
         <span>{{ t('creditCards.purchase.installments') }}</span>
@@ -50,6 +71,16 @@ function handleCommand(purchase, command) {
         <span>{{ t('creditCards.purchase.status') }}</span>
         <span>{{ t('creditCards.purchase.actions') }}</span>
       </div>
+      <ElScrollbar
+        v-if="props.purchases.length"
+        ref="scrollbar"
+        :max-height="480"
+        :distance="80"
+        :tabindex="0"
+        :aria-label="t('creditCards.detail.purchases')"
+        data-test="credit-card-purchase-scrollbar"
+        @end-reached="handleEndReached"
+      >
       <ul class="purchase-list">
         <li
           v-for="purchase in props.purchases"
@@ -129,6 +160,13 @@ function handleCommand(purchase, command) {
           </ElDropdown>
         </li>
       </ul>
+      <p v-if="props.loadingMore" class="purchase-list-status" role="status">{{ t('creditCards.purchasesLoadingMore') }}</p>
+      <p v-else-if="!props.hasMore && !props.loadError" class="purchase-list-status">{{ t('creditCards.purchasesEnd') }}</p>
+      </ElScrollbar>
+      <ElAlert v-if="props.loadError" type="error" :closable="false" :title="t('creditCards.purchasesLoadError')" />
+      <ElButton v-if="props.loadError" data-test="credit-card-purchases-retry" @click="emit('retry')">
+        {{ t('creditCards.purchasesRetry') }}
+      </ElButton>
     </template>
   </section>
 </template>
@@ -169,6 +207,13 @@ function handleCommand(purchase, command) {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.purchase-list-status {
+  margin: 0;
+  padding: 12px 16px;
+  color: var(--color-text-muted);
+  text-align: center;
 }
 
 .purchase-meta {

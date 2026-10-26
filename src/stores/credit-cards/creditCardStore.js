@@ -42,6 +42,15 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
   const statements = shallowRef([])
   const statement = shallowRef(null)
   const purchases = shallowRef([])
+  const purchaseMeta = shallowRef(null)
+  const purchaseLoading = shallowRef(false)
+  const purchaseLoadingMore = shallowRef(false)
+  const purchaseLoadError = shallowRef(null)
+  const purchaseListVersion = shallowRef(0)
+  let purchaseRequestVersion = 0
+  let purchaseCardId = null
+  let cardRequestVersion = 0
+  let statementsRequestVersion = 0
   const dashboard = shallowRef(null)
   const statementOptions = shallowRef(null)
   const optionsLoading = shallowRef(false)
@@ -62,6 +71,9 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
 
   const activeCards = computed(() => cards.value)
   const hasCards = computed(() => cards.value.length > 0)
+  const hasMorePurchases = computed(() =>
+    (purchaseMeta.value?.current_page ?? 1) < (purchaseMeta.value?.last_page ?? 1),
+  )
   const currentStatement = computed(() => card.value?.current_statement ?? null)
   const upcomingStatements = computed(() => dashboard.value?.upcoming_statements ?? [])
   const history = computed(() => {
@@ -90,17 +102,19 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
   }
 
   async function fetchCard(cardId) {
+    const version = ++cardRequestVersion
     loading.value = true
     error.value = null
 
     try {
-      card.value = await getCard(cardId)
-      return card.value
+      const result = await getCard(cardId)
+      if (version === cardRequestVersion) card.value = result
+      return result
     } catch (requestError) {
-      error.value = requestError
+      if (version === cardRequestVersion) error.value = requestError
       return null
     } finally {
-      loading.value = false
+      if (version === cardRequestVersion) loading.value = false
     }
   }
 
@@ -138,13 +152,14 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
   }
 
   async function fetchStatements(cardId, params = {}) {
+    const version = ++statementsRequestVersion
     try {
       const result = await listStatements(cardId, params)
-      statements.value = result.statements
+      if (version === statementsRequestVersion) statements.value = result.statements
 
       return result
     } catch (requestError) {
-      error.value = requestError
+      if (version === statementsRequestVersion) error.value = requestError
 
       return { statements: [], meta: null }
     }
@@ -165,16 +180,58 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
   }
 
   async function fetchPurchases(cardId, params = {}) {
+    const version = ++purchaseRequestVersion
+    purchaseCardId = cardId
+    purchases.value = []
+    purchaseMeta.value = null
+    purchaseLoadError.value = null
+    purchaseLoading.value = true
+    purchaseLoadingMore.value = false
+    purchaseListVersion.value++
+
     try {
       const result = await listPurchases(cardId, params)
-      purchases.value = result.purchases
+      if (version === purchaseRequestVersion) {
+        purchases.value = result.purchases
+        purchaseMeta.value = result.meta
+      }
 
       return result
     } catch (requestError) {
-      error.value = requestError
+      if (version === purchaseRequestVersion) purchaseLoadError.value = requestError
 
       return { purchases: [], meta: null }
+    } finally {
+      if (version === purchaseRequestVersion) purchaseLoading.value = false
     }
+  }
+
+  async function loadMorePurchases(cardId, retry = false) {
+    if (cardId !== purchaseCardId || !hasMorePurchases.value || purchaseLoading.value || purchaseLoadingMore.value || (purchaseLoadError.value && !retry)) return null
+
+    const version = purchaseRequestVersion
+    const page = purchaseMeta.value.current_page + 1
+    purchaseLoadError.value = null
+    purchaseLoadingMore.value = true
+
+    try {
+      const result = await listPurchases(cardId, { page })
+      if (version === purchaseRequestVersion) {
+        const knownIds = new Set(purchases.value.map((purchase) => purchase.id))
+        purchases.value = [...purchases.value, ...result.purchases.filter((purchase) => !knownIds.has(purchase.id))]
+        purchaseMeta.value = result.meta
+      }
+      return result
+    } catch (requestError) {
+      if (version === purchaseRequestVersion) purchaseLoadError.value = requestError
+      return null
+    } finally {
+      if (version === purchaseRequestVersion) purchaseLoadingMore.value = false
+    }
+  }
+
+  function retryPurchases(cardId) {
+    return purchaseMeta.value ? loadMorePurchases(cardId, true) : fetchPurchases(cardId)
   }
 
   async function fetchPurchase(purchaseId) {
@@ -272,10 +329,11 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
   }
 
   async function submitMove(purchaseId, payload, cardId, statementId = null, idempotencyKey = newIdempotencyKey()) {
+    const cardVersion = cardRequestVersion
     const outcome = await runMutation(async () => {
       const result = await movePurchase(purchaseId, payload, idempotencyKey)
       clearMovePreview()
-      await refreshCardActivity(cardId, statementId)
+      await refreshCardActivity(cardId, statementId, cardVersion)
       return result
     })
     if (!outcome.ok && mutationError.value?.code === 'STALE_MOVE_PREVIEW') clearMovePreview()
@@ -283,9 +341,10 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
   }
 
   async function submitDeletePurchase(purchaseId, cardId, statementId = null, idempotencyKey = newIdempotencyKey()) {
+    const cardVersion = cardRequestVersion
     return runMutation(async () => {
       const result = await deletePurchase(purchaseId, idempotencyKey)
-      await refreshCardActivity(cardId, statementId)
+      await refreshCardActivity(cardId, statementId, cardVersion)
       return result
     })
   }
@@ -296,13 +355,14 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
    * submitOverLimit() sends the same details as a new mutation with a fresh key.
    */
   async function submitPurchase(cardId, payload) {
+    const cardVersion = cardRequestVersion
     submitting.value = true
     mutationError.value = null
     pendingOverLimit.value = null
 
     try {
       const purchase = await createPurchase(cardId, payload, newIdempotencyKey())
-      await refreshCardAfterMutation(cardId)
+      await refreshCardAfterMutation(cardId, cardVersion)
 
       return { ok: true, purchase, overLimit: false }
     } catch (requestError) {
@@ -327,6 +387,7 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
   async function submitOverLimit() {
     const pending = pendingOverLimit.value
     if (!pending) return { ok: false, purchase: null }
+    const cardVersion = cardRequestVersion
 
     submitting.value = true
     mutationError.value = null
@@ -342,7 +403,7 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
         newIdempotencyKey(),
       )
       pendingOverLimit.value = null
-      await refreshCardAfterMutation(pending.cardId)
+      await refreshCardAfterMutation(pending.cardId, cardVersion)
 
       return { ok: true, purchase, overLimit: false }
     } catch (requestError) {
@@ -403,9 +464,10 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
   }
 
   async function submitCreditEvent(purchaseId, payload) {
+    const cardVersion = cardRequestVersion
     return runMutation(async () => {
       const result = await createCreditEvent(purchaseId, payload, newIdempotencyKey())
-      card.value = result.card
+      if (cardVersion === cardRequestVersion) card.value = result.card
 
       return result
     })
@@ -416,32 +478,38 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
    * editable; the server re-checks that every installment remains open.
    */
   async function submitPurchaseCorrection(purchaseId, payload) {
+    const cardVersion = cardRequestVersion
     return runMutation(async () => {
       const purchase = await updatePurchase(purchaseId, payload, newIdempotencyKey())
-      card.value = await getCard(purchase.card.id)
+      const refreshedCard = await getCard(purchase.card.id)
+      if (cardVersion === cardRequestVersion) card.value = refreshedCard
       await refreshCardsQuietly()
 
       return purchase
     })
   }
 
-  async function refreshCardAfterMutation(cardId) {
-    await refreshCardActivity(cardId)
+  async function refreshCardAfterMutation(cardId, cardVersion) {
+    await refreshCardActivity(cardId, null, cardVersion)
   }
 
-  async function refreshCardActivity(cardId, statementId = null) {
+  async function refreshCardActivity(cardId, statementId = null, cardVersion = cardRequestVersion) {
     if (!cardId) return
     const refreshes = [
-      getCard(cardId).then((result) => { card.value = result }),
       listCards('active').then((result) => { cards.value = result }),
-      listPurchases(cardId).then((result) => { purchases.value = result.purchases }),
-      listStatements(cardId).then((result) => { statements.value = result.statements }),
       getDashboardCards().then((result) => { dashboard.value = result }),
     ]
-    if (statementId) refreshes.push(getStatement(statementId).then((result) => { statement.value = result }))
+    if (cardVersion === cardRequestVersion) {
+      refreshes.push(
+        getCard(cardId).then((result) => { if (cardVersion === cardRequestVersion) card.value = result }),
+        fetchPurchases(cardId),
+        listStatements(cardId).then((result) => { if (cardVersion === cardRequestVersion) statements.value = result.statements }),
+      )
+      if (statementId) refreshes.push(getStatement(statementId).then((result) => { if (cardVersion === cardRequestVersion) statement.value = result }))
+    }
     const outcomes = await Promise.allSettled(refreshes)
     const failure = outcomes.find((outcome) => outcome.status === 'rejected')
-    if (failure) error.value = failure.reason
+    if (failure && cardVersion === cardRequestVersion) error.value = failure.reason
   }
 
   async function refreshCardsQuietly() {
@@ -474,6 +542,12 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
     statements,
     statement,
     purchases,
+    purchaseMeta,
+    purchaseLoading,
+    purchaseLoadingMore,
+    purchaseLoadError,
+    purchaseListVersion,
+    hasMorePurchases,
     dashboard,
     statementOptions,
     optionsLoading,
@@ -500,6 +574,8 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
     fetchStatements,
     fetchStatement,
     fetchPurchases,
+    loadMorePurchases,
+    retryPurchases,
     fetchPurchase,
     fetchDashboard,
     fetchStatementOptions,

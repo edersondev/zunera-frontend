@@ -20,6 +20,44 @@ const ElDropdown = {
 }
 
 describe('CreditCardPurchaseList', () => {
+  it('loads at the bottom only when another page is available and offers retry after failure', async () => {
+    const wrapper = mount(CreditCardPurchaseList, {
+      props: { purchases: [purchase], hasMore: true },
+      global: {
+        plugins: [i18n],
+        stubs: {
+          ElScrollbar: { name: 'ElScrollbar', emits: ['end-reached'], template: '<div><slot /></div>', methods: { setScrollTop() {} } },
+          ElDropdown,
+          ElDropdownMenu: { template: '<div><slot /></div>' },
+          ElDropdownItem: { template: '<button><slot /></button>' },
+          ElButton: { emits: ['click'], template: '<button @click="$emit(\'click\')"><slot /></button>' },
+          ElTag: { template: '<span><slot /></span>' },
+          ElIcon: { template: '<span><slot /></span>' },
+          ElAlert: true,
+        },
+      },
+    })
+    const scrollbar = wrapper.findComponent({ name: 'ElScrollbar' })
+    scrollbar.vm.$emit('end-reached', 'top')
+    scrollbar.vm.$emit('end-reached', 'bottom')
+    expect(wrapper.emitted('load-more')).toHaveLength(1)
+
+    await wrapper.setProps({ loadingMore: true })
+    scrollbar.vm.$emit('end-reached', 'bottom')
+    expect(wrapper.emitted('load-more')).toHaveLength(1)
+
+    await wrapper.setProps({ loadingMore: false, loadError: new Error('Offline') })
+    scrollbar.vm.$emit('end-reached', 'bottom')
+    expect(wrapper.emitted('load-more')).toHaveLength(1)
+    await wrapper.get('[data-test="credit-card-purchases-retry"]').trigger('click')
+    expect(wrapper.emitted('retry')).toHaveLength(1)
+
+    await wrapper.setProps({ loadError: null, hasMore: false })
+    scrollbar.vm.$emit('end-reached', 'bottom')
+    expect(wrapper.emitted('load-more')).toHaveLength(1)
+    expect(wrapper.text()).toContain('Todas as compras foram carregadas.')
+  })
+
   it('keeps purchase values readable and sends contextual actions as existing intents', async () => {
     const wrapper = mount(CreditCardPurchaseList, {
       props: { purchases: [purchase] },
