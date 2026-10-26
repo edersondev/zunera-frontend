@@ -329,10 +329,11 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
   }
 
   async function submitMove(purchaseId, payload, cardId, statementId = null, idempotencyKey = newIdempotencyKey()) {
+    const cardVersion = cardRequestVersion
     const outcome = await runMutation(async () => {
       const result = await movePurchase(purchaseId, payload, idempotencyKey)
       clearMovePreview()
-      await refreshCardActivity(cardId, statementId)
+      await refreshCardActivity(cardId, statementId, cardVersion)
       return result
     })
     if (!outcome.ok && mutationError.value?.code === 'STALE_MOVE_PREVIEW') clearMovePreview()
@@ -340,9 +341,10 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
   }
 
   async function submitDeletePurchase(purchaseId, cardId, statementId = null, idempotencyKey = newIdempotencyKey()) {
+    const cardVersion = cardRequestVersion
     return runMutation(async () => {
       const result = await deletePurchase(purchaseId, idempotencyKey)
-      await refreshCardActivity(cardId, statementId)
+      await refreshCardActivity(cardId, statementId, cardVersion)
       return result
     })
   }
@@ -353,13 +355,14 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
    * submitOverLimit() sends the same details as a new mutation with a fresh key.
    */
   async function submitPurchase(cardId, payload) {
+    const cardVersion = cardRequestVersion
     submitting.value = true
     mutationError.value = null
     pendingOverLimit.value = null
 
     try {
       const purchase = await createPurchase(cardId, payload, newIdempotencyKey())
-      await refreshCardAfterMutation(cardId)
+      await refreshCardAfterMutation(cardId, cardVersion)
 
       return { ok: true, purchase, overLimit: false }
     } catch (requestError) {
@@ -384,6 +387,7 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
   async function submitOverLimit() {
     const pending = pendingOverLimit.value
     if (!pending) return { ok: false, purchase: null }
+    const cardVersion = cardRequestVersion
 
     submitting.value = true
     mutationError.value = null
@@ -399,7 +403,7 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
         newIdempotencyKey(),
       )
       pendingOverLimit.value = null
-      await refreshCardAfterMutation(pending.cardId)
+      await refreshCardAfterMutation(pending.cardId, cardVersion)
 
       return { ok: true, purchase, overLimit: false }
     } catch (requestError) {
@@ -460,9 +464,10 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
   }
 
   async function submitCreditEvent(purchaseId, payload) {
+    const cardVersion = cardRequestVersion
     return runMutation(async () => {
       const result = await createCreditEvent(purchaseId, payload, newIdempotencyKey())
-      card.value = result.card
+      if (cardVersion === cardRequestVersion) card.value = result.card
 
       return result
     })
@@ -473,32 +478,38 @@ export const useCreditCardStore = defineStore('credit-cards', () => {
    * editable; the server re-checks that every installment remains open.
    */
   async function submitPurchaseCorrection(purchaseId, payload) {
+    const cardVersion = cardRequestVersion
     return runMutation(async () => {
       const purchase = await updatePurchase(purchaseId, payload, newIdempotencyKey())
-      card.value = await getCard(purchase.card.id)
+      const refreshedCard = await getCard(purchase.card.id)
+      if (cardVersion === cardRequestVersion) card.value = refreshedCard
       await refreshCardsQuietly()
 
       return purchase
     })
   }
 
-  async function refreshCardAfterMutation(cardId) {
-    await refreshCardActivity(cardId)
+  async function refreshCardAfterMutation(cardId, cardVersion) {
+    await refreshCardActivity(cardId, null, cardVersion)
   }
 
-  async function refreshCardActivity(cardId, statementId = null) {
+  async function refreshCardActivity(cardId, statementId = null, cardVersion = cardRequestVersion) {
     if (!cardId) return
     const refreshes = [
-      getCard(cardId).then((result) => { card.value = result }),
       listCards('active').then((result) => { cards.value = result }),
-      fetchPurchases(cardId),
-      listStatements(cardId).then((result) => { statements.value = result.statements }),
       getDashboardCards().then((result) => { dashboard.value = result }),
     ]
-    if (statementId) refreshes.push(getStatement(statementId).then((result) => { statement.value = result }))
+    if (cardVersion === cardRequestVersion) {
+      refreshes.push(
+        getCard(cardId).then((result) => { if (cardVersion === cardRequestVersion) card.value = result }),
+        fetchPurchases(cardId),
+        listStatements(cardId).then((result) => { if (cardVersion === cardRequestVersion) statements.value = result.statements }),
+      )
+      if (statementId) refreshes.push(getStatement(statementId).then((result) => { if (cardVersion === cardRequestVersion) statement.value = result }))
+    }
     const outcomes = await Promise.allSettled(refreshes)
     const failure = outcomes.find((outcome) => outcome.status === 'rejected')
-    if (failure) error.value = failure.reason
+    if (failure && cardVersion === cardRequestVersion) error.value = failure.reason
   }
 
   async function refreshCardsQuietly() {

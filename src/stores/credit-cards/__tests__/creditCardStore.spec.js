@@ -198,6 +198,48 @@ describe('creditCardStore', () => {
     expect(store.purchaseLoadingMore).toBe(false)
     expect(store.purchaseListVersion).toBe(2)
   })
+
+  it('does not replace a new card when an old card mutation finishes after navigation', async () => {
+    const store = useCreditCardStore()
+    let finishMove
+    service.getCard.mockImplementation(async (id) => ({ ...activeCard, id }))
+    service.listPurchases.mockImplementation(async (id) => ({
+      purchases: [{ id: id * 10 }],
+      meta: { current_page: 1, last_page: 1 },
+    }))
+    service.movePurchase.mockImplementationOnce(() => new Promise((resolve) => { finishMove = resolve }))
+
+    await store.fetchCard(7)
+    await store.fetchPurchases(7)
+    const moving = store.submitMove(70, { preview_token: 'move' }, 7)
+    await store.fetchCard(8)
+    await store.fetchPurchases(8)
+    finishMove({ purchase: { id: 70 } })
+    await moving
+
+    expect(store.card.id).toBe(8)
+    expect(store.purchases.map((purchase) => purchase.id)).toEqual([80])
+    expect(service.listPurchases).toHaveBeenCalledTimes(2)
+  })
+
+  it('ignores an old card refresh that resolves after navigation', async () => {
+    const store = useCreditCardStore()
+    let finishOldCardRefresh
+    service.getCard
+      .mockResolvedValueOnce({ ...activeCard, id: 7 })
+      .mockImplementationOnce(() => new Promise((resolve) => { finishOldCardRefresh = resolve }))
+      .mockResolvedValueOnce({ ...activeCard, id: 8 })
+    service.movePurchase.mockResolvedValueOnce({ purchase: { id: 70 } })
+
+    await store.fetchCard(7)
+    const moving = store.submitMove(70, { preview_token: 'move' }, 7)
+    await vi.waitFor(() => expect(finishOldCardRefresh).toBeTypeOf('function'))
+    await store.fetchCard(8)
+    finishOldCardRefresh({ ...activeCard, id: 7 })
+    await moving
+
+    expect(store.card.id).toBe(8)
+  })
   it('loads active and archived cards separately', async () => {
     const store = useCreditCardStore()
     service.listCards
